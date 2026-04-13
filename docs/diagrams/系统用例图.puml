@@ -1,0 +1,239 @@
+@startuml 系统用例图
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam usecase {
+  BackgroundColor #E8F4FD
+  BorderColor #2E86AB
+  FontSize 12
+}
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  FontSize 12
+}
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #666666
+}
+
+left to right direction
+
+actor "系统管理员" as Admin #FF6B6B
+actor "测试经理" as Manager #4ECDC4
+actor "测试人员" as Tester #45B7D1
+actor "开发人员" as Developer #96CEB4
+
+rectangle "IATMSII接口自动化测试管理系统" {
+  package "用户权限管理功能" {
+    usecase "UC1: 用户登录" as UC1
+    usecase "UC2: 用户注册" as UC2
+    usecase "UC3: 用户信息管理" as UC3
+    usecase "UC4: 角色权限管理" as UC4
+    usecase "UC5: 密码修改" as UC5
+  }
+
+  package "项目管理功能" {
+    usecase "UC6: 创建项目" as UC6
+    usecase "UC7: 编辑项目" as UC7
+    usecase "UC8: 删除项目" as UC8
+    usecase "UC9: 项目成员管理" as UC9
+    usecase "UC10: 项目配置管理" as UC10
+  }
+
+  package "接口管理功能" {
+    usecase "UC11: 添加接口" as UC11
+    usecase "UC12: 编辑接口" as UC12
+    usecase "UC13: 删除接口" as UC13
+    usecase "UC14: 接口分组管理" as UC14
+    usecase "UC15: 接口导入/导出" as UC15
+  }
+
+  package "测试用例管理功能" {
+    usecase "UC16: 创建用例" as UC16
+    usecase "UC17: 编辑用例" as UC17
+    usecase "UC18: 删除用例" as UC18
+    usecase "UC19: 用例分组管理" as UC19
+    usecase "UC20: 用例参数化" as UC20
+  }
+
+  package "测试执行功能" {
+    usecase "UC21: 执行单用例" as UC21
+    usecase "UC22: 执行模块测试" as UC22
+    usecase "UC23: 执行项目测试" as UC23
+    usecase "UC24: 执行测试套件" as UC24
+    usecase "UC25: 查询任务状态" as UC25
+    usecase "UC26: 取消执行任务" as UC26
+    usecase "UC27: 查看执行日志" as UC27
+  }
+
+  package "测试报告功能" {
+    usecase "UC28: 生成测试报告" as UC28
+    usecase "UC29: 查看测试报告" as UC29
+    usecase "UC30: 导出测试报告" as UC30
+    usecase "UC31: 测试报告对比" as UC31
+  }
+
+  package "定时任务功能" {
+    usecase "UC32: 创建定时任务" as UC32
+    usecase "UC33: 编辑定时任务" as UC33
+    usecase "UC34: 删除定时任务" as UC34
+    usecase "UC35: 定时任务调度" as UC35
+  }
+
+  package "环境配置功能" {
+    usecase "UC36: 环境变量管理" as UC36
+    usecase "UC37: 全局参数配置" as UC37
+    usecase "UC38: 请求头配置" as UC38
+  }
+
+  package "AI智能诊断功能" {
+    usecase "UC39: 执行AI诊断" as UC39
+    usecase "UC40: 查看诊断结果" as UC40
+    usecase "UC41: 诊断历史查询" as UC41
+  }
+}
+
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
+Admin --> UC5
+Admin --> UC6
+Admin --> UC7
+Admin --> UC8
+Admin --> UC9
+Admin --> UC10
+Admin --> UC11
+Admin --> UC12
+Admin --> UC13
+Admin --> UC14
+Admin --> UC15
+Admin --> UC16
+Admin --> UC17
+Admin --> UC18
+Admin --> UC19
+Admin --> UC20
+Admin --> UC21
+Admin --> UC22
+Admin --> UC23
+Admin --> UC24
+Admin --> UC25
+Admin --> UC26
+Admin --> UC27
+Admin --> UC28
+Admin --> UC29
+Admin --> UC30
+Admin --> UC31
+Admin --> UC32
+Admin --> UC33
+Admin --> UC34
+Admin --> UC35
+Admin --> UC36
+Admin --> UC37
+Admin --> UC38
+Admin --> UC39
+Admin --> UC40
+Admin --> UC41
+
+Manager --> UC1
+Manager --> UC3
+Manager --> UC5
+Manager --> UC6
+Manager --> UC7
+Manager --> UC8
+Manager --> UC9
+Manager --> UC10
+Manager --> UC11
+Manager --> UC12
+Manager --> UC13
+Manager --> UC14
+Manager --> UC15
+Manager --> UC16
+Manager --> UC17
+Manager --> UC18
+Manager --> UC19
+Manager --> UC20
+Manager --> UC21
+Manager --> UC22
+Manager --> UC23
+Manager --> UC24
+Manager --> UC25
+Manager --> UC26
+Manager --> UC27
+Manager --> UC28
+Manager --> UC29
+Manager --> UC30
+Manager --> UC31
+Manager --> UC32
+Manager --> UC33
+Manager --> UC34
+Manager --> UC35
+Manager --> UC36
+Manager --> UC37
+Manager --> UC38
+Manager --> UC39
+Manager --> UC40
+Manager --> UC41
+
+Tester --> UC1
+Tester --> UC3
+Tester --> UC5
+Tester --> UC10
+Tester --> UC11
+Tester --> UC12
+Tester --> UC14
+Tester --> UC15
+Tester --> UC16
+Tester --> UC17
+Tester --> UC19
+Tester --> UC20
+Tester --> UC21
+Tester --> UC22
+Tester --> UC24
+Tester --> UC25
+Tester --> UC26
+Tester --> UC27
+Tester --> UC28
+Tester --> UC29
+Tester --> UC30
+Tester --> UC36
+Tester --> UC37
+Tester --> UC38
+Tester --> UC39
+Tester --> UC40
+Tester --> UC41
+
+Developer --> UC1
+Developer --> UC3
+Developer --> UC5
+Developer --> UC10
+Developer --> UC11
+Developer --> UC12
+Developer --> UC13
+Developer --> UC14
+Developer --> UC15
+Developer --> UC36
+Developer --> UC37
+Developer --> UC38
+
+note right of Admin
+  拥有系统最高权限
+  可管理所有用户和项目
+end note
+
+note right of Manager
+  负责项目管理
+  可配置测试任务
+end note
+
+note right of Tester
+  主要执行测试任务
+  查看测试报告
+end note
+
+note right of Developer
+  可管理接口信息
+  配置环境参数
+end note
+
+@enduml

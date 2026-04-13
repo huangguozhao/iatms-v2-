@@ -1,0 +1,63 @@
+@startuml 测试执行功能用例图-中心式风格
+!theme plain
+' 白色背景，黑色线条与文字（与参考图反色以保持可读）
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontColor #333333
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  FontColor #333333
+}
+skinparam arrow {
+  Color #333333
+  Thickness 1
+}
+
+' 中心枢纽（无文字小圆，用空白用例表示）
+usecase " " as Center
+
+' ========== 四大主功能（与中心无箭头连线）==========
+usecase "测试执行" as M1
+usecase "任务监控" as M2
+usecase "结果与日志" as M3
+usecase "报告与历史" as M4
+
+' 中心与主功能：无箭头直线
+Center -- M1
+Center -- M2
+Center -- M3
+Center -- M4
+
+' ========== 子功能（箭头指向主功能）==========
+' 测试执行 ← 执行单用例、执行模块测试、执行项目测试、执行测试套件
+usecase "执行单用例" as S1
+usecase "执行模块测试" as S2
+usecase "执行项目测试" as S3
+usecase "执行测试套件" as S4
+S1 -up-> M1
+S2 -up-> M1
+S3 -up-> M1
+S4 -up-> M1
+
+' 任务监控 ← 查询任务状态、取消执行任务
+usecase "查询任务状态" as S5
+usecase "取消执行任务" as S6
+S5 -up-> M2
+S6 -up-> M2
+
+' 结果与日志 ← 查看执行结果、查看执行日志
+usecase "查看执行结果" as S7
+usecase "查看执行日志" as S8
+S7 -up-> M3
+S8 -up-> M3
+
+' 报告与历史 ← 生成测试报告、执行历史查询
+usecase "生成测试报告" as S9
+usecase "执行历史查询" as S10
+S9 -up-> M4
+S10 -up-> M4
+
+' 布局提示：子功能在下方/外侧，箭头指向主功能
+top to bottom direction
+
+@enduml

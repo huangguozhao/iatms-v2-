@@ -1,0 +1,45 @@
+@startuml 测试执行功能用例图
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam usecase {
+  BackgroundColor #E8F4FD
+  BorderColor #2E86AB
+}
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+
+left to right direction
+
+actor "测试人员" as User #FFFFFF
+note right of User
+  需具备项目成员权限
+  或更高权限方可执行
+end note
+
+rectangle "测试执行功能" {
+  usecase "执行单用例" as UC1
+  usecase "执行模块测试" as UC2
+  usecase "执行项目测试" as UC3
+  usecase "执行测试套件" as UC4
+  usecase "查询任务状态" as UC5
+  usecase "取消执行任务" as UC6
+  usecase "查看执行结果" as UC7
+  usecase "查看执行日志" as UC8
+  usecase "生成测试报告" as UC9
+  usecase "执行历史查询" as UC10
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+User --> UC10
+
+@enduml

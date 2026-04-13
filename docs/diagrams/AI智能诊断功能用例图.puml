@@ -1,0 +1,90 @@
+@startuml AI智能诊断功能用例图
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam actorStyle awesome
+
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontColor #000000
+  FontSize 12
+  FontName Microsoft YaHei
+  StereotypeFontSize 10
+  StereotypeFontColor #000000
+  BottomPadding 15
+  TopPadding 15
+  LeftPadding 15
+  RightPadding 15
+}
+
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontColor #000000
+  FontSize 14
+  FontName Microsoft YaHei
+}
+
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  FontSize 11
+  FontName Microsoft YaHei
+}
+
+skinparam linestyle solid
+skinparam roundcorner 10
+
+left to right direction
+
+' 中心参与者
+actor "测试人员" as User #FFFFFF
+
+' 主功能椭圆
+usecase "失败分析" as UC_Fail #FFFFFF
+usecase "根本原因分析" as UC_RootCause #FFFFFF
+usecase "修复建议" as UC_Suggestion #FFFFFF
+usecase "批量诊断" as UC_Batch #FFFFFF
+
+' 失败分析子功能
+usecase "传入失败参数" as UC_Fail_Param #FFFFFF
+usecase "智能分析" as UC_Fail_Intelligent #FFFFFF
+
+' 根本原因分析子功能
+usecase "严重程度分析" as UC_Root_Severity #FFFFFF
+usecase "原因分析" as UC_Root_Reason #FFFFFF
+usecase "问题列表" as UC_Root_Issue #FFFFFF
+
+' 修复建议子功能
+usecase "生成建议" as UC_Suggest_Generate #FFFFFF
+usecase "优先级排序" as UC_Suggest_Priority #FFFFFF
+usecase "提供详细说明" as UC_Suggest_Detail #FFFFFF
+
+' 批量诊断子功能
+usecase "批量结果分析" as UC_Batch_Result #FFFFFF
+usecase "失败用例重点诊断" as UC_Batch_FailFocus #FFFFFF
+usecase "汇总信息输出" as UC_Batch_Summary #FFFFFF
+
+' 中心连接 - 无箭头实线
+User -- UC_Fail
+User -- UC_RootCause
+User -- UC_Suggestion
+User -- UC_Batch
+
+' 主功能到子功能的 include 关系 - 虚线带箭头
+UC_Fail ..> UC_Fail_Param : <<include>>
+UC_Fail ..> UC_Fail_Intelligent : <<include>>
+
+UC_RootCause ..> UC_Root_Severity : <<include>>
+UC_RootCause ..> UC_Root_Reason : <<include>>
+UC_RootCause ..> UC_Root_Issue : <<include>>
+
+UC_Suggestion ..> UC_Suggest_Generate : <<include>>
+UC_Suggestion ..> UC_Suggest_Priority : <<include>>
+UC_Suggestion ..> UC_Suggest_Detail : <<include>>
+
+UC_Batch ..> UC_Batch_Result : <<include>>
+UC_Batch ..> UC_Batch_FailFocus : <<include>>
+UC_Batch ..> UC_Batch_Summary : <<include>>
+
+@enduml
