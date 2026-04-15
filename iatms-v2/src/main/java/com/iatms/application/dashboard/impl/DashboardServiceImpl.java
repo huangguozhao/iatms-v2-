@@ -54,14 +54,14 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime todayStart = LocalDateTime.now().with(LocalTime.MIN);
         Long todayExecutionCount = testExecutionMapper.selectCount(
                 new LambdaQueryWrapper<TestExecution>()
-                        .ge(TestExecution::getCreatedAt, todayStart)
+                        .ge(TestExecution::getUpdatedAt, todayStart)
         ).longValue();
 
         // 统计本周执行次数
         LocalDateTime weekStart = LocalDateTime.now().with(java.time.DayOfWeek.MONDAY).with(LocalTime.MIN);
         Long weekExecutionCount = testExecutionMapper.selectCount(
                 new LambdaQueryWrapper<TestExecution>()
-                        .ge(TestExecution::getCreatedAt, weekStart)
+                        .ge(TestExecution::getUpdatedAt, weekStart)
         ).longValue();
 
         // 计算成功率
@@ -92,7 +92,7 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public List<RecentActivityVO> getRecentActivities(int limit) {
         LambdaQueryWrapper<TestExecution> wrapper = new LambdaQueryWrapper<TestExecution>()
-                .orderByDesc(TestExecution::getCreatedAt)
+                .orderByDesc(TestExecution::getUpdatedAt)
                 .last("LIMIT " + limit);
 
         List<TestExecution> executions = testExecutionMapper.selectList(wrapper);
@@ -104,8 +104,9 @@ public class DashboardServiceImpl implements DashboardService {
         // 获取执行人信息
         List<Long> executorIds = new ArrayList<>();
         for (TestExecution exec : executions) {
-            if (exec.getExecutedBy() != null) {
-                executorIds.add(exec.getExecutedBy());
+            Long executedBy = exec.getExecutedBy();
+            if (executedBy != null) {
+                executorIds.add(executedBy);
             }
         }
 
@@ -134,7 +135,7 @@ public class DashboardServiceImpl implements DashboardService {
                     .executionType(exec.getExecutionType())
                     .executedBy(executedBy)
                     .executedByName(executor != null ? executor.getDisplayName() : null)
-                    .startTime(exec.getStartTime() != null ? exec.getStartTime() : exec.getCreatedAt())
+                    .startTime(exec.getStartTime() != null ? exec.getStartTime() : exec.getUpdatedAt())
                     .successRate(exec.getSuccessRate() != null ? exec.getSuccessRate().doubleValue() : null)
                     .totalCases(exec.getTotalCases())
                     .failedCases(exec.getFailedCases())
