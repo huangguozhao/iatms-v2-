@@ -1,110 +1,137 @@
 <template>
-  <div class="login-container">
-    <div class="login-background">
-      <div class="bg-gradient"></div>
-      <div class="bg-particles"></div>
-    </div>
+  <div class="register-page">
+    <!-- 左侧信息面板 -->
+    <div class="register-page__info-panel">
+      <div class="info-panel__content">
+        <h1 class="info-panel__title">加入接口自动化管理平台</h1>
+        <p class="info-panel__subtitle">
+          快速创建账号，开启高效的接口测试之旅
+        </p>
 
-    <div class="login-wrapper">
-      <div class="login-header">
-        <h1 class="system-title text-gradient">接口自动化管理</h1>
-        <p class="system-subtitle">Intelligent API Testing Management System</p>
-      </div>
-
-      <div class="login-card glass-card">
-        <div class="login-card-header">
-          <h2>用户注册</h2>
-          <p>创建您的账号开始使用</p>
+        <div class="info-panel__features">
+          <div class="feature-item" style="--delay: 0s">
+            <el-icon class="feature-item__icon"><Check /></el-icon>
+            <span class="feature-item__text">一键创建项目，快速上手</span>
+          </div>
+          <div class="feature-item" style="--delay: 0.1s">
+            <el-icon class="feature-item__icon"><Check /></el-icon>
+            <span class="feature-item__text">团队协作，共享测试资源</span>
+          </div>
+          <div class="feature-item" style="--delay: 0.2s">
+            <el-icon class="feature-item__icon"><Check /></el-icon>
+            <span class="feature-item__text">自动化测试，提升效率</span>
+          </div>
+          <div class="feature-item" style="--delay: 0.3s">
+            <el-icon class="feature-item__icon"><Check /></el-icon>
+            <span class="feature-item__text">AI 智能诊断，快速定位问题</span>
+          </div>
         </div>
 
-        <el-form
-          ref="formRef"
-          :model="form"
-          :rules="rules"
-          label-position="top"
-          class="login-form"
-        >
-          <el-form-item prop="username" class="form-item-modern">
-            <template #label>
-              <span class="label-text">用户名</span>
-            </template>
+        <div class="info-panel__chart">
+          <el-icon class="chart-icon"><TrendCharts /></el-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧注册表单 -->
+    <div class="register-page__form-panel">
+      <div class="form-panel__content">
+        <!-- 头部 -->
+        <div class="form-panel__header">
+          <div class="header__logo">
+            <div class="logo-icon">A</div>
+          </div>
+          <h2 class="header__title">接口自动化管理</h2>
+        </div>
+
+        <!-- 欢迎信息 -->
+        <div class="form-panel__welcome">
+          <h3 class="welcome__title">创建账号</h3>
+          <p class="welcome__subtitle">填写以下信息完成注册</p>
+        </div>
+
+        <!-- 注册表单 -->
+        <el-form ref="formRef" :model="form" :rules="rules" class="register-form" @submit.prevent="handleRegister">
+          <el-form-item prop="username">
             <el-input
               v-model="form.username"
               placeholder="请输入用户名"
               size="large"
               :prefix-icon="User"
-            />
+              :disabled="isLoading"
+            >
+              <template #label><span class="label-text">用户名</span></template>
+            </el-input>
           </el-form-item>
 
-          <el-form-item prop="displayName" class="form-item-modern">
-            <template #label>
-              <span class="label-text">显示名称</span>
-            </template>
+          <el-form-item prop="displayName">
             <el-input
               v-model="form.displayName"
               placeholder="请输入显示名称"
               size="large"
               :prefix-icon="UserFilled"
-            />
+              :disabled="isLoading"
+            >
+              <template #label><span class="label-text">显示名称</span></template>
+            </el-input>
           </el-form-item>
 
-          <el-form-item prop="email" class="form-item-modern">
-            <template #label>
-              <span class="label-text">邮箱</span>
-            </template>
+          <el-form-item prop="email">
             <el-input
               v-model="form.email"
               placeholder="请输入邮箱"
               size="large"
               :prefix-icon="Message"
-            />
+              :disabled="isLoading"
+            >
+              <template #label><span class="label-text">邮箱</span></template>
+            </el-input>
           </el-form-item>
 
-          <el-form-item prop="password" class="form-item-modern">
-            <template #label>
-              <span class="label-text">密码</span>
-            </template>
+          <el-form-item prop="password">
             <el-input
               v-model="form.password"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               placeholder="请输入密码"
               size="large"
-              show-password
               :prefix-icon="Lock"
-            />
+              :disabled="isLoading"
+            >
+              <template #label><span class="label-text">密码</span></template>
+              <template #suffix>
+                <el-icon class="password-toggle" @click="togglePasswordVisibility">
+                  <View v-if="!showPassword" />
+                  <Hide v-else />
+                </el-icon>
+              </template>
+            </el-input>
           </el-form-item>
 
-          <el-form-item prop="confirmPassword" class="form-item-modern">
-            <template #label>
-              <span class="label-text">确认密码</span>
-            </template>
+          <el-form-item prop="confirmPassword">
             <el-input
               v-model="form.confirmPassword"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               placeholder="请再次输入密码"
               size="large"
-              show-password
               :prefix-icon="Lock"
-            />
+              :disabled="isLoading"
+            >
+              <template #label><span class="label-text">确认密码</span></template>
+            </el-input>
           </el-form-item>
 
-          <el-form-item class="form-item-modern">
-            <el-button
-              type="primary"
-              :loading="loading"
-              class="login-btn"
-              size="large"
-              @click="handleRegister"
-            >
-              <span v-if="!loading">注 册</span>
-              <span v-else>注册中...</span>
+          <el-form-item>
+            <el-button type="primary" size="large" class="login-button" :loading="isLoading" @click="handleRegister">
+              {{ isLoading ? '注册中...' : '注 册' }}
             </el-button>
           </el-form-item>
         </el-form>
 
-        <div class="login-footer">
-          <span class="footer-text">已有账号？</span>
-          <el-link type="primary" @click="router.push('/login')">立即登录</el-link>
+        <div class="form-panel__footer">
+          <p class="footer-text">
+            已有账号?
+            <el-link type="primary" @click="router.push('/login')">立即登录</el-link>
+          </p>
         </div>
       </div>
     </div>
@@ -115,13 +142,14 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, UserFilled, Message, Lock } from '@element-plus/icons-vue'
+import { Check, TrendCharts, User, UserFilled, Message, Lock, View, Hide } from '@element-plus/icons-vue'
 import { authApi } from '@/api/modules/auth/auth'
 
 const router = useRouter()
 
 const formRef = ref()
-const loading = ref(false)
+const isLoading = ref(false)
+const showPassword = ref(false)
 
 const form = reactive({
   username: '',
@@ -161,11 +189,15 @@ const rules = {
   ]
 }
 
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
+
 async function handleRegister() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
-  loading.value = true
+  isLoading.value = true
   try {
     await authApi.register({
       username: form.username,
@@ -178,162 +210,162 @@ async function handleRegister() {
   } catch (error: any) {
     ElMessage.error(error.message || '注册失败')
   } finally {
-    loading.value = false
+    isLoading.value = false
   }
 }
 </script>
 
 <style scoped lang="scss">
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  position: relative;
-  overflow: hidden;
-}
-
-.login-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-}
-
-.bg-gradient {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 50%, #69c0ff 100%);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.bg-particles {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(255,255,255,0.05) 0%, transparent 30%);
-}
-
-.login-wrapper {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-}
-
-.login-header {
+/* 信息面板内容 */
+.info-panel__content {
+  color: white;
   text-align: center;
-  margin-bottom: 30px;
+  z-index: 2;
+  position: relative;
+  animation: contentFadeIn 1s ease-out;
 }
 
-.system-title {
-  font-family: '楷体', 'KaiTi', serif;
-  font-size: 36px;
+.info-panel__title {
+  font-size: 48px;
   font-weight: bold;
-  margin: 0 0 10px 0;
-  letter-spacing: 2px;
+  margin: 0 0 20px 0;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: titleGlow 3s ease-in-out infinite alternate;
 }
 
-.text-gradient {
-  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.info-panel__subtitle {
+  font-size: 18px;
+  margin: 0 0 40px 0;
+  opacity: 0.9;
+  line-height: 1.6;
+  animation: subtitleSlideIn 0.8s ease-out 0.3s both;
 }
 
-.system-subtitle {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+.info-panel__features {
+  text-align: left;
+  max-width: 400px;
+  margin: 0 auto 40px;
+  animation: featuresFadeIn 0.8s ease-out 0.6s both;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  font-size: 16px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: featureItemSlideIn 0.6s ease-out calc(0.8s + var(--delay, 0)) both;
+}
+
+.feature-item:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.feature-item__icon {
+  margin-right: 16px;
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+.feature-item:hover .feature-item__icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.feature-item__text {
+  flex: 1;
+  font-weight: 400;
+}
+
+.info-panel__chart {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.chart-icon {
+  font-size: 120px;
+  opacity: 0.3;
+}
+
+/* 头部区域 */
+.form-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32px;
+  animation: headerFadeIn 0.6s ease-out 0.6s both;
+}
+
+.header__logo {
+  margin-right: 16px;
+}
+
+.logo-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  color: white;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: bold;
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: logoFloat 4s ease-in-out infinite;
+}
+
+.logo-icon:hover {
+  transform: scale(1.05) rotate(5deg);
+  box-shadow: 0 12px 32px rgba(64, 158, 255, 0.4);
+}
+
+.header__title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #409eff;
   margin: 0;
-  letter-spacing: 1px;
 }
 
-.login-card {
-  width: 420px;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.login-card-header {
+/* 欢迎信息 */
+.form-panel__welcome {
+  margin-bottom: 32px;
   text-align: center;
-  margin-bottom: 30px;
-
-  h2 {
-    font-size: 24px;
-    font-weight: 600;
-    color: #333;
-    margin: 0 0 8px 0;
-  }
-
-  p {
-    font-size: 14px;
-    color: #909399;
-    margin: 0;
-  }
+  animation: welcomeFadeIn 0.8s ease-out 0.8s both;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+.welcome__title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 8px 0;
 }
 
-.login-form {
-  :deep(.el-form-item__label) {
-    padding: 0 0 8px 0;
-  }
+.welcome__subtitle {
+  font-size: 14px;
+  color: #909399;
+  margin: 0;
+}
 
-  :deep(.el-input__wrapper) {
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    padding: 12px 16px;
-    border: 1px solid rgba(228, 231, 237, 0.8);
-    transition: all 0.2s ease;
-  }
+/* 表单样式 */
+.register-form {
+  animation: formFadeIn 0.8s ease-out 1s both;
+}
 
-  :deep(.el-input__wrapper:hover) {
-    border-color: #1890ff;
-    box-shadow: 0 2px 12px rgba(24, 144, 255, 0.15);
-  }
-
-  :deep(.el-input__wrapper.is-focus) {
-    border-color: #1890ff;
-    box-shadow:
-      0 0 0 3px rgba(24, 144, 255, 0.1),
-      0 2px 12px rgba(24, 144, 255, 0.15);
-  }
-
-  :deep(.el-input__inner) {
-    font-size: 15px;
-  }
+@keyframes formFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .label-text {
@@ -342,52 +374,81 @@ async function handleRegister() {
   color: #606266;
 }
 
-.login-btn {
-  width: 100%;
-  height: 48px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
-  border: none;
-  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.3);
-  transition: all 0.3s ease;
-  letter-spacing: 2px;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(24, 144, 255, 0.4);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
+/* 密码切换 */
+.password-toggle {
+  cursor: pointer;
+  color: #c0c4cc;
+  transition: all 0.3s;
 }
 
-.login-footer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
+.password-toggle:hover {
+  color: #409eff;
+  transform: scale(1.1);
+}
+
+/* 页脚 */
+.form-panel__footer {
+  text-align: center;
   padding-top: 20px;
   border-top: 1px solid rgba(228, 231, 237, 0.5);
+}
 
-  .footer-text {
-    font-size: 14px;
-    color: #909399;
+.footer-text {
+  font-size: 14px;
+  color: #909399;
+  margin: 0;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .register-page { flex-direction: column; }
+  .register-page__info-panel {
+    flex: none;
+    height: 25vh;
+    min-height: 200px;
+    padding: 24px 20px;
   }
+  .register-page__form-panel {
+    flex: 1;
+    min-height: 75vh;
+    padding: 20px 16px;
+  }
+  .form-panel__content {
+    padding: 28px 24px;
+    margin-top: 20px;
+  }
+  .info-panel__features,
+  .info-panel__subtitle,
+  .info-panel__chart { display: none; }
+  .info-panel__title { font-size: 24px; margin-bottom: 12px; }
+  .form-panel__header { margin-bottom: 24px; }
+  .logo-icon { width: 48px; height: 48px; font-size: 24px; }
+  .header__title { font-size: 20px; }
+  .form-panel__welcome { margin-bottom: 24px; }
+  .welcome__title { font-size: 22px; }
+  .form-panel__footer { margin-top: 20px; }
 }
 
 @media (max-width: 480px) {
-  .login-card {
-    width: 100%;
-    max-width: 360px;
-    padding: 30px 20px;
-  }
+  .register-page__info-panel { height: 22vh; min-height: 160px; }
+  .register-page__form-panel { min-height: 78vh; padding: 16px; }
+  .form-panel__content { padding: 24px 20px; margin-top: 16px; }
+  .info-panel__title { font-size: 20px; }
+  .logo-icon { width: 44px; height: 44px; font-size: 22px; }
+  .header__title { font-size: 18px; }
+  .welcome__title { font-size: 20px; }
+}
 
-  .system-title {
-    font-size: 28px;
+/* 移动端触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+  .login-button:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.25);
+  }
+  .password-toggle:active {
+    transform: scale(1.1);
+    background-color: rgba(64, 158, 255, 0.1);
+    border-radius: 6px;
   }
 }
 </style>

@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { LoginVO } from '@/types/api'
 import { authApi } from '@/api/modules/auth/auth'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string | null>(localStorage.getItem('token'))
   const userInfo = ref<LoginVO | null>(null)
+
+  const isLoggedIn = computed(() => !!token.value)
 
   async function login(username: string, password: string) {
     const result = await authApi.login(username, password)
@@ -36,6 +38,7 @@ export const useUserStore = defineStore('user', () => {
   return {
     token,
     userInfo,
+    isLoggedIn,
     login,
     logout,
     fetchUserInfo
