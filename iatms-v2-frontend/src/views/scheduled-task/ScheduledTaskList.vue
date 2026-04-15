@@ -26,7 +26,7 @@
         </el-table-column>
         <el-table-column prop="type" label="任务类型" width="120">
           <template #default="{ row }">
-            <el-tag size="small">{{ getTypeText(row.type) }}</el-tag>
+            <el-tag size="small">{{ getTaskTypeText(row.type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="targetName" label="执行目标" width="150" />
@@ -109,6 +109,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { scheduledTaskApi, type CreateScheduledTaskDTO } from '@/api/modules/scheduling/scheduledTask'
+import { getTaskTypeText } from '@/utils/formatters'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -146,15 +147,6 @@ const rules = {
 
 const tasks = ref<any[]>([])
 const suites = ref<any[]>([])
-
-function getTypeText(type: string) {
-  const map: Record<string, string> = {
-    TEST_SUITE: '测试套件',
-    TEST_CASE: '测试用例',
-    API: '接口'
-  }
-  return map[type] || type
-}
 
 async function loadTasks() {
   loading.value = true

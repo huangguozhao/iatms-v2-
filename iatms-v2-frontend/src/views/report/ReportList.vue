@@ -29,7 +29,7 @@
         <el-table-column prop="projectName" label="项目" width="150" />
         <el-table-column prop="type" label="类型" width="100">
           <template #default="{ row }">
-            <el-tag size="small">{{ getTypeText(row.type) }}</el-tag>
+            <el-tag size="small">{{ getExecutionTypeText(row.type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
@@ -89,6 +89,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { reportApi } from '@/api/modules/report/report'
+import { getExecutionTypeText } from '@/utils/formatters'
 
 const loading = ref(false)
 
@@ -104,15 +105,6 @@ const pagination = reactive({
 })
 
 const reports = ref<any[]>([])
-
-function getTypeText(type: string) {
-  const map: Record<string, string> = {
-    API: '接口',
-    TEST_CASE: '用例',
-    TEST_SUITE: '套件'
-  }
-  return map[type] || type
-}
 
 async function loadReports() {
   loading.value = true

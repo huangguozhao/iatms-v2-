@@ -29,7 +29,7 @@
         <el-table-column prop="projectType" label="类型" width="100" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ row.statusText }}</el-tag>
+            <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="ownerName" label="负责人" width="120" />
@@ -92,6 +92,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { projectApi, type CreateProjectDTO } from '@/api/modules/project/project'
 import type { ProjectSummaryVO } from '@/types/api'
+import { getStatusType, getStatusText } from '@/utils/formatters'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -124,15 +125,6 @@ const rules = {
 }
 
 const projects = ref<ProjectSummaryVO[]>([])
-
-function getStatusType(status: string) {
-  const map: Record<string, string> = {
-    NOT_STARTED: 'info',
-    IN_PROGRESS: 'primary',
-    COMPLETED: 'success'
-  }
-  return map[status] || 'info'
-}
 
 async function loadProjects() {
   loading.value = true

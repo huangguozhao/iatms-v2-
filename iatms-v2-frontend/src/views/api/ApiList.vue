@@ -111,6 +111,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { projectApi } from '@/api/modules/project/project'
 import { apiApi } from '@/api/modules/testing/api'
 import type { ApiSummaryVO } from '@/types/api'
+import { getMethodType } from '@/utils/formatters'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -149,17 +150,6 @@ const rules = {
 const apis = ref<ApiSummaryVO[]>([])
 const projects = ref<any[]>([])
 const modules = ref<any[]>([])
-
-function getMethodType(method: string) {
-  const map: Record<string, string> = {
-    GET: 'success',
-    POST: 'primary',
-    PUT: 'warning',
-    DELETE: 'danger',
-    PATCH: 'info'
-  }
-  return map[method] || 'info'
-}
 
 async function loadApis() {
   loading.value = true

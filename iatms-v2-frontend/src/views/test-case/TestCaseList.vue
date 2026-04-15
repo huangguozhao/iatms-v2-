@@ -106,6 +106,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { testCaseApi, type CreateTestCaseDTO } from '@/api/modules/testing/testCase'
 import type { TestCaseSummaryVO } from '@/types/api'
+import { getPriorityType } from '@/utils/formatters'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -142,16 +143,6 @@ const rules = {
 
 const cases = ref<TestCaseSummaryVO[]>([])
 const apis = ref<any[]>([])
-
-function getPriorityType(priority: string) {
-  const map: Record<string, string> = {
-    P0: 'danger',
-    P1: 'warning',
-    P2: 'primary',
-    P3: 'info'
-  }
-  return map[priority] || 'info'
-}
 
 async function loadCases() {
   loading.value = true

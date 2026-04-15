@@ -26,7 +26,7 @@
         <el-table-column prop="id" label="执行ID" width="100" />
         <el-table-column prop="type" label="类型" width="100">
           <template #default="{ row }">
-            <el-tag size="small">{{ getTypeText(row.type) }}</el-tag>
+            <el-tag size="small">{{ getExecutionTypeText(row.type) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="targetName" label="执行目标" min-width="150" />
@@ -79,6 +79,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { executionApi } from '@/api/modules/testing/execution'
+import { getStatusType, getExecutionTypeText } from '@/utils/formatters'
 
 const loading = ref(false)
 
@@ -94,26 +95,6 @@ const pagination = reactive({
 })
 
 const executions = ref<any[]>([])
-
-function getTypeText(type: string) {
-  const map: Record<string, string> = {
-    API: '接口',
-    TEST_CASE: '用例',
-    TEST_SUITE: '套件'
-  }
-  return map[type] || type
-}
-
-function getStatusType(status: string) {
-  const map: Record<string, string> = {
-    PENDING: 'info',
-    RUNNING: 'primary',
-    SUCCESS: 'success',
-    FAILED: 'danger',
-    CANCELLED: 'warning'
-  }
-  return map[status] || 'info'
-}
 
 async function loadExecutions() {
   loading.value = true
