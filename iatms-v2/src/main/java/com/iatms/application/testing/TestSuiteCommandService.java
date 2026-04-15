@@ -52,7 +52,7 @@ public class TestSuiteCommandService {
         testSuiteMapper.updateById(testSuite);
 
         // 更新关联的用例
-        testSuiteRequestMapper.deleteByTestSuiteId(id);
+        testSuiteRequestMapper.deleteByTestSuiteId(id.intValue());
         if (caseIds != null && !caseIds.isEmpty()) {
             for (Long caseId : caseIds) {
                 TestSuiteRequest link = new TestSuiteRequest();
@@ -69,7 +69,7 @@ public class TestSuiteCommandService {
     @Transactional
     public void delete(Long id) {
         testSuiteMapper.deleteById(id);
-        testSuiteRequestMapper.deleteByTestSuiteId(id);
+        testSuiteRequestMapper.deleteByTestSuiteId(id.intValue());
         log.info("删除测试套件: {}", id);
     }
 

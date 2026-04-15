@@ -19,7 +19,7 @@ public class NotificationVO {
     private String content;
     private Long relatedId;
     private String relatedType;
-    private Boolean read;
+    private Boolean isRead;
     private LocalDateTime createdAt;
 
     /**
@@ -27,8 +27,8 @@ public class NotificationVO {
      */
     @Data
     @Builder
-    public static class PageResult {
-        private List<NotificationVO> records;
+    public static class PageResult<T> {
+        private List<T> records;
         private long total;
         private int pageNum;
         private int pageSize;

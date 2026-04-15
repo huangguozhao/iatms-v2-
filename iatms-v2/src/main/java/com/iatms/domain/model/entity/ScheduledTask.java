@@ -50,6 +50,11 @@ public class ScheduledTask extends BaseEntity {
     private String targetName;
 
     /**
+     * 用例ID列表（JSON格式）
+     */
+    private String caseIds;
+
+    /**
      * 触发类型：cron, simple, daily, weekly, monthly
      */
     private String triggerType;
@@ -160,6 +165,21 @@ public class ScheduledTask extends BaseEntity {
     private Boolean isEnabled;
 
     /**
+     * 下次触发时间
+     */
+    private LocalDateTime nextTriggerTime;
+
+    /**
+     * 最后执行时间
+     */
+    private LocalDateTime lastExecutionTime;
+
+    /**
+     * 最后执行状态：SUCCESS, FAILURE, ERROR
+     */
+    private String lastExecutionStatus;
+
+    /**
      * 总执行次数
      */
     private Integer totalExecutions;
@@ -173,26 +193,6 @@ public class ScheduledTask extends BaseEntity {
      * 失败执行次数
      */
     private Integer failedExecutions;
-
-    /**
-     * 跳过执行次数
-     */
-    private Integer skippedExecutions;
-
-    /**
-     * 下次触发时间
-     */
-    private LocalDateTime nextTriggerTime;
-
-    /**
-     * 最后执行时间
-     */
-    private LocalDateTime lastExecutionTime;
-
-    /**
-     * 最后执行状态
-     */
-    private String lastExecutionStatus;
 
     /**
      * 创建人ID
@@ -271,14 +271,6 @@ public class ScheduledTask extends BaseEntity {
      * 记录执行结果
      */
     public void recordRun(boolean success) {
-        this.totalExecutions = (this.totalExecutions == null ? 0 : this.totalExecutions) + 1;
-        if (success) {
-            this.successfulExecutions = (this.successfulExecutions == null ? 0 : this.successfulExecutions) + 1;
-            this.lastExecutionStatus = "success";
-        } else {
-            this.failedExecutions = (this.failedExecutions == null ? 0 : this.failedExecutions) + 1;
-            this.lastExecutionStatus = "failed";
-        }
         this.lastExecutionTime = LocalDateTime.now();
         this.nextTriggerTime = calculateNextRun();
     }

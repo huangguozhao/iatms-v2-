@@ -38,7 +38,7 @@ public class TestCaseCommandServiceImpl implements TestCaseCommandService {
         testCase.setDescription(cmd.getDescription());
         testCase.setProjectId(cmd.getProjectId());
         testCase.setModuleId(cmd.getModuleId());
-        testCase.setApiId(cmd.getApiId());
+        testCase.setApiId(cmd.getApiId() != null ? cmd.getApiId().intValue() : null);
         testCase.setTestType(cmd.getTestType());
         testCase.setPriority(cmd.getPriority());
         testCase.setPreconditions(cmd.getPreconditions());
@@ -126,7 +126,7 @@ public class TestCaseCommandServiceImpl implements TestCaseCommandService {
                 .description(testCase.getDescription())
                 .projectId(testCase.getProjectId())
                 .moduleId(testCase.getModuleId())
-                .apiId(testCase.getApiId())
+                .apiId(testCase.getApiId() != null ? testCase.getApiId().longValue() : null)
                 .testType(testCase.getTestType())
                 .priority(testCase.getPriority())
                 .status(testCase.getStatus())

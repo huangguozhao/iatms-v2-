@@ -11,11 +11,14 @@ import java.util.List;
 @Mapper
 public interface TestSuiteRequestMapper extends BaseMapper<TestSuiteRequest> {
 
-    @Select("SELECT * FROM test_suite_request WHERE test_suite_id = #{testSuiteId} ORDER BY sort_order")
-    List<TestSuiteRequest> selectByTestSuiteId(@Param("testSuiteId") Long testSuiteId);
+    @Select("SELECT * FROM suitecasemappings WHERE suite_id = #{suiteId}")
+    List<TestSuiteRequest> selectByTestSuiteId(@Param("suiteId") Integer suiteId);
 
-    default void deleteByTestSuiteId(Long testSuiteId) {
+    @Select("SELECT * FROM suitecasemappings WHERE case_id = #{caseId}")
+    List<TestSuiteRequest> selectByCaseId(@Param("caseId") Integer caseId);
+
+    default void deleteByTestSuiteId(Integer suiteId) {
         delete(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<TestSuiteRequest>()
-                .eq(TestSuiteRequest::getTestSuiteId, testSuiteId));
+                .eq(TestSuiteRequest::getSuiteId, suiteId));
     }
 }

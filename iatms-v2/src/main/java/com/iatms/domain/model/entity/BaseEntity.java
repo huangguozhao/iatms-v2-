@@ -47,7 +47,8 @@ public abstract class BaseEntity {
     /**
      * 逻辑删除标记
      */
-    @TableLogic
+    @TableLogic(delval = "1", value = "0")
+    @TableField("is_deleted")
     private Boolean deleted = false;
 
     /**

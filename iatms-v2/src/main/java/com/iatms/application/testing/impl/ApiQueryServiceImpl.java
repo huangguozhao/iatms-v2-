@@ -101,9 +101,9 @@ public class ApiQueryServiceImpl implements ApiQueryService {
                 .preScript(api.getPreScript())
                 .postScript(api.getPostScript())
                 .assertions(api.getAssertions())
-                .collectionId(api.getCollectionId())
+                .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
                 .collectionName(collection != null ? collection.getName() : null)
-                .projectId(collection != null ? collection.getProjectId() : null)
+                .projectId(collection != null && collection.getProjectId() != null ? collection.getProjectId().longValue() : null)
                 .projectName(null)
                 .orderNum(api.getOrderNum())
                 .status(api.getStatus())
@@ -164,19 +164,19 @@ public class ApiQueryServiceImpl implements ApiQueryService {
         }
 
         // 获取集合信息
-        List<Long> collectionIds = apis.stream().map(ApiRequest::getCollectionId).distinct().collect(Collectors.toList());
-        Map<Long, ApiCollection> collectionMap = collectionMapper.selectBatchIds(collectionIds).stream()
-                .collect(Collectors.toMap(ApiCollection::getId, c -> c));
+        List<Integer> collectionIdsInt = apis.stream().map(ApiRequest::getCollectionId).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        Map<Integer, ApiCollection> collectionMap = collectionMapper.selectBatchIds(collectionIdsInt).stream()
+                .collect(Collectors.toMap(ApiCollection::getModuleId, c -> c));
 
         return apis.stream()
                 .map(api -> {
-                    ApiCollection collection = collectionMap.get(api.getCollectionId());
+                    ApiCollection collection = api.getCollectionId() != null ? collectionMap.get(api.getCollectionId()) : null;
                     return ApiSummaryVO.builder()
                             .id(api.getId())
                             .name(api.getName())
                             .httpMethod(api.getHttpMethod())
                             .url(api.getUrl())
-                            .collectionId(api.getCollectionId())
+                            .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
                             .collectionName(collection != null ? collection.getName() : null)
                             .status(api.getStatus())
                             .updatedAt(api.getUpdatedAt())
@@ -197,7 +197,7 @@ public class ApiQueryServiceImpl implements ApiQueryService {
                 .queryParams(api.getQueryParams())
                 .requestBody(api.getRequestBody())
                 .assertions(api.getAssertions())
-                .collectionId(api.getCollectionId())
+                .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
                 .orderNum(api.getOrderNum())
                 .status(api.getStatus())
                 .createdAt(api.getCreatedAt())
@@ -207,12 +207,12 @@ public class ApiQueryServiceImpl implements ApiQueryService {
 
     private List<?> buildApiTree(List<ApiCollection> collections, List<ApiRequest> apis) {
         // 按 parentId 分组
-        Map<Long, List<ApiCollection>> childrenMap = collections.stream()
+        Map<Integer, List<ApiCollection>> childrenMap = collections.stream()
                 .filter(c -> c.getParentId() != null)
                 .collect(Collectors.groupingBy(ApiCollection::getParentId));
 
         // 按 collectionId 分组 API
-        Map<Long, List<ApiRequest>> apiMap = apis.stream()
+        Map<Integer, List<ApiRequest>> apiMap = apis.stream()
                 .collect(Collectors.groupingBy(ApiRequest::getCollectionId));
 
         // 构建树
@@ -223,16 +223,16 @@ public class ApiQueryServiceImpl implements ApiQueryService {
     }
 
     private Map<String, Object> buildTreeNode(ApiCollection collection,
-                                               Map<Long, List<ApiCollection>> childrenMap,
-                                               Map<Long, List<ApiRequest>> apiMap) {
+                                               Map<Integer, List<ApiCollection>> childrenMap,
+                                               Map<Integer, List<ApiRequest>> apiMap) {
         Map<String, Object> node = new HashMap<>();
-        node.put("id", collection.getId());
+        node.put("id", collection.getModuleId());
         node.put("name", collection.getName());
         node.put("type", "collection");
         node.put("orderNum", collection.getOrderNum());
 
         // 子集合
-        List<ApiCollection> children = childrenMap.get(collection.getId());
+        List<ApiCollection> children = childrenMap.get(collection.getModuleId());
         if (children != null && !children.isEmpty()) {
             node.put("children", children.stream()
                     .map(c -> buildTreeNode(c, childrenMap, apiMap))
@@ -240,7 +240,7 @@ public class ApiQueryServiceImpl implements ApiQueryService {
         }
 
         // API 列表
-        List<ApiRequest> collectionApis = apiMap.get(collection.getId());
+        List<ApiRequest> collectionApis = apiMap.get(collection.getModuleId());
         if (collectionApis != null && !collectionApis.isEmpty()) {
             List<Map<String, Object>> apiList = collectionApis.stream()
                     .map(api -> {

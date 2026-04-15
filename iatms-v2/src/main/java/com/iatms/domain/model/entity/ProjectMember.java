@@ -61,16 +61,6 @@ public class ProjectMember {
     private LocalDateTime lastActiveTime;
 
     /**
-     * 分配任务数
-     */
-    private Integer assignedTasks;
-
-    /**
-     * 完成任务数
-     */
-    private Integer completedTasks;
-
-    /**
      * 附加角色信息
      */
     private String additionalRoles;

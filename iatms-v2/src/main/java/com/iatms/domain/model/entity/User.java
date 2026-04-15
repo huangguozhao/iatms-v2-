@@ -1,15 +1,13 @@
 package com.iatms.domain.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
  * 用户实体
+ * 对应数据库表: users
  */
 @Data
 @TableName("users")
@@ -34,6 +32,7 @@ public class User {
     /**
      * 用户头像URL
      */
+    @TableField("avatar_url")
     private String avatarUrl;
 
     /**
@@ -49,21 +48,25 @@ public class User {
     /**
      * 部门ID
      */
+    @TableField("department_id")
     private Integer departmentId;
 
     /**
      * 员工工号
      */
+    @TableField("employee_id")
     private String employeeId;
 
     /**
      * 创建人ID
      */
+    @TableField("creator_id")
     private Integer creatorId;
 
     /**
      * 最后登录时间
      */
+    @TableField("last_login_time")
     private LocalDateTime lastLoginTime;
 
     /**
@@ -96,7 +99,24 @@ public class User {
      */
     private LocalDateTime updatedAt;
 
-    // ========== 额外字段（代码中使用）==========
+    /**
+     * 是否删除
+     */
+    @TableLogic(delval = "1", value = "0")
+    @TableField("is_deleted")
+    private Boolean isDeleted;
+
+    /**
+     * 删除时间
+     */
+    private LocalDateTime deletedAt;
+
+    /**
+     * 删除人ID
+     */
+    private Integer deletedBy;
+
+    // ========== 兼容性别名（用于旧代码）==========
 
     /**
      * 用户名（代码中使用，等同于name）
@@ -115,4 +135,28 @@ public class User {
      */
     @TableField(exist = false)
     private Boolean isAdmin;
+
+    public String getUsername() {
+        return this.name;
+    }
+
+    public void setUsername(String username) {
+        this.name = username;
+    }
+
+    public String getDisplayName() {
+        return this.name;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.name = displayName;
+    }
+
+    public Boolean getIsAdmin() {
+        return "admin".equals(this.role);
+    }
+
+    public void setIsAdmin(Boolean isAdmin) {
+        this.isAdmin = isAdmin;
+    }
 }

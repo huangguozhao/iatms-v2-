@@ -8,9 +8,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 项目实体
+ * 对应数据库表: projects
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -34,6 +36,11 @@ public class Project extends BaseEntity {
     private String description;
 
     /**
+     * 创建人ID
+     */
+    private Integer creatorId;
+
+    /**
      * 项目编码
      */
     private String projectCode;
@@ -53,34 +60,52 @@ public class Project extends BaseEntity {
      */
     private String avatarUrl;
 
-    // ========== 额外字段（代码中使用但数据库可能没有）==========
+    /**
+     * 更新人ID
+     */
+    private Long updaterId;
 
     /**
-     * 项目编号（代码中使用，等同于projectCode）
+     * 版本号
+     */
+    private Integer version;
+
+    // ========== 兼容性别名（用于旧代码）==========
+
+    /**
+     * 项目编号别名
      */
     @TableField(exist = false)
     private String code;
 
+    public String getCode() {
+        return this.projectCode;
+    }
+
+    public void setCode(String code) {
+        this.projectCode = code;
+    }
+
     /**
-     * 开始日期
+     * 开始日期（数据库中不存在）
      */
     @TableField(exist = false)
     private LocalDate startDate;
 
     /**
-     * 结束日期
+     * 结束日期（数据库中不存在）
      */
     @TableField(exist = false)
     private LocalDate endDate;
 
     /**
-     * 负责人ID
+     * 负责人ID（数据库中不存在）
      */
     @TableField(exist = false)
     private Long ownerId;
 
     /**
-     * 图标颜色
+     * 图标颜色（数据库中不存在）
      */
     @TableField(exist = false)
     private String iconColor;

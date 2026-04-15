@@ -42,7 +42,7 @@ public class ApiCommandServiceImpl implements ApiCommandService {
         ApiRequest api = new ApiRequest();
         api.setName(cmd.getName());
         api.setDescription(cmd.getDescription());
-        api.setCollectionId(cmd.getCollectionId());
+        api.setCollectionId(cmd.getCollectionId() != null ? cmd.getCollectionId().intValue() : null);
         api.setRequestType(cmd.getRequestType());
         api.setHttpMethod(cmd.getHttpMethod());
         api.setUrl(cmd.getUrl());
@@ -76,7 +76,7 @@ public class ApiCommandServiceImpl implements ApiCommandService {
 
         if (cmd.getName() != null) api.setName(cmd.getName());
         if (cmd.getDescription() != null) api.setDescription(cmd.getDescription());
-        if (cmd.getCollectionId() != null) api.setCollectionId(cmd.getCollectionId());
+        if (cmd.getCollectionId() != null) api.setCollectionId(cmd.getCollectionId().intValue());
         if (cmd.getRequestType() != null) api.setRequestType(cmd.getRequestType());
         if (cmd.getHttpMethod() != null) api.setHttpMethod(cmd.getHttpMethod());
         if (cmd.getUrl() != null) api.setUrl(cmd.getUrl());
@@ -138,9 +138,9 @@ public class ApiCommandServiceImpl implements ApiCommandService {
                 .preScript(api.getPreScript())
                 .postScript(api.getPostScript())
                 .assertions(api.getAssertions())
-                .collectionId(api.getCollectionId())
+                .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
                 .collectionName(collection != null ? collection.getName() : null)
-                .projectId(collection != null ? collection.getProjectId() : null)
+                .projectId(collection != null && collection.getProjectId() != null ? collection.getProjectId().longValue() : null)
                 .orderNum(api.getOrderNum())
                 .status(api.getStatus())
                 .createdAt(api.getCreatedAt())

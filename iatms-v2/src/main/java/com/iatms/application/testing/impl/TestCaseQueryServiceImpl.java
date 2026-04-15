@@ -80,7 +80,7 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
                 .description(testCase.getDescription())
                 .projectId(testCase.getProjectId())
                 .moduleId(testCase.getModuleId())
-                .apiId(testCase.getApiId())
+                .apiId(testCase.getApiId() != null ? testCase.getApiId().longValue() : null)
                 .testType(testCase.getTestType())
                 .priority(testCase.getPriority())
                 .status(testCase.getStatus())
@@ -111,19 +111,15 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
         String executionId = "EXEC-" + UUID.randomUUID().toString();
 
         TestExecution execution = new TestExecution();
-        execution.setExecutionType("TEST_CASE");
-        execution.setTargetId(caseId);
         execution.setExecutionId(executionId);
-        execution.setStatus("PENDING");
-        execution.setProgress(0);
+        execution.setExecutionScope("test_case");
+        execution.setRefId(caseId.intValue());
+        execution.setStatus("pending");
         execution.setTotalCases(1);
-        execution.setCompletedCases(0);
-        execution.setPassedCases(0);
         execution.setFailedCases(0);
-        execution.setTriggerType("MANUAL");
+        execution.setExecutionType("manual");
         execution.setExecutedBy(userId);
         execution.setCreatedBy(userId);
-        execution.setUpdatedBy(userId);
 
         executionMapper.insert(execution);
 
@@ -142,7 +138,7 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
                 .priority(testCase.getPriority())
                 .status(testCase.getStatus())
                 .moduleId(testCase.getModuleId())
-                .apiId(testCase.getApiId())
+                .apiId(testCase.getApiId() != null ? testCase.getApiId().longValue() : null)
                 .createdAt(testCase.getCreatedAt())
                 .createdBy(testCase.getCreatedBy())
                 .build();

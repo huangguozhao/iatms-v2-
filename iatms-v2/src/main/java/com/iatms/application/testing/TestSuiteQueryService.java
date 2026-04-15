@@ -46,13 +46,13 @@ public class TestSuiteQueryService {
     }
 
     public List<Long> getCaseIds(Long testSuiteId) {
-        List<TestSuiteRequest> links = testSuiteRequestMapper.selectByTestSuiteId(testSuiteId);
+        List<TestSuiteRequest> links = testSuiteRequestMapper.selectByTestSuiteId(testSuiteId.intValue());
         return links.stream()
                 .map(TestSuiteRequest::getApiRequestId)
                 .collect(Collectors.toList());
     }
 
     public int getCaseCount(Long testSuiteId) {
-        return testSuiteRequestMapper.selectByTestSuiteId(testSuiteId).size();
+        return testSuiteRequestMapper.selectByTestSuiteId(testSuiteId.intValue()).size();
     }
 }

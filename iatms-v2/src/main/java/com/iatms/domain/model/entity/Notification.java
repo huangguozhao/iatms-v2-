@@ -43,7 +43,8 @@ public class Notification {
     /**
      * 是否已读
      */
-    private Boolean read;
+    @TableField("is_read")
+    private Boolean isRead;
 
     /**
      * 接收用户ID

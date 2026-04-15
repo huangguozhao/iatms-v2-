@@ -49,6 +49,7 @@ public class TestSuite extends BaseEntity {
     /**
      * 版本号（套件版本，如1.0, 2.1）
      */
+    @TableField("version")
     private String suiteVersion;
 
     /**
@@ -70,31 +71,6 @@ public class TestSuite extends BaseEntity {
      * 套件顺序
      */
     private Integer suiteOrder;
-
-    /**
-     * 总用例数
-     */
-    private Integer totalCases;
-
-    /**
-     * 通过用例数
-     */
-    private Integer passedCases;
-
-    /**
-     * 失败用例数
-     */
-    private Integer failedCases;
-
-    /**
-     * 跳过用例数
-     */
-    private Integer skippedCases;
-
-    /**
-     * 成功率
-     */
-    private java.math.BigDecimal successRate;
 
     /**
      * 标签（JSON）

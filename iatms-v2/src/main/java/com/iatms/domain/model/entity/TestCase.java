@@ -1,21 +1,36 @@
 package com.iatms.domain.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
  * 测试用例
+ * 对应数据库表: testcases
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("test_cases")
+@TableName("testcases")
 public class TestCase extends BaseEntity {
+
+    /**
+     * 用例ID
+     */
+    @TableId(value = "case_id", type = IdType.AUTO)
+    private Long id;
 
     /**
      * 用例编号
      */
     private String caseCode;
+
+    /**
+     * 关联的接口ID
+     */
+    private Integer apiId;
 
     /**
      * 用例名称
@@ -28,29 +43,24 @@ public class TestCase extends BaseEntity {
     private String description;
 
     /**
-     * 所属项目ID
+     * 测试类型：functional, performance, security, compatibility, smoke, regression
      */
-    private Long projectId;
+    private String testType;
 
     /**
-     * 所属模块ID
+     * 优先级：P0, P1, P2, P3
      */
-    private Long moduleId;
+    private String priority;
 
     /**
-     * 关联的接口ID
+     * 严重程度：critical, high, medium, low
      */
-    private Long apiId;
+    private String severity;
 
     /**
-     * 请求方法（GET, POST等）
+     * 标签（JSON格式）
      */
-    private String method;
-
-    /**
-     * 请求路径
-     */
-    private String path;
+    private String tags;
 
     /**
      * 前置条件（JSON格式）
@@ -63,24 +73,24 @@ public class TestCase extends BaseEntity {
     private String testSteps;
 
     /**
-     * 测试数据（JSON格式）
+     * 请求参数覆盖（JSON格式）
      */
-    private String testData;
+    private String requestOverride;
 
     /**
-     * 请求头（JSON格式）
+     * 预期HTTP状态码
      */
-    private String headers;
+    private Integer expectedHttpStatus;
 
     /**
-     * 请求参数（JSON格式）
+     * 预期响应Schema（JSON格式）
      */
-    private String requestParams;
+    private String expectedResponseSchema;
 
     /**
-     * 请求体（JSON格式）
+     * 预期响应体
      */
-    private String requestBody;
+    private String expectedResponseBody;
 
     /**
      * 断言规则（JSON格式）
@@ -88,32 +98,172 @@ public class TestCase extends BaseEntity {
     private String assertions;
 
     /**
-     * 预期响应（JSON格式）
-     */
-    private String expectedResponse;
-
-    /**
-     * 变量提取规则（JSON格式）
+     * 响应提取规则（JSON格式）
      */
     private String extractors;
 
     /**
-     * 优先级：P0, P1, P2, P3
+     * 验证器配置（JSON格式）
      */
-    private String priority;
+    private String validators;
 
     /**
-     * 状态：DRAFT-草稿，ACTIVE-激活，DEPRECATED-废弃
+     * 是否启用
      */
-    private String status;
+    private Boolean isEnabled;
 
     /**
-     * 创建人ID
+     * 是否为模板用例
      */
-    private Long createdBy;
+    private Boolean isTemplate;
 
     /**
-     * 测试类型：FUNCTIONAL-功能，PERFORMANCE-性能，SECURITY-安全
+     * 模板用例ID
      */
-    private String testType;
+    private Integer templateId;
+
+    /**
+     * 版本号（来自数据库的version字段）
+     */
+    @TableField("version")
+    private String caseVersion;
+
+    // ========== 兼容字段（数据库中不存在，但代码需要使用）==========
+
+    /**
+     * 项目ID（数据库中不存在，通过api间接关联）
+     */
+    @TableField(exist = false)
+    private Long projectId;
+
+    /**
+     * 模块ID（数据库中不存在，通过api间接关联）
+     */
+    @TableField(exist = false)
+    private Long moduleId;
+
+    // ========== 兼容性别名（用于旧代码）==========
+
+    /**
+     * 用例ID别名
+     */
+    public Long getId() {
+        return this.id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    /**
+     * 请求方法（兼容旧代码，数据库中没有此字段）
+     */
+    @TableField(exist = false)
+    private String method;
+
+    public String getMethod() {
+        return this.method;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
+    }
+
+    /**
+     * 请求路径（兼容旧代码，数据库中没有此字段）
+     */
+    @TableField(exist = false)
+    private String path;
+
+    public String getPath() {
+        return this.path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    /**
+     * 测试数据（兼容旧代码）
+     */
+    @TableField(exist = false)
+    private String testData;
+
+    public String getTestData() {
+        return this.testData;
+    }
+
+    public void setTestData(String testData) {
+        this.testData = testData;
+    }
+
+    /**
+     * 请求头（兼容旧代码）
+     */
+    @TableField(exist = false)
+    private String headers;
+
+    public String getHeaders() {
+        return this.headers;
+    }
+
+    public void setHeaders(String headers) {
+        this.headers = headers;
+    }
+
+    /**
+     * 请求参数（兼容旧代码）
+     */
+    @TableField(exist = false)
+    private String requestParams;
+
+    public String getRequestParams() {
+        return this.requestParams;
+    }
+
+    public void setRequestParams(String requestParams) {
+        this.requestParams = requestParams;
+    }
+
+    /**
+     * 请求体（兼容旧代码）
+     */
+    @TableField(exist = false)
+    private String requestBody;
+
+    public String getRequestBody() {
+        return this.requestBody;
+    }
+
+    public void setRequestBody(String requestBody) {
+        this.requestBody = requestBody;
+    }
+
+    /**
+     * 预期响应（兼容旧代码）
+     */
+    @TableField(exist = false)
+    private String expectedResponse;
+
+    public String getExpectedResponse() {
+        return this.expectedResponse;
+    }
+
+    public void setExpectedResponse(String expectedResponse) {
+        this.expectedResponse = expectedResponse;
+    }
+
+    /**
+     * 状态（兼容旧代码）
+     */
+    @TableField(exist = false)
+    private String status = "DRAFT";
+
+    public String getStatus() {
+        return this.status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }

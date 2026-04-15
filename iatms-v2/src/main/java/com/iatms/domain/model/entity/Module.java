@@ -1,14 +1,13 @@
 package com.iatms.domain.model.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
  * 模块实体
+ * 对应数据库表: modules
  */
 @Data
 @TableName("modules")
@@ -48,6 +47,7 @@ public class Module {
     /**
      * 排序顺序
      */
+    @TableField("sort_order")
     private Integer sortOrder;
 
     /**
@@ -61,7 +61,7 @@ public class Module {
     private Integer ownerId;
 
     /**
-     * 标签信息
+     * 标签信息（JSON）
      */
     private String tags;
 
@@ -88,6 +88,8 @@ public class Module {
     /**
      * 是否删除
      */
+    @TableLogic(delval = "1", value = "0")
+    @TableField("is_deleted")
     private Boolean isDeleted;
 
     /**

@@ -214,21 +214,55 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     private TestExecution createExecutionRecord(String executionId, StartExecutionCmd cmd, Long userId) {
         TestExecution execution = new TestExecution();
         execution.setExecutionId(executionId);
-        execution.setExecutionType(cmd.getExecutionType());
-        execution.setTargetId(cmd.getTargetId());
-        execution.setEnvironmentId(cmd.getEnvironmentId());
-        execution.setTriggerType(cmd.getTriggerType());
+
+        // 映射执行类型: TEST_CASE -> test_case, TEST_SUITE -> test_suite, PROJECT -> project
+        String scope = mapExecutionTypeToScope(cmd.getExecutionType());
+        execution.setExecutionScope(scope);
+        execution.setRefId(cmd.getTargetId().intValue());
+
+        // 设置执行类型: manual/scheduled/triggered
+        String execType = mapTriggerType(cmd.getTriggerType());
+        execution.setExecutionType(execType);
+
+        // 设置环境 (数据库中是环境名称字符串)
+        execution.setEnvironment(cmd.getEnvironmentId() != null ? "env-" + cmd.getEnvironmentId() : "default");
+
         execution.setExecutedBy(userId);
-        execution.setStatus(ExecutionStatus.PENDING.name());
-        execution.setProgress(0);
+        execution.setStatus(toDbStatus(ExecutionStatus.RUNNING.name()));
         execution.setTotalCases(0);
-        execution.setCompletedCases(0);
-        execution.setPassedCases(0);
         execution.setFailedCases(0);
-        execution.setStartedAt(LocalDateTime.now());
+        execution.setStartTime(LocalDateTime.now());
         execution.setCreatedBy(userId);
-        execution.setUpdatedBy(userId);
         return execution;
+    }
+
+    private String mapExecutionTypeToScope(String executionType) {
+        if (executionType == null) return "test_case";
+        return switch (executionType.toUpperCase()) {
+            case "TEST_CASE" -> "test_case";
+            case "TEST_SUITE" -> "test_suite";
+            case "PROJECT" -> "project";
+            case "MODULE" -> "module";
+            case "API" -> "api";
+            default -> "test_case";
+        };
+    }
+
+    private String mapTriggerType(String triggerType) {
+        if (triggerType == null) return "manual";
+        return switch (triggerType.toUpperCase()) {
+            case "SCHEDULED" -> "scheduled";
+            case "TRIGGERED" -> "triggered";
+            default -> "manual";
+        };
+    }
+
+    /**
+     * 将Java枚举状态转换为数据库状态（小写）
+     */
+    private String toDbStatus(String status) {
+        if (status == null) return null;
+        return status.toLowerCase();
     }
 
     private void executeSingleCase(ExecutionContext context) {
@@ -246,7 +280,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         TestResult result = executeTestCase(testCase, context);
 
         context.setCompletedCases(1);
-        if ("PASSED".equals(result.getStatus())) {
+        if ("passed".equalsIgnoreCase(result.getStatus())) {
             context.setPassedCases(1);
             updateExecutionStatus(context.getExecutionId(), ExecutionStatus.COMPLETED.name(), null);
         } else {
@@ -261,7 +295,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         context.setStatus(ExecutionStatus.RUNNING.name());
         updateExecutionStatus(context.getExecutionId(), ExecutionStatus.RUNNING.name(), null);
 
-        List<TestSuiteRequest> suiteRequests = testSuiteRequestMapper.selectByTestSuiteId(context.getCmd().getTargetId());
+        List<TestSuiteRequest> suiteRequests = testSuiteRequestMapper.selectByTestSuiteId(context.getCmd().getTargetId().intValue());
         if (suiteRequests == null || suiteRequests.isEmpty()) {
             log.warn("测试套件为空: suiteId={}", context.getCmd().getTargetId());
             context.setTotalCases(0);
@@ -309,7 +343,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
             try {
                 TestResult result = futures.get(i).get(30, TimeUnit.MINUTES);
                 context.setCompletedCases(i + 1);
-                if ("PASSED".equals(result.getStatus())) {
+                if ("passed".equalsIgnoreCase(result.getStatus())) {
                     context.setPassedCases(context.getPassedCases() + 1);
                 } else {
                     context.setFailedCases(context.getFailedCases() + 1);
@@ -350,7 +384,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
 
         int totalCases = 0;
         for (TestSuite suite : suites) {
-            List<TestSuiteRequest> suiteRequests = testSuiteRequestMapper.selectByTestSuiteId(suite.getId());
+            List<TestSuiteRequest> suiteRequests = testSuiteRequestMapper.selectByTestSuiteId(suite.getId().intValue());
             if (suiteRequests != null) {
                 totalCases += suiteRequests.size();
             }
@@ -363,7 +397,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
 
             context.setCurrentCaseName(suite.getSuiteName());
 
-            List<TestSuiteRequest> suiteRequests = testSuiteRequestMapper.selectByTestSuiteId(suite.getId());
+            List<TestSuiteRequest> suiteRequests = testSuiteRequestMapper.selectByTestSuiteId(suite.getId().intValue());
             for (TestSuiteRequest sr : suiteRequests) {
                 if (context.isCancelled()) break;
 
@@ -371,7 +405,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                 if (testCase != null) {
                     TestResult result = executeTestCase(testCase, context);
                     context.setCompletedCases(context.getCompletedCases() + 1);
-                    if ("PASSED".equals(result.getStatus())) {
+                    if ("passed".equalsIgnoreCase(result.getStatus())) {
                         context.setPassedCases(context.getPassedCases() + 1);
                     } else {
                         context.setFailedCases(context.getFailedCases() + 1);
@@ -389,12 +423,12 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     }
 
     private TestResult executeTestCase(TestCase testCase, ExecutionContext context) {
-        long startTime = System.currentTimeMillis();
+        long startTimeMs = System.currentTimeMillis();
         TestResult result = new TestResult();
-        result.setCaseId(testCase.getId());
-        result.setCaseName(testCase.getName());
-        result.setExecutionId(context.getExecutionId());
-        result.setStartedAt(LocalDateTime.now());
+        result.setCaseId(testCase.getId().intValue());
+        result.setCaseName(testCase.getName());  // 内部使用
+        result.setExecutionIdStr(context.getExecutionId());  // 存储字符串执行ID
+        result.setStartTime(LocalDateTime.now());
 
         try {
             // 获取 API 信息
@@ -404,7 +438,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
             }
 
             if (api == null) {
-                result.setStatus("FAILED");
+                result.setStatus("failed");
                 result.setErrorMessage("API定义不存在");
                 return result;
             }
@@ -428,8 +462,8 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                     body
             );
 
-            result.setResponseTime(response.getResponseTime());
-            result.setResponseData(response.getBody());
+            result.setDuration((long) response.getResponseTime());
+            result.setResponseData(response.getBody());  // 内部使用
 
             // 执行断言
             if (testCase.getAssertions() != null && !testCase.getAssertions().isEmpty()) {
@@ -441,15 +475,17 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                 TestExecutionDomainService.AssertionResult assertionResult =
                         executionDomainService.executeAssertions(testCase.getAssertions(), apiResp);
 
-                result.setStatus(assertionResult.isPassed() ? "PASSED" : "FAILED");
-                result.setAssertionResults(JSON.toJSONString(assertionResult.getItems()));
+                result.setStatus(assertionResult.isPassed() ? "passed" : "failed");
+                result.setAssertionResults(JSON.toJSONString(assertionResult.getItems()));  // 内部使用
+                // 存储到stepsJson作为详细结果
+                result.setStepsJson(buildStepsJson(testCase, response, assertionResult));
                 if (!assertionResult.isPassed()) {
-                    result.setErrorMessage(assertionResult.getMessage());
+                    result.setFailureMessage(assertionResult.getMessage());
                 }
             } else {
-                result.setStatus(response.isSuccess() ? "PASSED" : "FAILED");
+                result.setStatus(response.isSuccess() ? "passed" : "failed");
                 if (!response.isSuccess()) {
-                    result.setErrorMessage("HTTP状态码: " + response.getStatusCode());
+                    result.setFailureMessage("HTTP状态码: " + response.getStatusCode());
                 }
             }
 
@@ -459,20 +495,43 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                 apiResp.setBody(response.getBody());
                 Map<String, Object> extracted = executionDomainService.extractVariables(testCase.getExtractors(), apiResp);
                 extracted.forEach(context::setVariable);
+                result.setExtractedVariables(JSON.toJSONString(extracted));  // 内部使用
             }
 
         } catch (Exception e) {
             log.error("执行测试用例失败: caseId={}", testCase.getId(), e);
-            result.setStatus("FAILED");
-            result.setErrorMessage(e.getMessage());
+            result.setStatus("failed");
+            result.setFailureMessage(e.getMessage());
         }
 
-        result.setCompletedAt(LocalDateTime.now());
+        result.setEndTime(LocalDateTime.now());
 
         // 保存执行结果
-        saveTestResult(result);
+        saveTestResult(result, context);
 
         return result;
+    }
+
+    private String buildStepsJson(TestCase testCase, ApiClient.ApiResponse response,
+                                  TestExecutionDomainService.AssertionResult assertionResult) {
+        Map<String, Object> steps = new HashMap<>();
+        steps.put("request", Map.of(
+                "method", testCase.getMethod() != null ? testCase.getMethod() : "GET",
+                "url", response.getUrl() != null ? response.getUrl() : "",
+                "headers", testCase.getHeaders() != null ? testCase.getHeaders() : "{}",
+                "body", testCase.getRequestBody() != null ? testCase.getRequestBody() : ""
+        ));
+        steps.put("response", Map.of(
+                "statusCode", response.getStatusCode(),
+                "body", response.getBody() != null ? response.getBody() : "",
+                "time", response.getResponseTime()
+        ));
+        steps.put("assertion", Map.of(
+                "passed", assertionResult.isPassed(),
+                "message", assertionResult.getMessage() != null ? assertionResult.getMessage() : "",
+                "items", assertionResult.getItems() != null ? assertionResult.getItems() : Collections.emptyList()
+        ));
+        return JSON.toJSONString(steps);
     }
 
     private String buildUrl(ApiRequest api, ExecutionContext context) {
@@ -495,13 +554,18 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         }
     }
 
-    private void saveTestResult(TestResult result) {
+    private void saveTestResult(TestResult result, ExecutionContext context) {
         try {
-            TestResult existing = testResultMapper.selectByCaseAndExecution(
-                    result.getExecutionId(), result.getCaseId());
+            // 先通过executionIdStr和caseId查找是否已存在
+            List<TestResult> existingList = testResultMapper.selectByExecutionId(context.getExecutionId());
+            TestResult existing = existingList.stream()
+                    .filter(r -> r.getCaseId() != null && r.getCaseId().equals(result.getCaseId()))
+                    .findFirst()
+                    .orElse(null);
+
             if (existing != null) {
                 result.setId(existing.getId());
-                testResultMapper.updateByCaseAndExecution(result);
+                testResultMapper.updateResult(result);
             } else {
                 testResultMapper.insertResult(result);
             }
@@ -514,7 +578,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         try {
             TestExecution execution = testExecutionMapper.selectByExecutionId(executionId);
             if (execution != null) {
-                execution.setStatus(status);
+                execution.setStatus(toDbStatus(status));
                 if (errorMessage != null) {
                     execution.setErrorMessage(errorMessage);
                 }
@@ -522,11 +586,10 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                         ExecutionStatus.FAILED.name().equals(status) ||
                         ExecutionStatus.CANCELLED.name().equals(status) ||
                         ExecutionStatus.PAUSED.name().equals(status)) {
-                    execution.setCompletedAt(LocalDateTime.now());
-                    if (execution.getStartedAt() != null) {
-                        execution.setDuration(
-                                (int) java.time.Duration.between(execution.getStartedAt(), execution.getCompletedAt()).getSeconds()
-                        );
+                    execution.setEndTime(LocalDateTime.now());
+                    if (execution.getStartTime() != null) {
+                        long seconds = java.time.Duration.between(execution.getStartTime(), execution.getEndTime()).getSeconds();
+                        execution.setDurationSeconds((int) seconds);
                     }
                 }
                 testExecutionMapper.updateById(execution);

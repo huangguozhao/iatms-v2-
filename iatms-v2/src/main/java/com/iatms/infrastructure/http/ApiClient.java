@@ -69,6 +69,7 @@ public class ApiClient {
             response.setBody(responseBody);
             response.setResponseTime((int) (System.currentTimeMillis() - startTime));
             response.setHeaders(headers);
+            response.setUrl(url);
 
             log.info("HTTP请求完成: method={}, url={}, statusCode={}, duration={}ms",
                     method, url, statusCode, response.getResponseTime());
@@ -83,6 +84,7 @@ public class ApiClient {
             response.setBody("{\"error\": \"" + e.getMessage() + "\"}");
             response.setResponseTime((int) (System.currentTimeMillis() - startTime));
             response.setHeaders(headers);
+            response.setUrl(url);
 
             return response;
         }
@@ -116,6 +118,7 @@ public class ApiClient {
                         response.setBody(responseBody);
                         response.setResponseTime((int) (System.currentTimeMillis() - startTime));
                         response.setHeaders(headers);
+                        response.setUrl(url);
                         return response;
                     })
                     .onErrorResume(e -> {
@@ -125,6 +128,7 @@ public class ApiClient {
                         response.setBody("{\"error\": \"" + e.getMessage() + "\"}");
                         response.setResponseTime((int) (System.currentTimeMillis() - startTime));
                         response.setHeaders(headers);
+                        response.setUrl(url);
                         return Mono.just(response);
                     });
 
@@ -135,6 +139,7 @@ public class ApiClient {
             response.setBody("{\"error\": \"" + e.getMessage() + "\"}");
             response.setResponseTime((int) (System.currentTimeMillis() - startTime));
             response.setHeaders(headers);
+            response.setUrl(url);
             return Mono.just(response);
         }
     }
@@ -176,6 +181,7 @@ public class ApiClient {
         private String body;
         private int responseTime;
         private Map<String, String> headers;
+        private String url;
 
         public boolean isSuccess() {
             return statusCode >= 200 && statusCode < 300;

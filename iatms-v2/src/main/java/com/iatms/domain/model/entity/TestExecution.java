@@ -1,43 +1,94 @@
 package com.iatms.domain.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
  * 测试执行记录
+ * 对应数据库表: testexecutionrecords
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("test_execution")
+@TableName("testexecutionrecords")
 public class TestExecution extends BaseEntity {
 
     /**
-     * 执行类型：TEST_CASE-单个用例，TEST_SUITE-套件，PROJECT-项目
+     * 记录ID (record_id)
      */
-    private String executionType;
+    @TableId(value = "record_id", type = IdType.AUTO)
+    private Long id;
 
     /**
-     * 执行对象ID（用例/套件/项目ID）
-     */
-    private Long targetId;
-
-    /**
-     * 执行批次ID（同一批次执行共享）
+     * 执行ID字符串，用于外部引用
      */
     private String executionId;
 
     /**
-     * 执行状态
+     * 执行范围类型：api/module/project/test_suite/test_case
+     */
+    private String executionScope;
+
+    /**
+     * 关联的ID（根据execution_scope关联对应表）
+     */
+    private Integer refId;
+
+    /**
+     * 执行范围的名称
+     */
+    private String scopeName;
+
+    /**
+     * 执行人ID
+     */
+    private Integer executedBy;
+
+    /**
+     * 浏览器类型
+     */
+    private String browser;
+
+    /**
+     * 应用版本
+     */
+    private String appVersion;
+
+    /**
+     * 执行类型：manual/scheduled/triggered
+     */
+    private String executionType;
+
+    /**
+     * 测试环境
+     */
+    private String environment;
+
+    /**
+     * 执行状态：running/completed/failed/cancelled
      */
     private String status;
 
     /**
-     * 进度百分比
+     * 开始时间
      */
-    private Integer progress;
+    private LocalDateTime startTime;
+
+    /**
+     * 结束时间
+     */
+    private LocalDateTime endTime;
+
+    /**
+     * 执行耗时(秒)
+     */
+    private Integer durationSeconds;
 
     /**
      * 总用例数
@@ -45,57 +96,113 @@ public class TestExecution extends BaseEntity {
     private Integer totalCases;
 
     /**
-     * 已完成用例数
-     */
-    private Integer completedCases;
-
-    /**
-     * 通过用例数
-     */
-    private Integer passedCases;
-
-    /**
      * 失败用例数
      */
     private Integer failedCases;
 
     /**
-     * 执行环境ID
+     * 成功率
      */
-    private Long environmentId;
+    private BigDecimal successRate;
 
     /**
-     * 触发类型：MANUAL-手动，SCHEDULED-定时，API-API触发
+     * 执行配置信息(JSON)
      */
-    private String triggerType;
+    private String executionConfig;
 
     /**
-     * 触发任务的ID
+     * 报告访问地址
      */
-    private Long scheduledTaskId;
+    private String reportUrl;
 
     /**
-     * 执行人ID
+     * 日志文件路径
      */
-    private Long executedBy;
-
-    /**
-     * 开始时间
-     */
-    private LocalDateTime startedAt;
-
-    /**
-     * 结束时间
-     */
-    private LocalDateTime completedAt;
-
-    /**
-     * 执行时长（秒）
-     */
-    private Integer duration;
+    private String logFilePath;
 
     /**
      * 错误信息
      */
     private String errorMessage;
+
+    /**
+     * 触发任务ID
+     */
+    private Long triggeredTaskId;
+
+    // ========== 内部使用的字段（不对应数据库持久化）==========
+
+    /**
+     * 进度百分比（运行时计算，不存储到数据库）
+     */
+    @TableField(exist = false)
+    private Integer progress;
+
+    /**
+     * 完成用例数（运行时计算，不存储）
+     */
+    @TableField(exist = false)
+    private Integer completedCases;
+
+    /**
+     * 通过用例数（运行时计算，不存储）
+     */
+    @TableField(exist = false)
+    private Integer passedCases;
+
+    /**
+     * 跳过用例数（运行时计算，不存储）
+     */
+    @TableField(exist = false)
+    private Integer skippedCases;
+
+    // ========== 兼容性别名（用于旧代码）==========
+
+    public String getTriggerType() {
+        return this.executionType;
+    }
+
+    public void setTriggerType(String triggerType) {
+        this.executionType = triggerType;
+    }
+
+    public Long getExecutedBy() {
+        return this.executedBy != null ? this.executedBy.longValue() : null;
+    }
+
+    public void setExecutedBy(Long executedBy) {
+        this.executedBy = executedBy != null ? executedBy.intValue() : null;
+    }
+
+    public Integer getDuration() {
+        return this.durationSeconds;
+    }
+
+    public void setDuration(Integer duration) {
+        this.durationSeconds = duration;
+    }
+
+    public LocalDateTime getStartedAt() {
+        return this.startTime;
+    }
+
+    public void setStartedAt(LocalDateTime startedAt) {
+        this.startTime = startedAt;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return this.endTime;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.endTime = completedAt;
+    }
+
+    public Long getCreatedBy() {
+        return super.getCreatedBy();
+    }
+
+    public void setCreatedBy(Long createdBy) {
+        super.setCreatedBy(createdBy);
+    }
 }
