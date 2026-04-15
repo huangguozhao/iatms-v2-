@@ -17,16 +17,58 @@
     <!-- 指标卡片区域 -->
     <div class="metrics-section">
       <el-row :gutter="20">
-        <el-col :span="6" v-for="(stat, index) in stats" :key="index">
+        <el-col :span="6">
           <div class="metric-card modern-card hover-lift">
-            <div class="metric-icon" :style="{ backgroundColor: stat.color }">
-              {{ stat.icon }}
+            <div class="metric-icon" style="background-color: #409eff">
+              📁
             </div>
             <div class="metric-info">
-              <div class="metric-value">{{ stat.value }}</div>
-              <div class="metric-title">{{ stat.title }}</div>
-              <div class="metric-change" :class="stat.changeType">
-                {{ stat.change }}
+              <div class="metric-value">{{ stats?.projectCount ?? '-' }}</div>
+              <div class="metric-title">项目总数</div>
+              <div class="metric-change up">
+                {{ stats?.weekExecutionCount ?? 0 }} 本周新增
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="metric-card modern-card hover-lift">
+            <div class="metric-icon" style="background-color: #67c23a">
+              🔗
+            </div>
+            <div class="metric-info">
+              <div class="metric-value">{{ stats?.apiCount ?? '-' }}</div>
+              <div class="metric-title">接口总数</div>
+              <div class="metric-change up">
+                {{ stats?.todayExecutionCount ?? 0 }} 今日执行
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="metric-card modern-card hover-lift">
+            <div class="metric-icon" style="background-color: #e6a23c">
+              📋
+            </div>
+            <div class="metric-info">
+              <div class="metric-value">{{ stats?.testCaseCount ?? '-' }}</div>
+              <div class="metric-title">用例总数</div>
+              <div class="metric-change neutral">
+                {{ stats?.successRate ?? 0 }}% 成功率
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="metric-card modern-card hover-lift">
+            <div class="metric-icon" style="background-color: #f56c6c">
+              ▶️
+            </div>
+            <div class="metric-info">
+              <div class="metric-value">{{ stats?.executionCount ?? '-' }}</div>
+              <div class="metric-title">总执行次数</div>
+              <div class="metric-change up">
+                {{ stats?.weekExecutionCount ?? 0 }} 本周
               </div>
             </div>
           </div>
@@ -98,13 +140,13 @@
         <h3>最近执行动态</h3>
       </div>
       <div class="activity-list scrollbar-thin">
-        <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
-          <div class="activity-icon" :class="activity.type">
-            {{ activity.icon }}
+        <div v-for="activity in recentActivities" :key="activity.executionId" class="activity-item">
+          <div class="activity-icon" :class="getActivityType(activity.status)">
+            {{ getActivityIcon(activity.status, activity.executionType) }}
           </div>
           <div class="activity-content">
-            <div class="activity-text">{{ activity.text }}</div>
-            <div class="activity-time">{{ activity.time }}</div>
+            <div class="activity-text">{{ formatActivityText(activity) }}</div>
+            <div class="activity-time">{{ formatRelativeTime(activity.startTime) }}</div>
           </div>
         </div>
         <el-empty v-if="!recentActivities.length" description="暂无执行动态" />
@@ -117,26 +159,13 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { projectApi } from '@/api/modules/project/project'
-import { getStatusType, getStatusText } from '@/utils/formatters'
+import { dashboardApi, type DashboardStatisticsVO, type RecentActivityVO } from '@/api/modules/dashboard/dashboard'
 
 const router = useRouter()
 
-const stats = ref([
-  { title: '项目总数', value: 12, icon: '📁', color: '#409eff', change: '+2 本周', changeType: 'up' },
-  { title: '接口总数', value: 156, icon: '🔗', color: '#67c23a', change: '+15 本周', changeType: 'up' },
-  { title: '用例总数', value: 892, icon: '📋', color: '#e6a23c', change: '+32 本周', changeType: 'up' },
-  { title: '总执行次数', value: 3420, icon: '▶️', color: '#f56c6c', change: '+128 本周', changeType: 'up' }
-])
-
+const stats = ref<DashboardStatisticsVO | null>(null)
 const recentProjects = ref<any[]>([])
-
-const recentActivities = ref([
-  { id: 1, type: 'success', icon: '✅', text: '接口用例「用户登录」执行成功', time: '5分钟前' },
-  { id: 2, type: 'success', icon: '✅', text: '测试套件「登录模块」执行成功', time: '15分钟前' },
-  { id: 3, type: 'warning', icon: '⚠️', text: '定时任务「每日巡检」执行失败', time: '30分钟前' },
-  { id: 4, type: 'success', icon: '✅', text: '项目「电商API」创建成功', time: '1小时前' },
-  { id: 5, type: 'info', icon: 'ℹ️', text: '新增测试用例「订单查询」', time: '2小时前' }
-])
+const recentActivities = ref<RecentActivityVO[]>([])
 
 function getStatusType(status: string) {
   const map: Record<string, string> = {
@@ -158,14 +187,73 @@ function getStatusText(status: string) {
   return map[status] || status
 }
 
+function getActivityIcon(status: string, type: string): string {
+  if (status === 'failed') return '❌'
+  if (status === 'running') return '🔄'
+  if (type === 'scheduled') return '⏰'
+  if (type === 'manual') return '👤'
+  return '✅'
+}
+
+function getActivityType(status: string): string {
+  if (status === 'failed') return 'error'
+  if (status === 'running') return 'warning'
+  return 'success'
+}
+
+function formatRelativeTime(dateStr: string): string {
+  if (!dateStr) return '未知'
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  return date.toLocaleDateString()
+}
+
+function formatActivityText(activity: RecentActivityVO): string {
+  const scopeText = getScopeText(activity.scope)
+  const name = activity.refName || '未知'
+  return `${scopeText}「${name}」执行${activity.status === 'completed' ? '成功' : activity.status === 'failed' ? '失败' : '进行中'}`
+}
+
+function getScopeText(scope: string): string {
+  const map: Record<string, string> = {
+    project: '项目',
+    test_case: '测试用例',
+    test_suite: '测试套件',
+    api: '接口',
+    module: '模块'
+  }
+  return map[scope] || scope
+}
+
 onMounted(async () => {
   try {
-    const data = await projectApi.getRecent(5)
-    if (data && Array.isArray(data)) {
-      recentProjects.value = data
+    // 获取统计数据
+    const statisticsData = await dashboardApi.getStatistics()
+    stats.value = statisticsData
+
+    // 获取最近项目
+    const projectsData = await projectApi.getRecent(5)
+    if (projectsData && Array.isArray(projectsData)) {
+      recentProjects.value = projectsData
+    }
+
+    // 获取最近活动
+    const activitiesData = await dashboardApi.getRecentActivities(10)
+    if (activitiesData && Array.isArray(activitiesData)) {
+      recentActivities.value = activitiesData
     }
   } catch (error) {
-    console.error('获取最近项目失败:', error)
+    console.error('获取仪表盘数据失败:', error)
   }
 })
 </script>
