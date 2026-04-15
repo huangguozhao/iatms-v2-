@@ -156,7 +156,7 @@ public class TestExecution extends BaseEntity {
     @TableField(exist = false)
     private Integer skippedCases;
 
-    // ========== BaseEntity 字段覆盖（数据库表中不存在 creator_id/updater_id）==========
+    // ========== BaseEntity 字段覆盖（数据库表中不存在 creator_id/updater_id/version）==========
 
     /**
      * 覆盖父类字段，避免查询不存在的 creator_id 列
@@ -169,6 +169,12 @@ public class TestExecution extends BaseEntity {
      */
     @TableField(exist = false)
     private Long updatedBy;
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 version 列
+     */
+    @TableField(exist = false)
+    private Integer version;
 
     @Override
     public Long getCreatedBy() {
