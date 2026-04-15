@@ -221,3 +221,15 @@ export interface ReportDetailVO extends ReportSummaryVO {
   results: ReportResult[]
   summary: string
 }
+
+// Notification types
+export interface NotificationVO {
+  id: number
+  type: string
+  title: string
+  content: string
+  relatedId?: number
+  relatedType?: string
+  read: boolean
+  createdAt: string
+}

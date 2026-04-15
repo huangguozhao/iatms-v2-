@@ -24,7 +24,7 @@
           tabindex="0"
           @keydown.enter.prevent="handleNotificationClick"
         >
-          <el-badge :value="notificationCount" class="notification-badge" :hidden="notificationCount === 0">
+          <el-badge :value="notificationStore.unreadCount" class="notification-badge" :hidden="notificationStore.unreadCount === 0">
             <el-icon class="notification-icon">
               <Bell />
             </el-icon>
@@ -88,14 +88,15 @@ import {
   ArrowDown
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { useNotificationStore } from '@/stores/notification'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const notificationStore = useNotificationStore()
 
 const searchText = ref('')
 const sidebarCollapsed = ref(false)
-const notificationCount = ref(0)
 
 // 根据用户角色获取菜单项
 const menuItems = computed(() => {
@@ -158,6 +159,9 @@ const handleUserClick = async () => {
 onMounted(() => {
   if (userStore.token && !userStore.userInfo) {
     userStore.fetchUserInfo()
+  }
+  if (userStore.token) {
+    notificationStore.fetchUnreadCount()
   }
 })
 </script>
