@@ -156,6 +156,42 @@ public class TestExecution extends BaseEntity {
     @TableField(exist = false)
     private Integer skippedCases;
 
+    // ========== BaseEntity 字段覆盖（数据库表中不存在 creator_id/updater_id）==========
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 creator_id 列
+     */
+    @TableField(exist = false)
+    private Long createdBy;
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 updater_id 列
+     */
+    @TableField(exist = false)
+    private Long updatedBy;
+
+    @Override
+    public Long getCreatedBy() {
+        // 使用 executedBy 作为 createdBy 的替代值
+        return this.executedBy != null ? this.executedBy.longValue() : null;
+    }
+
+    @Override
+    public void setCreatedBy(Long createdBy) {
+        // 数据库表中没有 creator_id 字段，此处为空操作
+    }
+
+    @Override
+    public Long getUpdatedBy() {
+        // 数据库表中没有 updater_id 字段
+        return null;
+    }
+
+    @Override
+    public void setUpdatedBy(Long updatedBy) {
+        // 数据库表中没有 updater_id 字段，此处为空操作
+    }
+
     // ========== 兼容性别名（用于旧代码）==========
 
     public String getTriggerType() {
@@ -196,13 +232,5 @@ public class TestExecution extends BaseEntity {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.endTime = completedAt;
-    }
-
-    public Long getCreatedBy() {
-        return super.getCreatedBy();
-    }
-
-    public void setCreatedBy(Long createdBy) {
-        super.setCreatedBy(createdBy);
     }
 }
