@@ -8,6 +8,11 @@ import com.iatms.infrastructure.persistence.mapper.TestExecutionMapper;
 import com.iatms.infrastructure.persistence.mapper.TestResultMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -264,9 +269,158 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public byte[] generatePdfReport(String executionId) {
-        // PDF 生成依赖 iText 或类似库，这里返回 HTML 报告的字节数组作为占位
-        String html = generateHtmlReport(executionId);
-        return html.getBytes();
+        TestExecution execution = executionMapper.selectByExecutionId(executionId);
+        if (execution == null) {
+            return new byte[0];
+        }
+
+        List<TestResult> results = resultMapper.selectByExecutionId(executionId);
+
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+
+            float yPosition = PDRectangle.A4.getHeight() - 50;
+            float leftMargin = 50;
+            float fontSize = 12;
+            float leading = 14.5f;
+
+            PDType1Font font = PDType1Font.HELVETICA;
+            PDType1Font boldFont = PDType1Font.HELVETICA_BOLD;
+
+            PDPageContentStream content = new PDPageContentStream(document, page);
+
+            // 标题
+            content.beginText();
+            content.setFont(boldFont, 18);
+            content.moveTextPositionByAmount(leftMargin, yPosition);
+            content.showText("接口自动化测试报告");
+            content.endText();
+            yPosition -= 30;
+
+            // 执行信息
+            content.beginText();
+            content.setFont(font, fontSize);
+            content.moveTextPositionByAmount(leftMargin, yPosition);
+            content.showText("执行ID: " + executionId);
+            content.endText();
+            yPosition -= leading;
+
+            String startTime = execution.getStartedAt() != null ? execution.getStartedAt().format(DATE_FORMATTER) : "-";
+            content.beginText();
+            content.setFont(font, fontSize);
+            content.moveTextPositionByAmount(leftMargin, yPosition);
+            content.showText("开始时间: " + startTime);
+            content.endText();
+            yPosition -= leading;
+
+            content.beginText();
+            content.setFont(font, fontSize);
+            content.moveTextPositionByAmount(leftMargin, yPosition);
+            content.showText("执行时长: " + (execution.getDuration() != null ? execution.getDuration() : 0) + "秒");
+            content.endText();
+            yPosition -= leading * 2;
+
+            // 汇总信息
+            content.beginText();
+            content.setFont(boldFont, fontSize);
+            content.moveTextPositionByAmount(leftMargin, yPosition);
+            content.showText("执行汇总");
+            content.endText();
+            yPosition -= leading;
+
+            int passed = execution.getPassedCases() != null ? execution.getPassedCases() : 0;
+            int failed = execution.getFailedCases() != null ? execution.getFailedCases() : 0;
+            int total = execution.getTotalCases() != null ? execution.getTotalCases() : 0;
+            double passRate = calculatePassRate(execution);
+
+            content.beginText();
+            content.setFont(font, fontSize);
+            content.moveTextPositionByAmount(leftMargin, yPosition);
+            content.showText(String.format("通过: %d  |  失败: %d  |  总计: %d  |  通过率: %.2f%%",
+                    passed, failed, total, passRate));
+            content.endText();
+            yPosition -= leading * 2;
+
+            // 表头
+            content.beginText();
+            content.setFont(boldFont, fontSize);
+            content.moveTextPositionByAmount(leftMargin, yPosition);
+            content.showText("用例名称");
+            content.endText();
+            content.beginText();
+            content.setFont(boldFont, fontSize);
+            content.moveTextPositionByAmount(300, yPosition);
+            content.showText("状态");
+            content.endText();
+            content.beginText();
+            content.setFont(boldFont, fontSize);
+            content.moveTextPositionByAmount(400, yPosition);
+            content.showText("耗时(ms)");
+            content.endText();
+            yPosition -= leading;
+
+            // 分隔线
+            content.setLineWidth(0.5f);
+            content.moveTo(leftMargin, yPosition + 5);
+            content.lineTo(PDRectangle.A4.getWidth() - leftMargin, yPosition + 5);
+            content.stroke();
+            yPosition -= leading;
+
+            // 结果列表 - 限制显示前50条
+            int displayCount = Math.min(results.size(), 50);
+            for (int i = 0; i < displayCount; i++) {
+                TestResult result = results.get(i);
+
+                if (yPosition < 80) {
+                    // 页面空间不足时结束
+                    content.beginText();
+                    content.setFont(font, fontSize);
+                    content.moveTextPositionByAmount(leftMargin, yPosition);
+                    content.showText("... (共 " + results.size() + " 条结果)");
+                    content.endText();
+                    break;
+                }
+
+                String caseName = result.getCaseName() != null ? result.getCaseName() : "-";
+                if (caseName.length() > 30) {
+                    caseName = caseName.substring(0, 27) + "...";
+                }
+                String status = "passed".equalsIgnoreCase(result.getStatus()) ? "通过" :
+                        "failed".equalsIgnoreCase(result.getStatus()) ? "失败" : "跳过";
+                String respTime = String.valueOf(result.getResponseTime() != null ? result.getResponseTime() : 0);
+
+                content.beginText();
+                content.setFont(font, fontSize);
+                content.moveTextPositionByAmount(leftMargin, yPosition);
+                content.showText(caseName);
+                content.endText();
+
+                content.beginText();
+                content.setFont(font, fontSize);
+                content.moveTextPositionByAmount(300, yPosition);
+                content.showText(status);
+                content.endText();
+
+                content.beginText();
+                content.setFont(font, fontSize);
+                content.moveTextPositionByAmount(400, yPosition);
+                content.showText(respTime);
+                content.endText();
+
+                yPosition -= leading;
+            }
+
+            content.close();
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            document.save(outputStream);
+            return outputStream.toByteArray();
+
+        } catch (Exception e) {
+            log.error("生成PDF报告失败: executionId={}", executionId, e);
+            return new byte[0];
+        }
     }
 
     @Override

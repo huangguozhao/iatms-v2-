@@ -84,6 +84,12 @@ const routes: RouteRecordRaw[] = [
         name: 'Settings',
         component: () => import('@/views/settings/Settings.vue'),
         meta: { title: '系统设置' }
+      },
+      {
+        path: 'ai-diagnosis',
+        name: 'AIDiagnosis',
+        component: () => import('@/views/ai/Diagnosis.vue'),
+        meta: { title: 'AI 诊断' }
       }
     ]
   }

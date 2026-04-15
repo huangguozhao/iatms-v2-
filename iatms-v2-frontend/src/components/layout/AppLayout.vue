@@ -109,6 +109,7 @@ const menuItems = computed(() => {
     { index: 'executions', label: '执行记录', icon: '▶️', path: '/executions' },
     { index: 'scheduled-tasks', label: '定时任务', icon: '📅', path: '/scheduled-tasks' },
     { index: 'reports', label: '测试报告', icon: '📊', path: '/reports' },
+    { index: 'ai-diagnosis', label: 'AI 诊断', icon: '🤖', path: '/ai-diagnosis' },
     { index: 'settings', label: '系统设置', icon: '⚙️', path: '/settings' }
   ]
   return items
