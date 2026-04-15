@@ -98,7 +98,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { projectApi } from '@/api/modules/project/project'
-import { testSuiteApi } from '@/api/modules/testing/testSuite'
+import { testSuiteApi, type CreateTestSuiteDTO } from '@/api/modules/testing/testSuite'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -117,6 +117,7 @@ const pagination = reactive({
 })
 
 const form = reactive({
+  id: null as number | null,
   name: '',
   projectId: null as number | null,
   caseIds: [] as number[],
@@ -137,11 +138,18 @@ const cases = ref<any[]>([])
 async function loadSuites() {
   loading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    suites.value = []
-    pagination.total = 0
+    const params = {
+      keyword: searchForm.keyword || undefined,
+      projectId: searchForm.projectId || undefined,
+      pageNum: pagination.pageNum,
+      pageSize: pagination.pageSize
+    }
+    const res = await testSuiteApi.query(params)
+    suites.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
     console.error('加载套件失败:', error)
+    ElMessage.error('加载套件失败')
   } finally {
     loading.value = false
   }
@@ -150,7 +158,7 @@ async function loadSuites() {
 async function loadProjects() {
   try {
     const result = await projectApi.query({ pageNum: 1, pageSize: 100 })
-    projects.value = result.records
+    projects.value = result.records || []
   } catch (error) {
     console.error('加载项目失败:', error)
   }
@@ -166,6 +174,7 @@ function handleReset() {
 function handleCreate() {
   dialogTitle.value = '新建套件'
   Object.assign(form, {
+    id: null,
     name: '',
     projectId: projects.value[0]?.id || null,
     caseIds: [],
@@ -176,21 +185,29 @@ function handleCreate() {
   dialogVisible.value = true
 }
 
-function handleEdit(row: any) {
+async function handleEdit(row: any) {
   dialogTitle.value = '编辑套件'
-  Object.assign(form, {
-    name: row.name,
-    projectId: row.projectId,
-    caseIds: [],
-    executionStrategy: 'SEQUENTIAL',
-    failStrategy: 'CONTINUE',
-    description: ''
-  })
+  try {
+    const detail = await testSuiteApi.getDetail(row.id)
+    Object.assign(form, {
+      id: row.id,
+      name: detail.data?.name || row.name,
+      projectId: detail.data?.projectId || row.projectId,
+      caseIds: detail.data?.caseIds || [],
+      executionStrategy: detail.data?.executionStrategy || 'SEQUENTIAL',
+      failStrategy: detail.data?.failStrategy || 'CONTINUE',
+      description: detail.data?.description || ''
+    })
+  } catch (error) {
+    ElMessage.error('获取套件详情失败')
+    return
+  }
   dialogVisible.value = true
 }
 
 function handleCopy(row: any) {
   Object.assign(form, {
+    id: null,
     name: row.name + '_copy',
     projectId: row.projectId,
     caseIds: row.caseIds || [],
@@ -205,6 +222,7 @@ function handleCopy(row: any) {
 async function handleExecute(row: any) {
   try {
     await ElMessageBox.confirm(`确定执行套件 "${row.name}" 吗?`, '提示', { type: 'warning' })
+    await testSuiteApi.execute(row.id)
     ElMessage.success('执行已提交')
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -216,14 +234,25 @@ async function handleExecute(row: any) {
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-  ElMessage.success(dialogTitle.value === '新建套件' ? '创建成功' : '更新成功')
-  dialogVisible.value = false
-  loadSuites()
+  try {
+    if (dialogTitle.value === '新建套件') {
+      await testSuiteApi.create(form as CreateTestSuiteDTO)
+      ElMessage.success('创建成功')
+    } else {
+      await testSuiteApi.update(form.id!, form as CreateTestSuiteDTO)
+      ElMessage.success('更新成功')
+    }
+    dialogVisible.value = false
+    loadSuites()
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  }
 }
 
 async function handleDelete(row: any) {
   try {
     await ElMessageBox.confirm(`确定删除套件 "${row.name}" 吗?`, '提示', { type: 'warning' })
+    await testSuiteApi.delete(row.id)
     ElMessage.success('删除成功')
     loadSuites()
   } catch (error: any) {

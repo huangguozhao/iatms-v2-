@@ -130,6 +130,7 @@ const pagination = reactive({
 })
 
 const form = reactive({
+  id: null as number | null,
   name: '',
   projectId: null as number | null,
   moduleId: null as number | null,
@@ -199,6 +200,7 @@ function handleReset() {
 function handleCreate() {
   dialogTitle.value = '新建接口'
   Object.assign(form, {
+    id: null,
     name: '',
     projectId: projects.value[0]?.id || null,
     moduleId: null,
@@ -212,6 +214,7 @@ function handleCreate() {
 function handleEdit(row: ApiSummaryVO) {
   dialogTitle.value = '编辑接口'
   Object.assign(form, {
+    id: row.id,
     name: row.name,
     projectId: row.projectId,
     moduleId: row.moduleId,
@@ -238,14 +241,25 @@ function handleCopy(row: ApiSummaryVO) {
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-  ElMessage.success(dialogTitle.value === '新建接口' ? '创建成功' : '更新成功')
-  dialogVisible.value = false
-  loadApis()
+  try {
+    if (dialogTitle.value === '新建接口') {
+      await apiApi.create(form)
+      ElMessage.success('创建成功')
+    } else {
+      await apiApi.update(form.id!, form)
+      ElMessage.success('更新成功')
+    }
+    dialogVisible.value = false
+    loadApis()
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  }
 }
 
 async function handleDelete(row: ApiSummaryVO) {
   try {
     await ElMessageBox.confirm(`确定删除接口 "${row.name}" 吗?`, '提示', { type: 'warning' })
+    await apiApi.delete(row.id)
     ElMessage.success('删除成功')
     loadApis()
   } catch (error: any) {

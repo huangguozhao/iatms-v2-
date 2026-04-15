@@ -104,7 +104,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { testCaseApi } from '@/api/modules/testing/testCase'
+import { testCaseApi, type CreateTestCaseDTO } from '@/api/modules/testing/testCase'
 import type { TestCaseSummaryVO } from '@/types/api'
 
 const loading = ref(false)
@@ -124,6 +124,7 @@ const pagination = reactive({
 })
 
 const form = reactive({
+  id: null as number | null,
   name: '',
   apiId: null as number | null,
   priority: 'P2',
@@ -155,11 +156,18 @@ function getPriorityType(priority: string) {
 async function loadCases() {
   loading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    cases.value = []
-    pagination.total = 0
+    const params = {
+      keyword: searchForm.keyword || undefined,
+      priority: searchForm.priority || undefined,
+      pageNum: pagination.pageNum,
+      pageSize: pagination.pageSize
+    }
+    const res = await testCaseApi.query(params)
+    cases.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
     console.error('加载用例失败:', error)
+    ElMessage.error('加载用例失败')
   } finally {
     loading.value = false
   }
@@ -175,6 +183,7 @@ function handleReset() {
 function handleCreate() {
   dialogTitle.value = '新建用例'
   Object.assign(form, {
+    id: null,
     name: '',
     apiId: null,
     priority: 'P2',
@@ -186,23 +195,31 @@ function handleCreate() {
   dialogVisible.value = true
 }
 
-function handleEdit(row: TestCaseSummaryVO) {
+async function handleEdit(row: TestCaseSummaryVO) {
   dialogTitle.value = '编辑用例'
-  Object.assign(form, {
-    name: row.name,
-    apiId: row.apiId,
-    priority: row.priority,
-    headers: '',
-    requestBody: '',
-    assertions: '',
-    description: ''
-  })
+  try {
+    const detail = await testCaseApi.getDetail(row.id)
+    Object.assign(form, {
+      id: row.id,
+      name: detail.data?.name || row.name,
+      apiId: detail.data?.apiId || row.apiId,
+      priority: detail.data?.priority || row.priority,
+      headers: detail.data?.headers || '',
+      requestBody: detail.data?.requestBody || '',
+      assertions: detail.data?.assertions || '',
+      description: detail.data?.description || ''
+    })
+  } catch (error) {
+    ElMessage.error('获取用例详情失败')
+    return
+  }
   dialogVisible.value = true
 }
 
 async function handleExecute(row: TestCaseSummaryVO) {
   try {
     await ElMessageBox.confirm(`确定执行用例 "${row.name}" 吗?`, '提示', { type: 'warning' })
+    await testCaseApi.execute(row.id)
     ElMessage.success('执行已提交')
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -214,14 +231,25 @@ async function handleExecute(row: TestCaseSummaryVO) {
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-  ElMessage.success(dialogTitle.value === '新建用例' ? '创建成功' : '更新成功')
-  dialogVisible.value = false
-  loadCases()
+  try {
+    if (dialogTitle.value === '新建用例') {
+      await testCaseApi.create(form as CreateTestCaseDTO)
+      ElMessage.success('创建成功')
+    } else {
+      await testCaseApi.update(form.id!, form as CreateTestCaseDTO)
+      ElMessage.success('更新成功')
+    }
+    dialogVisible.value = false
+    loadCases()
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  }
 }
 
 async function handleDelete(row: TestCaseSummaryVO) {
   try {
     await ElMessageBox.confirm(`确定删除用例 "${row.name}" 吗?`, '提示', { type: 'warning' })
+    await testCaseApi.delete(row.id)
     ElMessage.success('删除成功')
     loadCases()
   } catch (error: any) {

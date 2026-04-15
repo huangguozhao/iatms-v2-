@@ -109,7 +109,8 @@ const pagination = reactive({
   total: 0
 })
 
-const form = reactive<CreateProjectDTO>({
+const form = reactive({
+  id: null as number | null,
   name: '',
   code: '',
   description: '',
@@ -170,18 +171,23 @@ function handleCreate() {
   dialogVisible.value = true
 }
 
-function handleEdit(row: ProjectSummaryVO) {
+async function handleEdit(row: ProjectSummaryVO) {
   dialogTitle.value = '编辑项目'
-  projectApi.getDetail(row.id).then(result => {
+  try {
+    const detail = await projectApi.getDetail(row.id)
     Object.assign(form, {
-      name: result.name,
-      code: result.code,
-      description: result.description,
-      projectType: result.projectType,
-      status: result.status
+      id: row.id,
+      name: detail.name,
+      code: detail.code,
+      description: detail.description,
+      projectType: detail.projectType,
+      status: detail.status
     })
-    dialogVisible.value = true
-  })
+  } catch (error) {
+    ElMessage.error('获取项目详情失败')
+    return
+  }
+  dialogVisible.value = true
 }
 
 async function handleSubmit() {
@@ -193,7 +199,7 @@ async function handleSubmit() {
       await projectApi.create(form)
       ElMessage.success('创建成功')
     } else {
-      // 编辑时需要 id
+      await projectApi.update((form as any).id, form)
       ElMessage.success('更新成功')
     }
     dialogVisible.value = false

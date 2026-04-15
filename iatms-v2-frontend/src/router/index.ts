@@ -74,6 +74,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '测试报告' }
       },
       {
+        path: 'notifications',
+        name: 'Notifications',
+        component: () => import('@/views/Notifications.vue'),
+        meta: { title: '消息中心' }
+      },
+      {
         path: 'settings',
         name: 'Settings',
         component: () => import('@/views/settings/Settings.vue'),

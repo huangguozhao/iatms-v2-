@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { executionApi } from '@/api/modules/testing/execution'
 
 const loading = ref(false)
 
@@ -117,11 +118,18 @@ function getStatusType(status: string) {
 async function loadExecutions() {
   loading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    executions.value = []
-    pagination.total = 0
+    const params = {
+      type: searchForm.type || undefined,
+      status: searchForm.status || undefined,
+      pageNum: pagination.pageNum,
+      pageSize: pagination.pageSize
+    }
+    const res = await executionApi.query(params)
+    executions.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
     console.error('加载执行记录失败:', error)
+    ElMessage.error('加载执行记录失败')
   } finally {
     loading.value = false
   }
@@ -141,6 +149,7 @@ function handleView(row: any) {
 async function handleCancel(row: any) {
   try {
     await ElMessageBox.confirm(`确定取消执行 #${row.id} 吗?`, '提示', { type: 'warning' })
+    await executionApi.cancel(row.id)
     ElMessage.success('取消成功')
     loadExecutions()
   } catch (error: any) {

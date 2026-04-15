@@ -87,7 +87,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { reportApi } from '@/api/modules/report/report'
 
 const loading = ref(false)
 
@@ -116,11 +117,21 @@ function getTypeText(type: string) {
 async function loadReports() {
   loading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    reports.value = []
-    pagination.total = 0
+    const params = {
+      status: searchForm.status || undefined,
+      pageNum: pagination.pageNum,
+      pageSize: pagination.pageSize
+    }
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      params.startDate = searchForm.dateRange[0]
+      params.endDate = searchForm.dateRange[1]
+    }
+    const res = await reportApi.query(params)
+    reports.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
     console.error('加载报告失败:', error)
+    ElMessage.error('加载报告失败')
   } finally {
     loading.value = false
   }
@@ -137,8 +148,13 @@ function handleView(row: any) {
   window.open(`/reports/${row.id}`, '_blank')
 }
 
-function handleDownload(row: any) {
-  ElMessage.info('报告下载功能开发中')
+async function handleDownload(row: any) {
+  try {
+    await ElMessageBox.confirm(`确定下载报告 #${row.id} 吗?`, '提示', { type: 'info' })
+    ElMessage.info('报告下载功能开发中')
+  } catch (error: any) {
+    // 用户取消
+  }
 }
 
 onMounted(() => {

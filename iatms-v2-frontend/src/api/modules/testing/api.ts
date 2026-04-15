@@ -45,22 +45,22 @@ export interface ApiQuery {
 
 export const apiApi = {
   query: (query: ApiQuery) => {
-    return client.get<any, ApiResponse<PageResult<ApiSummaryVO>>>('/api/apis', { params: query })
+    return client.get<any, ApiResponse<PageResult<ApiSummaryVO>>>('/apis', { params: query })
   },
 
   getDetail: (id: number) => {
-    return client.get<any, ApiResponse<ApiDetailVO>>(`/api/apis/${id}`)
+    return client.get<any, ApiResponse<ApiDetailVO>>(`/apis/${id}`)
   },
 
   create: (data: CreateApiDTO) => {
-    return client.post<any, ApiResponse<void>>('/api/apis', data)
+    return client.post<any, ApiResponse<void>>('/apis', data)
   },
 
   update: (id: number, data: CreateApiDTO) => {
-    return client.put<any, ApiResponse<void>>(`/api/apis/${id}`, data)
+    return client.put<any, ApiResponse<void>>(`/apis/${id}`, data)
   },
 
   delete: (id: number) => {
-    return client.delete<any, ApiResponse<void>>(`/api/apis/${id}`)
+    return client.delete<any, ApiResponse<void>>(`/apis/${id}`)
   }
 }

@@ -108,7 +108,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { scheduledTaskApi } from '@/api/modules/scheduling/scheduledTask'
+import { scheduledTaskApi, type CreateScheduledTaskDTO } from '@/api/modules/scheduling/scheduledTask'
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -127,6 +127,7 @@ const pagination = reactive({
 })
 
 const form = reactive({
+  id: null as number | null,
   name: '',
   type: 'TEST_SUITE',
   targetId: null as number | null,
@@ -158,11 +159,18 @@ function getTypeText(type: string) {
 async function loadTasks() {
   loading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 300))
-    tasks.value = []
-    pagination.total = 0
+    const params = {
+      keyword: searchForm.keyword || undefined,
+      status: searchForm.status || undefined,
+      pageNum: pagination.pageNum,
+      pageSize: pagination.pageSize
+    }
+    const res = await scheduledTaskApi.query(params)
+    tasks.value = res.data?.list || []
+    pagination.total = res.data?.total || 0
   } catch (error) {
     console.error('加载任务失败:', error)
+    ElMessage.error('加载任务失败')
   } finally {
     loading.value = false
   }
@@ -178,6 +186,7 @@ function handleReset() {
 function handleCreate() {
   dialogTitle.value = '新建任务'
   Object.assign(form, {
+    id: null,
     name: '',
     type: 'TEST_SUITE',
     targetId: null,
@@ -189,23 +198,31 @@ function handleCreate() {
   dialogVisible.value = true
 }
 
-function handleEdit(row: any) {
+async function handleEdit(row: any) {
   dialogTitle.value = '编辑任务'
-  Object.assign(form, {
-    name: row.name,
-    type: row.type,
-    targetId: row.targetId,
-    cron: row.cron,
-    strategy: 'SCHEDULED',
-    notifyOn: [],
-    description: ''
-  })
+  try {
+    const detail = await scheduledTaskApi.getDetail(row.id)
+    Object.assign(form, {
+      id: row.id,
+      name: detail.data?.name || row.name,
+      type: detail.data?.type || row.type,
+      targetId: detail.data?.targetId || row.targetId,
+      cron: detail.data?.cron || row.cron,
+      strategy: 'SCHEDULED',
+      notifyOn: detail.data?.notifyOn || [],
+      description: detail.data?.description || ''
+    })
+  } catch (error) {
+    ElMessage.error('获取任务详情失败')
+    return
+  }
   dialogVisible.value = true
 }
 
 async function handleExecute(row: any) {
   try {
     await ElMessageBox.confirm(`确定立即执行任务 "${row.name}" 吗?`, '提示', { type: 'warning' })
+    await scheduledTaskApi.execute(row.id)
     ElMessage.success('执行已提交')
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -217,14 +234,25 @@ async function handleExecute(row: any) {
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
-  ElMessage.success(dialogTitle.value === '新建任务' ? '创建成功' : '更新成功')
-  dialogVisible.value = false
-  loadTasks()
+  try {
+    if (dialogTitle.value === '新建任务') {
+      await scheduledTaskApi.create(form as CreateScheduledTaskDTO)
+      ElMessage.success('创建成功')
+    } else {
+      await scheduledTaskApi.update(form.id!, form as CreateScheduledTaskDTO)
+      ElMessage.success('更新成功')
+    }
+    dialogVisible.value = false
+    loadTasks()
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  }
 }
 
 async function handleDelete(row: any) {
   try {
     await ElMessageBox.confirm(`确定删除任务 "${row.name}" 吗?`, '提示', { type: 'warning' })
+    await scheduledTaskApi.delete(row.id)
     ElMessage.success('删除成功')
     loadTasks()
   } catch (error: any) {
