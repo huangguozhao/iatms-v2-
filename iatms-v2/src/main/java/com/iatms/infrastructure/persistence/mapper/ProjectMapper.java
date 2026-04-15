@@ -1,0 +1,12 @@
+package com.iatms.infrastructure.persistence.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.iatms.domain.model.entity.Project;
+import org.apache.ibatis.annotations.Mapper;
+
+/**
+ * 项目 Mapper
+ */
+@Mapper
+public interface ProjectMapper extends BaseMapper<Project> {
+}

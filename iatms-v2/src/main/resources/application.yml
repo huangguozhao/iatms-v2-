@@ -1,0 +1,62 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: iatms-v2
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/iatmsdb?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: 12345678
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
+      timeout: 5000ms
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  type-aliases-package: com.iatms.domain.model.entity
+  mapper-locations: classpath*:mapper/**/*.xml
+
+jwt:
+  secret: iatms-v2-secret-key-change-in-production-environment-2024
+  expiration: 86400000
+
+mail:
+  host: smtp.qq.com
+  port: 587
+  username:
+  password:
+  properties:
+    mail:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
+
+allure:
+  results:
+    directory: allure-results
+  report:
+    directory: allure-reports
