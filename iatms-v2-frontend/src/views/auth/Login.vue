@@ -36,7 +36,6 @@
     <!-- 右侧登录表单 -->
     <div class="login-page__form-panel">
       <div class="form-panel__content">
-        <!-- 头部 -->
         <div class="form-panel__header">
           <div class="header__logo">
             <div class="logo-icon">A</div>
@@ -44,13 +43,11 @@
           <h2 class="header__title">接口自动化管理</h2>
         </div>
 
-        <!-- 欢迎信息 -->
         <div class="form-panel__welcome">
           <h3 class="welcome__title">欢迎回来</h3>
           <p class="welcome__subtitle">请输入您的账号密码登录系统</p>
         </div>
 
-        <!-- 登录表单 -->
         <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form" @submit.prevent="handleLogin">
           <el-form-item prop="username">
             <el-input
@@ -105,15 +102,13 @@
     </div>
 
     <!-- 登录成功加载动画 -->
-    <Transition name="loading-fade">
-      <div v-if="showLoadingTransition" class="loading-overlay">
-        <div class="loading-content">
-          <div class="loading-spinner"></div>
-          <h3 class="loading-title">欢迎回来</h3>
-          <p class="loading-subtitle">正在为您准备系统...</p>
-        </div>
-      </div>
-    </Transition>
+    <LoadingTransition
+      v-model:visible="showLoadingTransition"
+      title="欢迎回来"
+      subtitle="正在为您准备系统..."
+      :duration="2500"
+      @complete="handleLoadingComplete"
+    />
   </div>
 </template>
 
@@ -123,6 +118,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Check, TrendCharts, User, Lock, View, Hide } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import LoadingTransition from '@/components/common/LoadingTransition.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -184,6 +180,11 @@ const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
+const handleLoadingComplete = () => {
+  showLoadingTransition.value = false
+  router.push('/dashboard')
+}
+
 const handleLogin = async () => {
   if (!loginFormRef.value) return
   try {
@@ -201,10 +202,6 @@ const handleLogin = async () => {
     }
 
     showLoadingTransition.value = true
-    setTimeout(() => {
-      showLoadingTransition.value = false
-      router.push('/dashboard')
-    }, 1500)
   } catch (error: any) {
     console.error('登录错误:', error)
     ElMessage.error(error.message || '登录失败，请稍后重试')
@@ -242,9 +239,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
-/* 登录页特有样式 - 大部分已抽取到全局 styles/index.scss */
-/* 这里只保留组件特定的小调整 */
-
 /* 信息面板内容 */
 .info-panel__content {
   color: white;
@@ -434,23 +428,6 @@ onUnmounted(() => {
   font-size: 14px;
   color: #909399;
   margin: 0;
-}
-
-/* 加载内容 */
-.loading-content {
-  text-align: center;
-  color: white;
-}
-
-/* 过渡动画 */
-.loading-fade-enter-active,
-.loading-fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.loading-fade-enter-from,
-.loading-fade-leave-to {
-  opacity: 0;
 }
 
 /* 移动端小屏幕适配 */
