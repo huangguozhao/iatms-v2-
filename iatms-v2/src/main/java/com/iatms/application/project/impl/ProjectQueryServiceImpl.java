@@ -5,11 +5,20 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.iatms.application.project.ProjectQueryService;
 import com.iatms.application.project.dto.query.ProjectQuery;
+import com.iatms.domain.model.entity.ApiRequest;
+import com.iatms.domain.model.entity.Module;
 import com.iatms.domain.model.entity.Project;
+import com.iatms.domain.model.entity.ProjectMember;
+import com.iatms.domain.model.entity.TestCase;
 import com.iatms.domain.model.entity.User;
 import com.iatms.domain.model.vo.ProjectDetailVO;
+import com.iatms.domain.model.vo.ProjectMemberVO;
 import com.iatms.domain.model.vo.ProjectSummaryVO;
+import com.iatms.infrastructure.persistence.mapper.ApiRequestMapper;
+import com.iatms.infrastructure.persistence.mapper.ModuleMapper;
 import com.iatms.infrastructure.persistence.mapper.ProjectMapper;
+import com.iatms.infrastructure.persistence.mapper.ProjectMemberMapper;
+import com.iatms.infrastructure.persistence.mapper.TestCaseMapper;
 import com.iatms.infrastructure.persistence.mapper.UserMapper;
 import com.iatms.common.exception.ResourceNotFoundException;
 import com.iatms.domain.model.enums.ErrorCode;
@@ -33,6 +42,10 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
 
     private final ProjectMapper projectMapper;
     private final UserMapper userMapper;
+    private final ProjectMemberMapper projectMemberMapper;
+    private final ModuleMapper moduleMapper;
+    private final ApiRequestMapper apiRequestMapper;
+    private final TestCaseMapper testCaseMapper;
 
     @Override
     public ApiResponse.PageResult<ProjectSummaryVO> queryProjects(ProjectQuery query, Long userId) {
@@ -90,13 +103,54 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
 
         User owner = userMapper.selectById(project.getOwnerId());
 
-        // TODO: 查询项目成员列表
-        List<ProjectDetailVO.ProjectMemberVO> members = new ArrayList<>();
+        // 查询项目成员列表
+        List<ProjectMember> membersList = projectMemberMapper.selectList(
+                new LambdaQueryWrapper<ProjectMember>()
+                        .eq(ProjectMember::getProjectId, projectId)
+                        .eq(ProjectMember::getStatus, "active")
+        );
 
-        // TODO: 统计模块、接口、用例数量
-        Integer totalModules = 0;
+        // 获取成员用户信息
+        List<Integer> memberUserIds = membersList.stream()
+                .map(ProjectMember::getUserId)
+                .collect(Collectors.toList());
+        Map<Long, User> memberUserMap;
+        if (memberUserIds.isEmpty()) {
+            memberUserMap = Map.of();
+        } else {
+            memberUserMap = userMapper.selectBatchIds(memberUserIds).stream()
+                    .collect(Collectors.toMap(u -> u.getId().longValue(), u -> u));
+        }
+
+        List<ProjectDetailVO.ProjectMemberVO> members = membersList.stream()
+                .map(m -> {
+                    User user = memberUserMap.get(m.getUserId().longValue());
+                    return ProjectDetailVO.ProjectMemberVO.builder()
+                            .userId(Long.valueOf(m.getUserId()))
+                            .userName(user != null ? user.getName() : null)
+                            .displayName(user != null ? user.getDisplayName() : null)
+                            .avatar(user != null ? user.getAvatarUrl() : null)
+                            .role(m.getProjectRole())
+                            .joinedAt(m.getJoinTime())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        // 统计模块数量
+        Integer totalModules = moduleMapper.selectCount(
+                new LambdaQueryWrapper<Module>()
+                        .eq(Module::getProjectId, projectId.intValue())
+                        .eq(Module::getIsDeleted, false)
+        ).intValue();
+
+        // 统计测试用例数量
+        Integer totalTestCases = testCaseMapper.selectCount(
+                new LambdaQueryWrapper<TestCase>()
+                        .eq(TestCase::getProjectId, projectId)
+        ).intValue();
+
+        // 统计接口数量（通过模块关联，后续实现）
         Integer totalApis = 0;
-        Integer totalTestCases = 0;
 
         return ProjectDetailVO.builder()
                 .id(project.getId())
@@ -133,13 +187,38 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
 
     @Override
     public List<ProjectSummaryVO> getUserProjects(Long userId) {
-        LambdaQueryWrapper<Project> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Project::getDeleted, false)
-                .and(w -> w.eq(Project::getOwnerId, userId))  // TODO: 还要查询作为成员的
-                .orderByDesc(Project::getCreatedAt);
+        // 查询用户作为所有者的项目
+        LambdaQueryWrapper<Project> ownerWrapper = new LambdaQueryWrapper<>();
+        ownerWrapper.eq(Project::getDeleted, false)
+                .eq(Project::getOwnerId, userId);
 
-        List<Project> projects = projectMapper.selectList(wrapper);
-        return convertToSummaryVO(projects);
+        // 查询用户作为成员的项目
+        List<ProjectMember> memberships = projectMemberMapper.selectList(
+                new LambdaQueryWrapper<ProjectMember>()
+                        .eq(ProjectMember::getUserId, userId.intValue())
+                        .eq(ProjectMember::getStatus, "active")
+        );
+        List<Long> memberProjectIds = memberships.stream()
+                .map(m -> Long.valueOf(m.getProjectId()))
+                .collect(Collectors.toList());
+
+        List<Project> ownerProjects = projectMapper.selectList(ownerWrapper);
+
+        // 合并并去重
+        List<Project> allProjects = new ArrayList<>(ownerProjects);
+        if (!memberProjectIds.isEmpty()) {
+            LambdaQueryWrapper<Project> memberWrapper = new LambdaQueryWrapper<>();
+            memberWrapper.eq(Project::getDeleted, false)
+                    .in(Project::getId, memberProjectIds);
+            List<Project> memberProjects = projectMapper.selectList(memberWrapper);
+            for (Project p : memberProjects) {
+                if (!allProjects.contains(p)) {
+                    allProjects.add(p);
+                }
+            }
+        }
+
+        return convertToSummaryVO(allProjects);
     }
 
     private List<ProjectSummaryVO> convertToSummaryVO(List<Project> projects) {
