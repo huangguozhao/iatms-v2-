@@ -117,6 +117,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { projectApi } from '@/api/modules/project/project'
+import { getStatusType, getStatusText } from '@/utils/formatters'
 
 const router = useRouter()
 
