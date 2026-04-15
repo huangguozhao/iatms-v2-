@@ -199,7 +199,7 @@ onMounted(() => {
   margin: 0;
   line-height: 1.2;
   letter-spacing: 1px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -322,8 +322,8 @@ onMounted(() => {
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
   flex-shrink: 0;
 }
 
@@ -422,9 +422,9 @@ onMounted(() => {
 }
 
 .menu-item.is-active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
   color: white;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 12px rgba(24, 144, 255, 0.3);
 }
 
 .menu-icon {
@@ -521,7 +521,7 @@ onMounted(() => {
 
 /* Text gradient */
 .text-gradient-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

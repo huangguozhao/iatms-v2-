@@ -183,7 +183,7 @@ onMounted(async () => {
   align-items: center;
   padding: 24px 32px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
   border: none;
 
   .welcome-title {
@@ -211,7 +211,7 @@ onMounted(async () => {
 
     .el-button:first-child {
       background: rgba(255, 255, 255, 0.9);
-      color: #667eea;
+      color: #1890ff;
       border: none;
 
       &:hover {
@@ -414,7 +414,7 @@ onMounted(async () => {
 
 /* 渐变按钮 */
 .btn-gradient-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%) !important;
   border: none !important;
   color: #fff !important;
 }

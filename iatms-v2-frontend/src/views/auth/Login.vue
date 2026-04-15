@@ -142,7 +142,7 @@ async function handleLogin() {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 50%, #69c0ff 100%);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
 }
@@ -254,15 +254,15 @@ async function handleLogin() {
   }
 
   :deep(.el-input__wrapper:hover) {
-    border-color: #667eea;
-    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.15);
+    border-color: #1890ff;
+    box-shadow: 0 2px 12px rgba(24, 144, 255, 0.15);
   }
 
   :deep(.el-input__wrapper.is-focus) {
-    border-color: #667eea;
+    border-color: #1890ff;
     box-shadow:
-      0 0 0 3px rgba(102, 126, 234, 0.1),
-      0 2px 12px rgba(102, 126, 234, 0.15);
+      0 0 0 3px rgba(24, 144, 255, 0.1),
+      0 2px 12px rgba(24, 144, 255, 0.15);
   }
 
   :deep(.el-input__inner) {
@@ -282,15 +282,15 @@ async function handleLogin() {
   font-size: 16px;
   font-weight: 600;
   border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
   border: none;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.3);
   transition: all 0.3s ease;
   letter-spacing: 2px;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 24px rgba(24, 144, 255, 0.4);
   }
 
   &:active {
