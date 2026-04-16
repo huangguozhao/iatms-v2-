@@ -71,12 +71,15 @@ public class ApiController {
 
     @GetMapping
     @RequirePermission(value = ProjectPermission.API_VIEW, requireProjectId = false)
-    public ApiResponse<ApiResponse.PageResult<ApiSummaryVO>> queryApis(ApiQuery query) {
-        ApiResponse.PageResult<ApiSummaryVO> result = apiQueryService.queryApis(query);
+    public ApiResponse<ApiResponse.PageResult<ApiSummaryVO>> queryApis(
+            ApiQuery query,
+            @RequestAttribute("userId") Long userId) {
+        ApiResponse.PageResult<ApiSummaryVO> result = apiQueryService.queryApis(query, userId);
         return ApiResponse.pageSuccess(result);
     }
 
     @GetMapping("/tree/{projectId}")
+    @RequirePermission(value = ProjectPermission.API_VIEW)
     public ApiResponse<List<?>> getApiTree(@PathVariable Long projectId) {
         List<?> tree = apiQueryService.getApiTree(projectId);
         return ApiResponse.success(tree);

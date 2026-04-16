@@ -15,7 +15,7 @@ public interface ApiQueryService {
     /**
      * 分页查询 API 列表
      */
-    ApiResponse.PageResult<ApiSummaryVO> queryApis(ApiQuery query);
+    ApiResponse.PageResult<ApiSummaryVO> queryApis(ApiQuery query, Long userId);
 
     /**
      * 获取 API 详情

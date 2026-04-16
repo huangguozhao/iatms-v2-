@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.iatms.application.testing.ApiQueryService;
 import com.iatms.application.testing.dto.query.ApiQuery;
+import com.iatms.application.system.PermissionService;
 import com.iatms.domain.model.entity.ApiCollection;
 import com.iatms.domain.model.entity.ApiRequest;
 import com.iatms.domain.model.entity.Module;
@@ -40,22 +41,40 @@ public class ApiQueryServiceImpl implements ApiQueryService {
     private final ModuleMapper moduleMapper;
     private final ProjectMapper projectMapper;
     private final UserMapper userMapper;
+    private final PermissionService permissionService;
 
     @Override
-    public ApiResponse.PageResult<ApiSummaryVO> queryApis(ApiQuery query) {
+    public ApiResponse.PageResult<ApiSummaryVO> queryApis(ApiQuery query, Long userId) {
         LambdaQueryWrapper<ApiRequest> wrapper = new LambdaQueryWrapper<>();
 
+        // 获取用户可访问的项目ID列表（非管理员限制项目）
+        boolean isAdmin = permissionService.isSystemAdmin(userId);
+        List<Long> accessibleProjectIds = isAdmin ? null : permissionService.getAccessibleProjectIds(userId);
+
+        // 如果指定了项目ID，先检查是否有权限访问
         if (query.getProjectId() != null) {
+            if (!isAdmin && (accessibleProjectIds == null || !accessibleProjectIds.contains(query.getProjectId()))) {
+                // 无权限访问指定项目，返回空结果
+                return ApiResponse.PageResult.of(new ArrayList<>(), 0, query.getPageNum(), query.getPageSize());
+            }
             // 需要通过 collection 关联查询
             List<Long> collectionIds = getCollectionIdsByProject(query.getProjectId());
             if (collectionIds.isEmpty()) {
                 return ApiResponse.PageResult.of(new ArrayList<>(), 0, query.getPageNum(), query.getPageSize());
             }
-            wrapper.in(ApiRequest::getCollectionId, collectionIds);
+            wrapper.in(ApiRequest::getModuleId, collectionIds);
+        } else if (!isAdmin && accessibleProjectIds != null && !accessibleProjectIds.isEmpty()) {
+            // 未指定项目且非管理员，只能看到有权限的项目下的API
+            List<Long> allCollectionIds = getCollectionIdsByProjects(accessibleProjectIds);
+            if (allCollectionIds.isEmpty()) {
+                return ApiResponse.PageResult.of(new ArrayList<>(), 0, query.getPageNum(), query.getPageSize());
+            }
+            wrapper.in(ApiRequest::getModuleId, allCollectionIds);
         }
+        // 如果是管理员且未指定项目，不加项目限制
 
         if (query.getCollectionId() != null) {
-            wrapper.eq(ApiRequest::getCollectionId, query.getCollectionId());
+            wrapper.eq(ApiRequest::getModuleId, query.getCollectionId());
         }
 
         if (query.getKeyword() != null && !query.getKeyword().isEmpty()) {
@@ -135,7 +154,7 @@ public class ApiQueryServiceImpl implements ApiQueryService {
 
         // 查询所有 API
         LambdaQueryWrapper<ApiRequest> apiWrapper = new LambdaQueryWrapper<>();
-        apiWrapper.in(ApiRequest::getCollectionId, collectionIds);
+        apiWrapper.in(ApiRequest::getModuleId, collectionIds);
         apiWrapper.eq(ApiRequest::getDeleted, false);
         List<ApiRequest> apis = apiRequestMapper.selectList(apiWrapper);
 
@@ -159,6 +178,17 @@ public class ApiQueryServiceImpl implements ApiQueryService {
     private List<Long> getCollectionIdsByProject(Long projectId) {
         LambdaQueryWrapper<ApiCollection> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ApiCollection::getProjectId, projectId);
+        wrapper.eq(ApiCollection::getDeleted, false);
+        List<ApiCollection> collections = collectionMapper.selectList(wrapper);
+        return collections.stream().map(ApiCollection::getId).collect(Collectors.toList());
+    }
+
+    private List<Long> getCollectionIdsByProjects(List<Long> projectIds) {
+        if (projectIds == null || projectIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        LambdaQueryWrapper<ApiCollection> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(ApiCollection::getProjectId, projectIds);
         wrapper.eq(ApiCollection::getDeleted, false);
         List<ApiCollection> collections = collectionMapper.selectList(wrapper);
         return collections.stream().map(ApiCollection::getId).collect(Collectors.toList());

@@ -71,11 +71,11 @@ public class ApiCollection {
     private LocalDateTime updatedAt;
 
     /**
-     * 是否删除
+     * 逻辑删除标记
      */
     @TableLogic(delval = "1", value = "0")
     @TableField("is_deleted")
-    private Boolean isDeleted;
+    private Boolean deleted = false;
 
     // ========== 兼容性别名 ==========
 
@@ -113,16 +113,4 @@ public class ApiCollection {
     @TableField(exist = false)
     private LocalDateTime createdAt;
 
-    // ========== 兼容性别名（用于旧代码）==========
-
-    /**
-     * 删除状态兼容方法
-     */
-    public Boolean getDeleted() {
-        return this.isDeleted;
-    }
-
-    public void setDeleted(Boolean deleted) {
-        this.isDeleted = deleted;
-    }
 }
