@@ -4,38 +4,63 @@
     <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sidebar-header">
         <h3 v-if="!sidebarCollapsed" class="sidebar-title">项目结构</h3>
-        <el-button text @click="sidebarCollapsed = !sidebarCollapsed">
-          {{ sidebarCollapsed ? '»' : '«' }}
+        <el-button text @click="sidebarCollapsed = !sidebarCollapsed" class="collapse-btn">
+          <el-icon :size="16">
+            <ArrowLeft v-if="!sidebarCollapsed" />
+            <ArrowRight v-else />
+          </el-icon>
         </el-button>
       </div>
 
       <div v-if="!sidebarCollapsed" class="sidebar-content">
         <div class="sidebar-toolbar">
-          <el-input v-model="treeSearch" placeholder="搜索..." size="small" clearable />
-          <el-button size="small" @click="loadTree">刷新</el-button>
+          <el-input
+            v-model="treeSearch"
+            placeholder="搜索..."
+            :prefix-icon="Search"
+            size="small"
+            clearable
+            class="search-input"
+          />
+          <el-button size="small" circle @click="loadTree" :icon="Refresh" />
         </div>
 
-        <el-tree
-          ref="treeRef"
-          :data="treeData"
-          :props="{ children: 'children', label: 'name' }"
-          node-key="id"
-          :expand-on-click-node="false"
-          :filter-node-method="filterNode"
-          highlight-current
-          class="project-tree"
-          @node-click="handleNodeClick"
-        >
-          <template #default="{ node, data }">
-            <span class="tree-node">
-              <span class="node-icon">{{ getNodeIcon(data) }}</span>
-              <span class="node-label">{{ node.label }}</span>
-              <span v-if="data.type === 'api'" class="node-method" :class="`method-${data.httpMethod?.toLowerCase()}`">
-                {{ data.httpMethod }}
-              </span>
-            </span>
-          </template>
-        </el-tree>
+        <el-scrollbar class="tree-scrollbar">
+          <el-tree
+            ref="treeRef"
+            :data="treeData"
+            :props="treeProps"
+            node-key="id"
+            :expand-on-click-node="false"
+            :filter-node-method="filterNode"
+            highlight-current
+            class="project-tree"
+            @node-click="handleNodeClick"
+          >
+            <template #default="{ node, data }">
+              <div class="tree-node" :class="`node-${data.type}`">
+                <!-- 节点图标 -->
+                <span class="node-icon">
+                  <el-icon v-if="data.type === 'project'" :size="16" class="icon-project"><FolderOpened /></el-icon>
+                  <el-icon v-else-if="data.type === 'module'" :size="16" class="icon-module"><Folder /></el-icon>
+                  <el-icon v-else-if="data.type === 'api'" :size="16" class="icon-api"><Link /></el-icon>
+                  <el-icon v-else :size="16" class="icon-testcase"><Document /></el-icon>
+                </span>
+
+                <!-- 节点标签 -->
+                <span class="node-label">{{ node.label }}</span>
+
+                <!-- HTTP方法标签（仅API节点） -->
+                <span v-if="data.type === 'api' && data.httpMethod" class="method-badge" :class="`method-${data.httpMethod?.toLowerCase()}`">
+                  {{ data.httpMethod }}
+                </span>
+
+                <!-- 状态点 -->
+                <span v-if="data.type === 'testcase'" class="status-dot" :class="data.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'" />
+              </div>
+            </template>
+          </el-tree>
+        </el-scrollbar>
       </div>
     </aside>
 
@@ -44,88 +69,133 @@
       <!-- 项目/模块统计视图 -->
       <div v-if="selectedNode && (selectedNode.type === 'project' || selectedNode.type === 'module')" class="detail-panel">
         <div class="panel-header">
-          <h2>{{ selectedNode.name }}</h2>
-          <el-tag :type="selectedNode.type === 'project' ? 'primary' : 'success'" size="large">
+          <div class="header-title">
+            <el-icon v-if="selectedNode.type === 'project'" :size="24" class="header-icon"><FolderOpened /></el-icon>
+            <el-icon v-else :size="24" class="header-icon"><Folder /></el-icon>
+            <h2>{{ selectedNode.name }}</h2>
+          </div>
+          <el-tag :type="selectedNode.type === 'project' ? 'primary' : 'success'" size="large" effect="light">
             {{ selectedNode.type === 'project' ? '项目' : '模块' }}
           </el-tag>
         </div>
 
-        <el-card class="stats-card">
+        <el-card class="stats-card" shadow="hover">
           <el-row :gutter="20">
             <el-col :span="8">
               <div class="stat-item">
                 <div class="stat-value">{{ selectedNode.stats?.moduleCount || 0 }}</div>
-                <div class="stat-label">子模块</div>
+                <div class="stat-label">
+                  <el-icon><Folder /></el-icon>
+                  子模块
+                </div>
               </div>
             </el-col>
             <el-col :span="8">
               <div class="stat-item">
-                <div class="stat-value">{{ selectedNode.stats?.apiCount || selectedNode.apis?.length || 0 }}</div>
-                <div class="stat-label">接口</div>
+                <div class="stat-value">{{ selectedNode.stats?.apiCount || countApis(selectedNode) }}</div>
+                <div class="stat-label">
+                  <el-icon><Link /></el-icon>
+                  接口
+                </div>
               </div>
             </el-col>
             <el-col :span="8">
               <div class="stat-item">
                 <div class="stat-value">{{ selectedNode.stats?.testCaseCount || countTestCases(selectedNode) }}</div>
-                <div class="stat-label">用例</div>
+                <div class="stat-label">
+                  <el-icon><Document /></el-icon>
+                  用例
+                </div>
               </div>
             </el-col>
           </el-row>
         </el-card>
 
         <div class="panel-actions">
-          <el-button type="primary" @click="handleCreateUnderNode">新建子模块</el-button>
-          <el-button @click="handleEditNode">编辑</el-button>
+          <el-button type="primary" @click="handleCreateUnderNode">
+            <el-icon><Plus /></el-icon>
+            新建子模块
+          </el-button>
+          <el-button @click="handleEditNode">
+            <el-icon><Edit /></el-icon>
+            编辑
+          </el-button>
         </div>
       </div>
 
       <!-- 接口详情视图 -->
       <div v-else-if="selectedNode && selectedNode.type === 'api'" class="detail-panel">
         <div class="panel-header">
-          <h2>{{ selectedNode.name }}</h2>
-          <el-tag :type="getMethodTagType(selectedNode.httpMethod)">{{ selectedNode.httpMethod }}</el-tag>
+          <div class="header-title">
+            <el-icon :size="24" class="header-icon"><Link /></el-icon>
+            <h2>{{ selectedNode.name }}</h2>
+          </div>
+          <el-tag :type="getMethodTagType(selectedNode.httpMethod)" size="large" effect="dark">
+            {{ selectedNode.httpMethod }}
+          </el-tag>
         </div>
 
-        <el-card class="info-card">
+        <el-card class="info-card" shadow="hover">
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="路径">{{ selectedNode.path }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <el-tag size="small">{{ selectedNode.status }}</el-tag>
+            <el-descriptions-item label="路径">
+              <code class="path-code">{{ selectedNode.path }}</code>
             </el-descriptions-item>
-            <el-descriptions-item label="编码">{{ selectedNode.code }}</el-descriptions-item>
+            <el-descriptions-item label="状态">
+              <el-tag size="small" :type="selectedNode.status === 'ACTIVE' ? 'success' : 'info'">
+                {{ selectedNode.status }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="编码">{{ selectedNode.code || '-' }}</el-descriptions-item>
             <el-descriptions-item label="描述">{{ selectedNode.description || '-' }}</el-descriptions-item>
           </el-descriptions>
         </el-card>
 
         <div class="case-list-section">
           <div class="section-header">
-            <h3>测试用例 ({{ selectedNode.testCases?.length || 0 }})</h3>
-            <el-button type="primary" size="small" @click="handleCreateCase">新建用例</el-button>
+            <h3>
+              <el-icon><Document /></el-icon>
+              测试用例 ({{ selectedNode.testCases?.length || 0 }})
+            </h3>
+            <el-button type="primary" size="small" @click="handleCreateCase">
+              <el-icon><Plus /></el-icon>
+              新建用例
+            </el-button>
           </div>
 
-          <el-table :data="selectedNode.testCases || []" stripe>
-            <el-table-column prop="name" label="用例名称" min-width="150">
+          <el-table :data="selectedNode.testCases || []" stripe class="case-table">
+            <el-table-column prop="name" label="用例名称" min-width="180">
               <template #default="{ row }">
-                <span class="case-link" @click="handleSelectCase(row)">{{ row.name }}</span>
+                <div class="case-name-cell">
+                  <el-icon class="case-icon"><Document /></el-icon>
+                  <span class="case-link" @click="handleSelectCase(row)">{{ row.name }}</span>
+                </div>
               </template>
             </el-table-column>
-            <el-table-column prop="priority" label="优先级" width="80">
+            <el-table-column prop="priority" label="优先级" width="90" align="center">
               <template #default="{ row }">
-                <el-tag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</el-tag>
+                <el-tag :type="getPriorityType(row.priority)" size="small" effect="light">{{ row.priority }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="80">
+            <el-table-column prop="status" label="状态" width="90" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">
+                <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small" effect="light">
                   {{ row.status === 'ENABLED' ? '启用' : '禁用' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180">
+            <el-table-column label="操作" width="200" align="center">
               <template #default="{ row }">
-                <el-button link type="primary" @click="handleEditCase(row)">编辑</el-button>
-                <el-button link type="primary" @click="handleExecuteCase(row)">执行</el-button>
-                <el-button link type="danger" @click="handleDeleteCase(row)">删除</el-button>
+                <el-button link type="primary" @click="handleEditCase(row)">
+                  <el-icon><Edit /></el-icon>
+                  编辑
+                </el-button>
+                <el-button link type="success" @click="handleExecuteCase(row)">
+                  <el-icon><VideoPlay /></el-icon>
+                  执行
+                </el-button>
+                <el-button link type="danger" @click="handleDeleteCase(row)">
+                  <el-icon><Delete /></el-icon>
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -135,11 +205,16 @@
       <!-- 用例详情视图 -->
       <div v-else-if="selectedNode && selectedNode.type === 'testcase'" class="detail-panel">
         <div class="panel-header">
-          <h2>{{ selectedNode.name }}</h2>
-          <el-tag :type="getPriorityType(selectedNode.priority)">{{ selectedNode.priority }}</el-tag>
+          <div class="header-title">
+            <el-icon :size="24" class="header-icon"><Document /></el-icon>
+            <h2>{{ selectedNode.name }}</h2>
+          </div>
+          <el-tag :type="getPriorityType(selectedNode.priority)" size="large" effect="dark">
+            {{ selectedNode.priority }}
+          </el-tag>
         </div>
 
-        <el-card v-loading="caseDetailLoading" class="case-detail-card">
+        <el-card v-loading="caseDetailLoading" class="case-detail-card" shadow="hover">
           <el-descriptions :column="2" border>
             <el-descriptions-item label="用例编码">{{ caseDetail?.caseCode || selectedNode.code }}</el-descriptions-item>
             <el-descriptions-item label="状态">
@@ -154,55 +229,70 @@
           <el-divider />
 
           <div class="case-content">
-            <h4>描述</h4>
+            <h4><el-icon><Document /></el-icon> 描述</h4>
             <p class="content-text">{{ caseDetail?.description || selectedNode.description || '暂无描述' }}</p>
 
-            <h4>请求头</h4>
+            <h4><el-icon><Document /></el-icon> 请求头</h4>
             <pre class="content-code">{{ formatJson(caseDetail?.headers) }}</pre>
 
-            <h4>请求体</h4>
+            <h4><el-icon><Document /></el-icon> 请求体</h4>
             <pre class="content-code">{{ caseDetail?.requestBody || selectedNode.requestBody || '暂无请求体' }}</pre>
 
-            <h4>断言</h4>
+            <h4><el-icon><Document /></el-icon> 断言</h4>
             <pre class="content-code">{{ caseDetail?.assertions || '暂无断言' }}</pre>
           </div>
         </el-card>
 
         <div class="panel-actions">
-          <el-button type="primary" @click="handleEditCase(selectedNode)">编辑用例</el-button>
-          <el-button type="success" @click="handleExecuteCase(selectedNode)">执行用例</el-button>
-          <el-button type="danger" @click="handleDeleteCase(selectedNode)">删除用例</el-button>
+          <el-button type="primary" @click="handleEditCase(selectedNode)">
+            <el-icon><Edit /></el-icon>
+            编辑用例
+          </el-button>
+          <el-button type="success" @click="handleExecuteCase(selectedNode)">
+            <el-icon><VideoPlay /></el-icon>
+            执行用例
+          </el-button>
+          <el-button type="danger" @click="handleDeleteCase(selectedNode)">
+            <el-icon><Delete /></el-icon>
+            删除用例
+          </el-button>
         </div>
       </div>
 
       <!-- 空状态 -->
       <div v-else class="empty-state">
-        <div class="empty-icon">📋</div>
+        <el-icon class="empty-icon"><FolderOpened /></el-icon>
         <div class="empty-text">从左侧选择项目、模块、接口或用例查看详情</div>
+        <div class="empty-tip">点击节点可展开/折叠</div>
       </div>
     </main>
 
     <!-- 用例编辑对话框 -->
-    <el-dialog v-model="caseDialogVisible" :title="caseDialogTitle" width="600px">
+    <el-dialog v-model="caseDialogVisible" :title="caseDialogTitle" width="600px" destroy-on-close>
       <el-form ref="caseFormRef" :model="caseForm" :rules="caseFormRules" label-width="100px">
         <el-form-item label="用例名称" prop="name">
           <el-input v-model="caseForm.name" placeholder="请输入用例名称" />
         </el-form-item>
         <el-form-item label="所属接口" prop="apiId">
           <el-select v-model="caseForm.apiId" placeholder="请选择接口" style="width: 100%">
-            <el-option v-for="api in availableApis" :key="api.id" :label="api.name" :value="api.id" />
+            <el-option v-for="api in availableApis" :key="api.id" :label="`${api.httpMethod || ''} ${api.name}`" :value="api.id">
+              <span class="api-option">
+                <el-tag v-if="api.httpMethod" size="small" :type="getMethodTagType(api.httpMethod)">{{ api.httpMethod }}</el-tag>
+                <span>{{ api.name }}</span>
+              </span>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="优先级" prop="priority">
           <el-select v-model="caseForm.priority" style="width: 100%">
-            <el-option label="P0" value="P0" />
-            <el-option label="P1" value="P1" />
-            <el-option label="P2" value="P2" />
-            <el-option label="P3" value="P3" />
+            <el-option label="P0 - 最高" value="P0" />
+            <el-option label="P1 - 高" value="P1" />
+            <el-option label="P2 - 中" value="P2" />
+            <el-option label="P3 - 低" value="P3" />
           </el-select>
         </el-form-item>
         <el-form-item label="请求头">
-          <el-input v-model="caseForm.headers" type="textarea" rows="2" placeholder="JSON格式" />
+          <el-input v-model="caseForm.headers" type="textarea" rows="2" placeholder="JSON格式: {&quot;Content-Type&quot;: &quot;application/json&quot;}" />
         </el-form-item>
         <el-form-item label="请求体">
           <el-input v-model="caseForm.requestBody" type="textarea" rows="3" placeholder="请求体内容" />
@@ -223,8 +313,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, computed } from 'vue'
+import { ref, reactive, watch, onMounted, computed, h } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Search, Refresh, Plus, Edit, Delete, Link, Document, Folder, FolderOpened,
+  ArrowLeft, ArrowRight, VideoPlay
+} from '@element-plus/icons-vue'
 import { testCaseApi, type ProjectTreeNode, type TestCaseDetailVO } from '@/api/modules/testing/testCase'
 import type { FormInstance, FormRules } from 'element-plus'
 
@@ -236,6 +330,12 @@ const treeRef = ref()
 const selectedNode = ref<ProjectTreeNode | null>(null)
 const caseDetail = ref<TestCaseDetailVO | null>(null)
 const caseDetailLoading = ref(false)
+
+// el-tree 配置
+const treeProps = {
+  children: 'children',
+  label: 'name'
+}
 
 // 用例对话框
 const caseDialogVisible = ref(false)
@@ -257,7 +357,7 @@ const caseFormRules: FormRules = {
   priority: [{ required: true, message: '请选择优先级', trigger: 'change' }]
 }
 
-// 可选的接口列表（用于创建用例时选择）
+// 可选的接口列表
 const availableApis = computed(() => {
   const apis: ProjectTreeNode[] = []
   const collectApis = (nodes: ProjectTreeNode[]) => {
@@ -267,9 +367,6 @@ const availableApis = computed(() => {
       }
       if (node.children) {
         collectApis(node.children)
-      }
-      if (node.apis) {
-        apis.push(...node.apis)
       }
     }
   }
@@ -281,10 +378,53 @@ const availableApis = computed(() => {
 async function loadTree() {
   try {
     const data = await testCaseApi.getTree()
-    treeData.value = data || []
+    treeData.value = transformTreeData(data || [])
   } catch (error: any) {
     ElMessage.error('加载项目树失败: ' + error.message)
   }
+}
+
+/**
+ * 转换树形数据以适配 el-tree 组件
+ */
+function transformTreeData(nodes: ProjectTreeNode[]): ProjectTreeNode[] {
+  return nodes.map(project => {
+    const transformedProject: ProjectTreeNode = { ...project, children: [] }
+
+    const processChildren = (modules: ProjectTreeNode[], parentChildren: ProjectTreeNode[]) => {
+      for (const mod of modules) {
+        const moduleNode: ProjectTreeNode = { ...mod, type: 'module', children: [] }
+
+        if (mod.children && mod.children.length > 0) {
+          processChildren(mod.children, moduleNode.children!)
+        }
+
+        if (mod.apis) {
+          for (const api of mod.apis) {
+            const apiNode: ProjectTreeNode = { ...api, type: 'api', children: [], testCases: [] }
+
+            if (api.testCases) {
+              for (const tc of api.testCases) {
+                const tcNode: ProjectTreeNode = { ...tc, type: 'testcase' }
+                apiNode.children!.push(tcNode)
+                apiNode.testCases!.push(tcNode)
+              }
+            }
+
+            moduleNode.children!.push(apiNode)
+          }
+        }
+
+        parentChildren.push(moduleNode)
+      }
+    }
+
+    if (project.children) {
+      processChildren(project.children, transformedProject.children!)
+    }
+
+    return transformedProject
+  })
 }
 
 // 树节点过滤
@@ -306,24 +446,13 @@ async function handleNodeClick(data: ProjectTreeNode) {
     caseDetailLoading.value = true
     try {
       caseDetail.value = await testCaseApi.getDetail(data.id)
-    } catch (error: any) {
+    } catch {
       ElMessage.error('加载用例详情失败')
     } finally {
       caseDetailLoading.value = false
     }
   } else {
     caseDetail.value = null
-  }
-}
-
-// 获取节点图标
-function getNodeIcon(node: ProjectTreeNode): string {
-  switch (node.type) {
-    case 'project': return '📁'
-    case 'module': return '📂'
-    case 'api': return '🔗'
-    case 'testcase': return '📝'
-    default: return '📄'
   }
 }
 
@@ -344,10 +473,10 @@ function getPriorityType(priority?: string): string {
   const map: Record<string, string> = {
     P0: 'danger',
     P1: 'warning',
-    P2: 'primary',
+    P2: '',
     P3: 'info'
   }
-  return map[priority || ''] || 'info'
+  return map[priority || ''] || ''
 }
 
 // 统计用例数量
@@ -355,11 +484,21 @@ function countTestCases(node: ProjectTreeNode): number {
   let count = 0
   const countInNode = (n: ProjectTreeNode) => {
     if (n.testCases) count += n.testCases.length
-    if (n.apis) {
-      for (const api of n.apis) {
-        if (api.testCases) count += api.testCases.length
+    if (n.children) {
+      for (const child of n.children) {
+        countInNode(child)
       }
     }
+  }
+  countInNode(node)
+  return count
+}
+
+// 统计接口数量
+function countApis(node: ProjectTreeNode): number {
+  let count = 0
+  const countInNode = (n: ProjectTreeNode) => {
+    if (n.type === 'api') count++
     if (n.children) {
       for (const child of n.children) {
         countInNode(child)
@@ -464,7 +603,7 @@ async function handleCaseSubmit() {
   }
 }
 
-// 占位方法（后续完善）
+// 占位方法
 function handleCreateUnderNode() {
   ElMessage.info('创建子模块功能开发中')
 }
@@ -488,17 +627,25 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+// CSS Variables
+$primary-color: #409eff;
+$success-color: #67c23a;
+$warning-color: #e6a23c;
+$danger-color: #f56c6c;
+$info-color: #909399;
+
 .test-case-page {
   display: flex;
   height: calc(100vh - 60px);
   background: #f5f7fa;
 }
 
+// 侧边栏
 .sidebar {
-  width: 280px;
-  background: rgba(255, 255, 255, 0.9);
+  width: 300px;
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -519,62 +666,121 @@ onMounted(() => {
     font-size: 16px;
     font-weight: 600;
     margin: 0;
+    color: #303133;
+  }
+
+  .collapse-btn {
+    padding: 4px;
   }
 }
 
 .sidebar-content {
   flex: 1;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebar-toolbar {
   padding: 12px;
   display: flex;
   gap: 8px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+
+  .search-input {
+    flex: 1;
+  }
+}
+
+.tree-scrollbar {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .project-tree {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
+  padding: 8px 12px;
+
+  :deep(.el-tree-node__content) {
+    height: 36px;
+    border-radius: 8px;
+    margin-bottom: 2px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(64, 158, 255, 0.08);
+    }
+  }
+
+  :deep(.el-tree-node.is-current > .el-tree-node__content) {
+    background: rgba(64, 158, 255, 0.12);
+  }
 }
 
+// 树节点
 .tree-node {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
+  padding-right: 8px;
 
   .node-icon {
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
   }
 
   .node-label {
     flex: 1;
     font-size: 13px;
+    color: #606266;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .node-method {
-    font-size: 10px;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: 600;
-
-    &.method-get { background: #e1f3d8; color: #67c23a; }
-    &.method-post { background: #fef0e7; color: #e6a23c; }
-    &.method-put { background: #d9ecff; color: #409eff; }
-    &.method-delete { background: #fde2e2; color: #f56c6c; }
-    &.method-patch { background: #f4f4f5; color: #909399; }
-  }
+  // 节点类型图标颜色
+  .icon-project { color: #409eff; }
+  .icon-module { color: #67c23a; }
+  .icon-api { color: #e6a23c; }
+  .icon-testcase { color: #909399; }
 }
 
+// HTTP方法徽章
+.method-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+
+  &.method-get { background: #e1f3d8; color: #67c23a; }
+  &.method-post { background: #fef0e7; color: #e6a23c; }
+  &.method-put { background: #d9ecff; color: #409eff; }
+  &.method-delete { background: #fde2e2; color: #f56c6c; }
+  &.method-patch { background: #f4f4f5; color: #909399; }
+}
+
+// 状态点
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &.status-enabled { background: #67c23a; }
+  &.status-disabled { background: #c0c4cc; }
+}
+
+// 主内容区
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 24px;
 }
 
 .detail-panel {
@@ -584,45 +790,76 @@ onMounted(() => {
 .panel-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 
-  h2 {
-    margin: 0;
-    font-size: 20px;
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .header-icon {
+      color: #409eff;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #303133;
+    }
   }
 }
 
+// 统计卡片
 .stats-card {
   margin-bottom: 20px;
+
+  .stat-item {
+    text-align: center;
+    padding: 24px;
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #409eff;
+      line-height: 1;
+    }
+
+    .stat-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 14px;
+      color: #909399;
+      margin-top: 12px;
+    }
+  }
 }
 
-.stat-item {
-  text-align: center;
-  padding: 20px;
-
-  .stat-value {
-    font-size: 32px;
-    font-weight: 700;
-    color: #409eff;
-  }
-
-  .stat-label {
-    font-size: 14px;
-    color: #909399;
-    margin-top: 8px;
-  }
-}
-
+// 信息卡片
 .info-card {
   margin-bottom: 20px;
+
+  .path-code {
+    background: #f5f7fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 12px;
+    color: #e6a23c;
+  }
 }
 
+// 用例列表区块
 .case-list-section {
   background: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 
   .section-header {
     display: flex;
@@ -631,30 +868,52 @@ onMounted(() => {
     margin-bottom: 16px;
 
     h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       margin: 0;
       font-size: 16px;
+      font-weight: 600;
+      color: #303133;
     }
   }
 }
 
-.case-link {
-  color: #409eff;
-  cursor: pointer;
+.case-table {
+  .case-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
-  &:hover {
-    text-decoration: underline;
+    .case-icon {
+      color: #909399;
+    }
+
+    .case-link {
+      color: #409eff;
+      cursor: pointer;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
   }
 }
 
+// 用例详情卡片
 .case-detail-card {
   margin-bottom: 20px;
 }
 
 .case-content {
   h4 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 14px;
+    font-weight: 600;
     color: #606266;
-    margin: 16px 0 8px;
+    margin: 20px 0 10px;
 
     &:first-child {
       margin-top: 0;
@@ -670,19 +929,22 @@ onMounted(() => {
 
 .content-code {
   background: #f5f7fa;
-  padding: 12px;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border-radius: 8px;
   font-size: 12px;
+  font-family: 'Monaco', 'Menlo', monospace;
   color: #606266;
   overflow-x: auto;
   margin: 0;
 }
 
+// 操作按钮
 .panel-actions {
   display: flex;
   gap: 12px;
 }
 
+// 空状态
 .empty-state {
   height: 100%;
   display: flex;
@@ -692,12 +954,26 @@ onMounted(() => {
   color: #909399;
 
   .empty-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
+    font-size: 80px;
+    color: #dcdfe6;
+    margin-bottom: 20px;
   }
 
   .empty-text {
     font-size: 16px;
+    margin-bottom: 8px;
   }
+
+  .empty-tip {
+    font-size: 13px;
+    color: #c0c4cc;
+  }
+}
+
+// API 选项
+.api-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>
