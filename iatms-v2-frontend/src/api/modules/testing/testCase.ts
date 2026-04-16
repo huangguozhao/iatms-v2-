@@ -41,6 +41,33 @@ export interface TestCaseQuery {
   pageSize: number
 }
 
+/**
+ * 项目树节点
+ */
+export interface ProjectTreeNode {
+  id: number
+  name: string
+  type: 'project' | 'module' | 'api' | 'testcase'
+  projectId?: number
+  moduleId?: number
+  apiId?: number
+  parentId?: number
+  code?: string
+  description?: string
+  status?: string
+  httpMethod?: string
+  path?: string
+  priority?: string
+  children?: ProjectTreeNode[]
+  apis?: ProjectTreeNode[]
+  testCases?: ProjectTreeNode[]
+  stats?: {
+    moduleCount?: number
+    apiCount?: number
+    testCaseCount?: number
+  }
+}
+
 export const testCaseApi = {
   query: (query: TestCaseQuery) => {
     return client.get<any, ApiResponse<PageResult<TestCaseSummaryVO>>>('/v1/test-cases', { params: query })
@@ -64,5 +91,13 @@ export const testCaseApi = {
 
   execute: (id: number) => {
     return client.post<any, ApiResponse<void>>(`/v1/test-cases/${id}/execute`)
+  },
+
+  /**
+   * 获取项目树形结构
+   */
+  getTree: (projectId?: number) => {
+    const params = projectId ? { projectId } : {}
+    return client.get<any, ApiResponse<ProjectTreeNode[]>>('/v1/test-cases/tree', { params })
   }
 }

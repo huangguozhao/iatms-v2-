@@ -6,6 +6,7 @@ import com.iatms.application.testing.TestCaseQueryService;
 import com.iatms.application.testing.dto.command.CreateTestCaseCmd;
 import com.iatms.common.annotation.RequirePermission;
 import com.iatms.domain.model.enums.ProjectPermission;
+import com.iatms.domain.model.vo.ProjectTreeVO;
 import com.iatms.domain.model.vo.TestCaseDetailVO;
 import com.iatms.domain.model.vo.TestCaseSummaryVO;
 import jakarta.validation.Valid;
@@ -38,6 +39,38 @@ public class TestCaseController {
         return ApiResponse.success(result);
     }
 
+    /**
+     * 获取项目树形结构（项目→模块→接口→用例）
+     * 注意：这个路由必须放在 /{caseId} 前面，否则 /tree 会被 {caseId} 错误匹配
+     */
+    @GetMapping("/tree")
+    @RequirePermission(value = ProjectPermission.CASE_VIEW, requireProjectId = false)
+    public ApiResponse<List<ProjectTreeVO>> getProjectTree(
+            @RequestParam(required = false) Long projectId) {
+        List<ProjectTreeVO> tree = testCaseQueryService.getProjectTree(projectId);
+        return ApiResponse.success(tree);
+    }
+
+    @GetMapping
+    @RequirePermission(ProjectPermission.CASE_VIEW)
+    public ApiResponse<ApiResponse.PageResult<TestCaseSummaryVO>> queryTestCases(
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long moduleId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "20") Integer pageSize) {
+
+        var result = testCaseQueryService.queryTestCases(projectId, moduleId, keyword, pageNum, pageSize);
+        return ApiResponse.pageSuccess(result);
+    }
+
+    @GetMapping("/{caseId}")
+    @RequirePermission(ProjectPermission.CASE_VIEW)
+    public ApiResponse<TestCaseDetailVO> getTestCaseDetail(@PathVariable Long caseId) {
+        TestCaseDetailVO result = testCaseQueryService.getTestCaseDetail(caseId);
+        return ApiResponse.success(result);
+    }
+
     @PutMapping("/{caseId}")
     @RequirePermission(ProjectPermission.CASE_EDIT)
     public ApiResponse<TestCaseDetailVO> updateTestCase(
@@ -59,26 +92,6 @@ public class TestCaseController {
         log.info("删除测试用例: caseId={}, userId={}", caseId, userId);
         testCaseCommandService.deleteTestCase(caseId, userId);
         return ApiResponse.success();
-    }
-
-    @GetMapping("/{caseId}")
-    @RequirePermission(ProjectPermission.CASE_VIEW)
-    public ApiResponse<TestCaseDetailVO> getTestCaseDetail(@PathVariable Long caseId) {
-        TestCaseDetailVO result = testCaseQueryService.getTestCaseDetail(caseId);
-        return ApiResponse.success(result);
-    }
-
-    @GetMapping
-    @RequirePermission(ProjectPermission.CASE_VIEW)
-    public ApiResponse<ApiResponse.PageResult<TestCaseSummaryVO>> queryTestCases(
-            @RequestParam(required = false) Long projectId,
-            @RequestParam(required = false) Long moduleId,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "20") Integer pageSize) {
-
-        var result = testCaseQueryService.queryTestCases(projectId, moduleId, keyword, pageNum, pageSize);
-        return ApiResponse.pageSuccess(result);
     }
 
     @PostMapping("/{caseId}/execute")

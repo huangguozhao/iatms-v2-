@@ -89,7 +89,18 @@ public class PermissionAspect {
                     ErrorCode.UNAUTHORIZED.getMessage());
         }
 
-        // 3. 获取 projectId
+        // 3. 获取方法上注解
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Method method = signature.getMethod();
+        RequirePermission requirePermission = method.getAnnotation(RequirePermission.class);
+
+        // 4. 如果不需要项目ID（如项目树接口），直接校验登录状态即可
+        if (!requirePermission.requireProjectId()) {
+            log.debug("项目ID非必需，直接放行: userId={}, uri={}", userId, request.getRequestURI());
+            return joinPoint.proceed();
+        }
+
+        // 5. 获取 projectId
         Long projectId = getProjectId(request);
 
         if (projectId == null) {
@@ -97,14 +108,11 @@ public class PermissionAspect {
             throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(), "无法确定项目ID");
         }
 
-        // 4. 获取方法上注解要求的权限
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
-        RequirePermission requirePermission = method.getAnnotation(RequirePermission.class);
+        // 6. 获取方法上注解要求的权限
         ProjectPermission[] requiredPermissions = requirePermission.value();
         RequirePermission.Logical logical = requirePermission.logical();
 
-        // 5. 校验权限
+        // 7. 校验权限
         boolean hasPermission;
         if (logical == RequirePermission.Logical.AND) {
             // 所有权限都需要满足

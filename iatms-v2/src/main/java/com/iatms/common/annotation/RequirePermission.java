@@ -28,6 +28,12 @@ public @interface RequirePermission {
      */
     Logical logical() default Logical.AND;
 
+    /**
+     * 是否需要项目ID进行权限校验
+     * 某些接口（如获取项目树）不归属于特定项目，需要设置为false
+     */
+    boolean requireProjectId() default true;
+
     enum Logical {
         AND,
         OR
