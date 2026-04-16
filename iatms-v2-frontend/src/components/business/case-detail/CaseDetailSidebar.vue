@@ -215,6 +215,18 @@ function formatTime(time: string | undefined): string {
 </script>
 
 <style scoped lang="scss">
+// 复用旧前端样式变量
+$card-radius: 12px;
+$card-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+$card-shadow-hover: 0 18px 40px rgba(16, 24, 40, 0.08);
+$card-transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+$border-color: #e4e7ed;
+$text-primary: #303133;
+$text-secondary: #606266;
+$text-placeholder: #c0c4cc;
+$bg-light: #f5f7fa;
+$bg-lighter: #fafafa;
+
 .case-detail-sidebar {
   display: flex;
   flex-direction: column;
@@ -224,10 +236,23 @@ function formatTime(time: string | undefined): string {
 }
 
 .sidebar-card {
+  border-radius: $card-radius;
+  box-shadow: $card-shadow;
+  transition: $card-transition;
+
+  &:hover {
+    box-shadow: $card-shadow-hover;
+  }
+
   :deep(.el-card__header) {
     padding: 12px 20px;
-    background: #f5f7fa;
-    border-radius: 8px 8px 0 0;
+    background: $bg-light;
+    border-radius: $card-radius $card-radius 0 0;
+    border-bottom: 1px solid $border-color;
+  }
+
+  :deep(.el-card__body) {
+    padding: 16px 20px;
   }
 }
 
@@ -236,7 +261,7 @@ function formatTime(time: string | undefined): string {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .history-list {
@@ -247,15 +272,15 @@ function formatTime(time: string | undefined): string {
 
 .history-card {
   padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  background-color: #fafafa;
+  border: 1px solid $border-color;
+  border-radius: calc($card-radius - 6px);
+  background-color: $bg-lighter;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: $card-transition;
 
   &:hover {
-    border-color: #c0c4cc;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-color: $text-placeholder;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 }
 
@@ -273,7 +298,7 @@ function formatTime(time: string | undefined): string {
 
 .executor-name {
   font-weight: 500;
-  color: #303133;
+  color: $text-primary;
   font-size: 14px;
   margin-bottom: 2px;
 }
@@ -283,25 +308,25 @@ function formatTime(time: string | undefined): string {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #909399;
+  color: $text-placeholder;
 }
 
 .execution-type {
   background-color: #ecf5ff;
   color: #409eff;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 .environment {
   background-color: #f0f9ff;
   color: #0ea5e9;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 .history-body {
-  color: #606266;
+  color: $text-secondary;
   font-size: 13px;
   line-height: 1.4;
   margin-bottom: 8px;
@@ -316,7 +341,7 @@ function formatTime(time: string | undefined): string {
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: #909399;
+  color: $text-placeholder;
 }
 
 .execution-time {
@@ -329,7 +354,7 @@ function formatTime(time: string | undefined): string {
 }
 
 .view-detail-icon {
-  color: #c0c4cc;
+  color: $text-placeholder;
   transition: color 0.2s ease;
 }
 
@@ -343,13 +368,13 @@ function formatTime(time: string | undefined): string {
 }
 
 .empty-main-text {
-  color: #606266;
+  color: $text-secondary;
   margin: 0;
 }
 
 .empty-tip {
   font-size: 12px;
-  color: #909399;
+  color: $text-placeholder;
   margin-top: 8px;
 }
 

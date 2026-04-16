@@ -524,10 +524,23 @@ function handleSelectChild(child: any) {
 </script>
 
 <style scoped lang="scss">
+// 复用旧前端样式变量
+$card-radius: 12px;
+$card-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+$card-shadow-hover: 0 18px 40px rgba(16, 24, 40, 0.08);
+$card-transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+$border-color: #e4e7ed;
+$text-primary: #303133;
+$text-secondary: #606266;
+$text-placeholder: #c0c4cc;
+$bg-light: #f5f7fa;
+$bg-lighter: #fafafa;
+
 .project-module-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  padding: 24px;
+  height: 100%;
+  overflow-y: auto;
+  background: white;
 }
 
 // 头部
@@ -535,10 +548,9 @@ function handleSelectChild(child: any) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid $border-color;
 }
 
 .header-left {
@@ -553,7 +565,7 @@ function handleSelectChild(child: any) {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: $card-radius;
   background: linear-gradient(135deg, #409eff, #67c23a);
   color: white;
 }
@@ -562,7 +574,7 @@ function handleSelectChild(child: any) {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .header-actions {
@@ -572,11 +584,10 @@ function handleSelectChild(child: any) {
 
 // 描述卡片
 .description-card {
-  :deep(.el-card__header) {
-    padding: 12px 20px;
-    background: #f5f7fa;
-    border-radius: 8px 8px 0 0;
-  }
+  margin-bottom: 24px;
+  padding: 16px;
+  background: $bg-light;
+  border-radius: 4px;
 }
 
 .section-header {
@@ -584,12 +595,12 @@ function handleSelectChild(child: any) {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .description-text {
   margin: 0;
-  color: #606266;
+  color: $text-secondary;
   line-height: 1.6;
 }
 
@@ -598,6 +609,7 @@ function handleSelectChild(child: any) {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;
+  margin-bottom: 32px;
 }
 
 .stat-card {
@@ -605,13 +617,13 @@ function handleSelectChild(child: any) {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: $card-radius;
+  box-shadow: $card-shadow;
+  transition: $card-transition;
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: $card-shadow-hover;
     transform: translateY(-2px);
   }
 
@@ -637,8 +649,8 @@ function handleSelectChild(child: any) {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 12px;
-  background: #f5f7fa;
+  border-radius: $card-radius;
+  background: $bg-light;
 
   &.module-icon {
     background: #ecf5ff;
@@ -672,14 +684,14 @@ function handleSelectChild(child: any) {
 
 .stat-label {
   font-size: 13px;
-  color: #909399;
+  color: $text-placeholder;
   margin-bottom: 4px;
 }
 
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 
   &.passed {
     color: #67c23a;
@@ -696,27 +708,34 @@ function handleSelectChild(child: any) {
 
 // 子项列表卡片
 .children-card {
+  border-radius: $card-radius;
+  overflow: hidden;
+  border: 1px solid $border-color;
+
   :deep(.el-card__header) {
-    padding: 12px 20px;
-    background: #f5f7fa;
-    border-radius: 8px 8px 0 0;
+    padding: 12px 16px;
+    background: $bg-lighter;
+    border-bottom: 1px solid $border-color;
+  }
+
+  :deep(.el-card__body) {
+    padding: 0;
   }
 }
 
 .list-table {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  border-radius: calc($card-radius - 8px);
   overflow: hidden;
 }
 
 .table-header {
   display: flex;
-  background: #fafafa;
-  border-bottom: 1px solid #ebeef5;
-  padding: 14px 16px;
+  background: $bg-lighter;
+  border-bottom: 1px solid $border-color;
+  padding: 12px 16px;
   font-size: 13px;
   font-weight: 600;
-  color: #909399;
+  color: $text-placeholder;
 }
 
 .table-body {
@@ -726,16 +745,16 @@ function handleSelectChild(child: any) {
 .table-row {
   display: flex;
   padding: 14px 16px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid $border-color;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease;
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: #f5f7fa;
+    background: $bg-light;
   }
 }
 
@@ -751,11 +770,11 @@ function handleSelectChild(child: any) {
 }
 
 .child-icon {
-  color: #909399;
+  color: $text-placeholder;
 }
 
 .child-name {
-  color: #303133;
+  color: $text-primary;
   font-size: 14px;
 }
 
@@ -763,7 +782,7 @@ function handleSelectChild(child: any) {
   flex: 0 0 80px;
   justify-content: center;
   font-size: 14px;
-  color: #606266;
+  color: $text-secondary;
 }
 
 .col-status {
@@ -774,7 +793,7 @@ function handleSelectChild(child: any) {
 .progress-bar {
   flex: 1;
   height: 8px;
-  background: #ebeef5;
+  background: $border-color;
   border-radius: 4px;
   overflow: hidden;
 }
@@ -799,14 +818,14 @@ function handleSelectChild(child: any) {
 
 .progress-text {
   font-size: 13px;
-  color: #606266;
+  color: $text-secondary;
   min-width: 40px;
 }
 
 .col-time {
-  flex: 0 0 140px;
+  flex: 0 0 150px;
   font-size: 13px;
-  color: #909399;
+  color: $text-placeholder;
 }
 
 .col-actions {

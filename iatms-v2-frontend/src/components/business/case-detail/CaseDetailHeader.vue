@@ -115,38 +115,53 @@ function handleMoreAction(command: string) {
 </script>
 
 <style scoped lang="scss">
+// 复用旧前端样式变量
+$card-radius: 12px;
+$card-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+$card-shadow-hover: 0 18px 40px rgba(16, 24, 40, 0.08);
+$card-transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+$border-color: #e4e7ed;
+$text-primary: #303133;
+$text-secondary: #606266;
+$text-placeholder: #c0c4cc;
+
 .case-detail-header {
-  margin-bottom: 24px;
+  flex-shrink: 0;
+  border-bottom: 1px solid $border-color;
 }
 
+/* 面包屑导航 */
 .breadcrumb {
-  margin-bottom: 16px;
-  font-size: 14px;
-  color: #666;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid $border-color;
 }
 
 .breadcrumb-item {
+  font-size: 14px;
+  color: $text-secondary;
   cursor: default;
 
   &.active {
-    color: #409eff;
+    color: $text-primary;
     font-weight: 500;
   }
 }
 
 .breadcrumb-separator {
-  margin: 0 8px;
-  color: #ccc;
+  color: $text-placeholder;
+  font-size: 14px;
 }
 
+/* 用例标题 */
 .case-header {
+  padding: 20px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .case-title-row {
@@ -159,7 +174,7 @@ function handleMoreAction(command: string) {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .disabled-tag {
@@ -173,7 +188,12 @@ function handleMoreAction(command: string) {
 }
 
 @media (max-width: 768px) {
+  .breadcrumb {
+    padding: 12px 16px;
+  }
+
   .case-header {
+    padding: 16px;
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;

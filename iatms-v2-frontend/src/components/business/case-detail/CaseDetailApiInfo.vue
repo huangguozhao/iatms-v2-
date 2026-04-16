@@ -266,6 +266,18 @@ async function handleCopyExpectedResponseSchema() {
 </script>
 
 <style scoped lang="scss">
+// 复用旧前端样式变量
+$card-radius: 12px;
+$card-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+$card-shadow-hover: 0 18px 40px rgba(16, 24, 40, 0.08);
+$card-transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+$border-color: #e4e7ed;
+$text-primary: #303133;
+$text-secondary: #606266;
+$text-placeholder: #c0c4cc;
+$bg-light: #f5f7fa;
+$bg-lighter: #fafafa;
+
 .case-detail-api-info {
   display: flex;
   flex-direction: column;
@@ -273,10 +285,23 @@ async function handleCopyExpectedResponseSchema() {
 }
 
 .section-card {
+  border-radius: $card-radius;
+  box-shadow: $card-shadow;
+  transition: $card-transition;
+
+  &:hover {
+    box-shadow: $card-shadow-hover;
+  }
+
   :deep(.el-card__header) {
     padding: 12px 20px;
-    background: #f5f7fa;
-    border-radius: 8px 8px 0 0;
+    background: $bg-light;
+    border-radius: $card-radius $card-radius 0 0;
+    border-bottom: 1px solid $border-color;
+  }
+
+  :deep(.el-card__body) {
+    padding: 16px 20px;
   }
 }
 
@@ -285,7 +310,7 @@ async function handleCopyExpectedResponseSchema() {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .expected-response-section {
@@ -306,20 +331,20 @@ async function handleCopyExpectedResponseSchema() {
 
 .response-label {
   font-weight: 500;
-  color: #606266;
+  color: $text-secondary;
   font-size: 14px;
 }
 
 .response-value {
-  color: #303133;
+  color: $text-primary;
   font-size: 14px;
 }
 
 .response-code {
   position: relative;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  background-color: #f8f9fa;
+  border: 1px solid $border-color;
+  border-radius: calc($card-radius - 6px);
+  background-color: $bg-light;
   max-height: 300px;
   overflow: auto;
 }
@@ -330,7 +355,7 @@ async function handleCopyExpectedResponseSchema() {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 12px;
   line-height: 1.4;
-  color: #303133;
+  color: $text-primary;
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -356,9 +381,9 @@ async function handleCopyExpectedResponseSchema() {
 
 .extractor-item {
   padding: 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  background-color: #fafafa;
+  border: 1px solid $border-color;
+  border-radius: calc($card-radius - 4px);
+  background-color: $bg-lighter;
 }
 
 .extractor-header {
@@ -370,7 +395,7 @@ async function handleCopyExpectedResponseSchema() {
 
 .extractor-name {
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
   font-size: 14px;
 }
 
@@ -380,22 +405,22 @@ async function handleCopyExpectedResponseSchema() {
 
 .expression-label {
   font-weight: 500;
-  color: #606266;
+  color: $text-secondary;
   font-size: 13px;
   margin-right: 8px;
 }
 
 .expression-code {
-  background-color: #f1f3f4;
+  background-color: $bg-light;
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 12px;
-  color: #e74c3c;
+  color: #f56c6c;
 }
 
 .extractor-description {
-  color: #909399;
+  color: $text-placeholder;
   font-size: 13px;
   line-height: 1.4;
 }

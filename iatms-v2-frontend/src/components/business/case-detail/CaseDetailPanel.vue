@@ -84,16 +84,31 @@ function handleExecute() {
 </script>
 
 <style scoped lang="scss">
+// 复用旧前端样式变量
+$card-radius: 12px;
+$card-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+$card-shadow-hover: 0 18px 40px rgba(16, 24, 40, 0.08);
+$card-transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+$border-color: #e4e7ed;
+$text-primary: #303133;
+$text-secondary: #606266;
+$text-placeholder: #c0c4cc;
+
 .case-detail-panel {
+  height: 100%;
+  background: white;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  overflow: hidden;
 }
 
 .case-content {
   display: flex;
   gap: 16px;
   align-items: flex-start;
+  padding: 16px 24px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .case-main {
@@ -107,6 +122,7 @@ function handleExecute() {
 @media (max-width: 1024px) {
   .case-content {
     flex-direction: column;
+    padding: 16px;
   }
 }
 </style>

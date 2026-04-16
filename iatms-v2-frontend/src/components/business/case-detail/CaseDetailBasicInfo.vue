@@ -311,17 +311,43 @@ function getTestTypeText(type: string | undefined): string {
 </script>
 
 <style scoped lang="scss">
+// 复用旧前端样式变量
+$card-radius: 12px;
+$card-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
+$card-shadow-hover: 0 18px 40px rgba(16, 24, 40, 0.08);
+$card-transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+$border-color: #e4e7ed;
+$text-primary: #303133;
+$text-secondary: #606266;
+$text-placeholder: #c0c4cc;
+$bg-light: #f5f7fa;
+$bg-lighter: #fafafa;
+
 .case-detail-basic-info {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.info-card {
+.info-card,
+.section-card {
+  border-radius: $card-radius;
+  box-shadow: $card-shadow;
+  transition: $card-transition;
+
+  &:hover {
+    box-shadow: $card-shadow-hover;
+  }
+
   :deep(.el-card__header) {
     padding: 12px 20px;
-    background: #f5f7fa;
-    border-radius: 8px 8px 0 0;
+    background: $bg-light;
+    border-radius: $card-radius $card-radius 0 0;
+    border-bottom: 1px solid $border-color;
+  }
+
+  :deep(.el-card__body) {
+    padding: 16px 20px;
   }
 }
 
@@ -339,20 +365,12 @@ function getTestTypeText(type: string | undefined): string {
 
 .info-label {
   font-weight: 500;
-  color: #606266;
+  color: $text-secondary;
   min-width: 60px;
 }
 
 .info-value {
-  color: #303133;
-}
-
-.section-card {
-  :deep(.el-card__header) {
-    padding: 12px 20px;
-    background: #f5f7fa;
-    border-radius: 8px 8px 0 0;
-  }
+  color: $text-primary;
 }
 
 .section-header {
@@ -360,11 +378,11 @@ function getTestTypeText(type: string | undefined): string {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .description-text {
-  color: #606266;
+  color: $text-secondary;
   line-height: 1.6;
   margin: 0;
   white-space: pre-wrap;
@@ -386,9 +404,9 @@ function getTestTypeText(type: string | undefined): string {
   display: flex;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  background-color: #fafafa;
+  border: 1px solid $border-color;
+  border-radius: calc($card-radius - 4px);
+  background-color: $bg-lighter;
 }
 
 .step-number {
@@ -398,7 +416,7 @@ function getTestTypeText(type: string | undefined): string {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: #409eff;
+  background: linear-gradient(135deg, #409eff 0%, #3b82f6 100%);
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -411,14 +429,14 @@ function getTestTypeText(type: string | undefined): string {
 
 .step-operation {
   font-weight: 500;
-  color: #303133;
+  color: $text-primary;
   margin-bottom: 4px;
 }
 
 .step-expected,
 .step-actual {
   font-size: 14px;
-  color: #606266;
+  color: $text-secondary;
   margin-top: 4px;
 }
 
@@ -441,19 +459,19 @@ function getTestTypeText(type: string | undefined): string {
   flex-direction: column;
   gap: 4px;
   padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  background-color: #fafafa;
+  border: 1px solid $border-color;
+  border-radius: calc($card-radius - 6px);
+  background-color: $bg-lighter;
 }
 
 .data-label {
   font-weight: 500;
-  color: #303133;
+  color: $text-primary;
   font-size: 14px;
 }
 
 .data-value {
-  color: #606266;
+  color: $text-secondary;
   font-size: 13px;
   word-break: break-all;
 }
