@@ -73,8 +73,11 @@
         </el-form-item>
         <el-form-item label="项目类型">
           <el-select v-model="form.projectType" style="width: 100%">
-            <el-option label="HTTP" value="HTTP" />
-            <el-option label="WebSocket" value="WEBSOCKET" />
+            <el-option label="Web" value="WEB" />
+            <el-option label="移动端" value="MOBILE" />
+            <el-option label="API" value="API" />
+            <el-option label="桌面应用" value="DESKTOP" />
+            <el-option label="混合应用" value="HYBRID" />
           </el-select>
         </el-form-item>
         <el-form-item label="项目状态">
@@ -126,7 +129,7 @@ const form = reactive({
   name: '',
   code: '',
   description: '',
-  projectType: 'HTTP',
+  projectType: 'API',
   status: 'ACTIVE'
 })
 
@@ -172,7 +175,7 @@ function handleCreate() {
     name: '',
     code: '',
     description: '',
-    projectType: 'HTTP',
+    projectType: 'API',
     status: 'ACTIVE'
   })
   dialogVisible.value = true
