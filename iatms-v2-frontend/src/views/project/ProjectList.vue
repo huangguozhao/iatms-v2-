@@ -9,9 +9,9 @@
       <div class="search-form">
         <el-input v-model="searchForm.keyword" placeholder="搜索项目名称或编号" clearable style="width: 200px" />
         <el-select v-model="searchForm.status" placeholder="项目状态" clearable style="width: 150px">
-          <el-option label="未开始" value="NOT_STARTED" />
-          <el-option label="进行中" value="IN_PROGRESS" />
-          <el-option label="已完成" value="COMPLETED" />
+          <el-option label="激活" value="ACTIVE" />
+          <el-option label="停用" value="INACTIVE" />
+          <el-option label="归档" value="ARCHIVED" />
         </el-select>
         <el-select v-model="searchForm.sortBy" placeholder="排序方式" style="width: 150px">
           <el-option label="默认排序" value="createdAt" />
@@ -79,9 +79,9 @@
         </el-form-item>
         <el-form-item label="项目状态">
           <el-select v-model="form.status" style="width: 100%">
-            <el-option label="未开始" value="NOT_STARTED" />
-            <el-option label="进行中" value="IN_PROGRESS" />
-            <el-option label="已完成" value="COMPLETED" />
+            <el-option label="激活" value="ACTIVE" />
+            <el-option label="停用" value="INACTIVE" />
+            <el-option label="归档" value="ARCHIVED" />
           </el-select>
         </el-form-item>
         <el-form-item label="描述">
@@ -127,7 +127,7 @@ const form = reactive({
   code: '',
   description: '',
   projectType: 'HTTP',
-  status: 'NOT_STARTED'
+  status: 'ACTIVE'
 })
 
 const rules = {
@@ -173,7 +173,7 @@ function handleCreate() {
     code: '',
     description: '',
     projectType: 'HTTP',
-    status: 'NOT_STARTED'
+    status: 'ACTIVE'
   })
   dialogVisible.value = true
 }

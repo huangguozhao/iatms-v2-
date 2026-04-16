@@ -6,10 +6,12 @@
 export function getStatusType(status: string): string {
   const map: Record<string, string> = {
     // 项目状态
+    ACTIVE: 'success',
+    INACTIVE: 'info',
+    ARCHIVED: 'warning',
     NOT_STARTED: 'info',
     IN_PROGRESS: 'primary',
     COMPLETED: 'success',
-    ARCHIVED: 'warning',
     // 执行状态
     PENDING: 'info',
     RUNNING: 'primary',
@@ -25,10 +27,13 @@ export function getStatusType(status: string): string {
 
 export function getStatusText(status: string): string {
   const map: Record<string, string> = {
+    // 项目状态
+    ACTIVE: '激活',
+    INACTIVE: '停用',
+    ARCHIVED: '归档',
     NOT_STARTED: '未开始',
     IN_PROGRESS: '进行中',
     COMPLETED: '已完成',
-    ARCHIVED: '已归档',
     PENDING: '待执行',
     RUNNING: '执行中',
     SUCCESS: '成功',
