@@ -86,7 +86,7 @@ import {
   Bell,
   User,
   ArrowDown,
-  Home,
+  HomeFilled,
   Folder,
   Link,
   Document,
@@ -111,7 +111,7 @@ const sidebarCollapsed = ref(false)
 // 根据用户角色获取菜单项
 const menuItems = computed(() => {
   const items = [
-    { index: 'dashboard', label: '首页', icon: Home, path: '/dashboard' },
+    { index: 'dashboard', label: '首页', icon: HomeFilled, path: '/dashboard' },
     { index: 'projects', label: '项目管理', icon: Folder, path: '/projects' },
     { index: 'apis', label: '接口管理', icon: Link, path: '/apis' },
     { index: 'test-cases', label: '测试用例', icon: Document, path: '/test-cases' },
