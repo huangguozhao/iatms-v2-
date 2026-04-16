@@ -65,31 +65,37 @@ public class TestCase extends BaseEntity {
     /**
      * 前置条件（JSON格式）
      */
+    @TableField("pre_conditions")
     private String preconditions;
 
     /**
      * 测试步骤（JSON格式）
      */
+    @TableField("test_steps")
     private String testSteps;
 
     /**
      * 请求参数覆盖（JSON格式）
      */
+    @TableField("request_override")
     private String requestOverride;
 
     /**
      * 预期HTTP状态码
      */
+    @TableField("expected_http_status")
     private Integer expectedHttpStatus;
 
     /**
      * 预期响应Schema（JSON格式）
      */
+    @TableField("expected_response_schema")
     private String expectedResponseSchema;
 
     /**
      * 预期响应体
      */
+    @TableField("expected_response_body")
     private String expectedResponseBody;
 
     /**

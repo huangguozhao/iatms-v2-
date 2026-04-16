@@ -27,9 +27,9 @@ public abstract class BaseEntity {
     private LocalDateTime createdAt;
 
     /**
-     * 创建人ID（映射到数据库的creator_id）
+     * 创建人ID
      */
-    @TableField(value = "creator_id", fill = FieldFill.INSERT)
+    @TableField(fill = FieldFill.INSERT)
     private Long createdBy;
 
     /**
@@ -39,9 +39,9 @@ public abstract class BaseEntity {
     private LocalDateTime updatedAt;
 
     /**
-     * 更新人ID（映射到数据库的updater_id）
+     * 更新人ID
      */
-    @TableField(value = "updater_id", fill = FieldFill.INSERT_UPDATE)
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Long updatedBy;
 
     /**

@@ -60,7 +60,7 @@ public class User {
     /**
      * 创建人ID
      */
-    @TableField("creator_id")
+    @TableField("created_by")
     private Integer creatorId;
 
     /**

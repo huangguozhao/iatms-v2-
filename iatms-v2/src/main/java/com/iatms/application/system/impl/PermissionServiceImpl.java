@@ -145,7 +145,7 @@ public class PermissionServiceImpl implements PermissionService {
 
         // 自己创建的项目
         LambdaQueryWrapper<Project> createdWrapper = new LambdaQueryWrapper<>();
-        createdWrapper.eq(Project::getCreatorId, userId.intValue())
+        createdWrapper.eq(Project::getCreatedBy, userId)
                       .eq(Project::getDeleted, false);
         List<Project> createdProjects = projectMapper.selectList(createdWrapper);
         projectIds.addAll(createdProjects.stream()

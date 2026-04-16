@@ -36,11 +36,6 @@ public class Project extends BaseEntity {
     private String description;
 
     /**
-     * 创建人ID
-     */
-    private Integer creatorId;
-
-    /**
      * 项目编码
      */
     private String projectCode;
@@ -61,16 +56,43 @@ public class Project extends BaseEntity {
     private String avatarUrl;
 
     /**
-     * 更新人ID
-     */
-    private Long updaterId;
-
-    /**
      * 版本号
      */
     private Integer version;
 
-    // ========== 兼容性别名（用于旧代码）==========
+    // ========== 兼容性别名（用于旧代码使用creatorId/ownerId）==========
+
+    /**
+     * 获取创建人ID（兼容方法，返回Integer）
+     */
+    public Integer getCreatorId() {
+        Long createdBy = getCreatedBy();
+        return createdBy != null ? createdBy.intValue() : null;
+    }
+
+    /**
+     * 设置创建人ID（兼容方法）
+     */
+    public void setCreatorId(Integer creatorId) {
+        setCreatedBy(creatorId != null ? creatorId.longValue() : null);
+    }
+
+    /**
+     * 获取更新人ID（兼容方法，返回Integer）
+     */
+    public Integer getUpdaterId() {
+        Long updatedBy = getUpdatedBy();
+        return updatedBy != null ? updatedBy.intValue() : null;
+    }
+
+    /**
+     * 设置更新人ID（兼容方法）
+     */
+    public void setUpdaterId(Integer updaterId) {
+        setUpdatedBy(updaterId != null ? updaterId.longValue() : null);
+    }
+
+    // ========== 虚拟字段（数据库中不存在）==========
 
     /**
      * 项目编号别名
