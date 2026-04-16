@@ -107,9 +107,8 @@ public class ApiCommandServiceImpl implements ApiCommandService {
                     ErrorCode.API_NOT_FOUND.getMessage());
         }
 
-        api.setDeleted(true);
-        api.setUpdatedBy(userId);
-        apiRequestMapper.updateById(api);
+        // 逻辑删除 - 使用 deleteById 触发 @TableLogic 注解
+        apiRequestMapper.deleteById(apiId);
 
         log.info("删除API成功: id={}, userId={}", apiId, userId);
     }

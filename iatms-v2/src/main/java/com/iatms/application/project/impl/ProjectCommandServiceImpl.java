@@ -64,14 +64,13 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
         project.setStatus(cmd.getStatus());
         project.setStartDate(cmd.getStartDate());
         project.setEndDate(cmd.getEndDate());
-        project.setOwnerId(userId);
         project.setIconColor(cmd.getIconColor());
-        project.setCreatedBy(userId);
+        project.setCreatorId(userId.intValue());
         project.setUpdatedBy(userId);
 
         projectMapper.insert(project);
 
-        log.info("创建项目成功: id={}, name={}, userId={}", project.getId(), project.getName(), userId);
+        log.info("创建项目成功: id={}, name={}, creatorId={}", project.getId(), project.getName(), userId);
 
         return getProjectDetail(project.getId(), userId);
     }
@@ -108,7 +107,7 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
         project.setUpdatedBy(userId);
         projectMapper.updateById(project);
 
-        log.info("更新项目成功: id={}, userId={}", projectId, userId);
+        log.info("更新项目成功: id={}, updaterId={}", projectId, userId);
 
         return getProjectDetail(projectId, userId);
     }
@@ -122,17 +121,15 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
                     ErrorCode.PROJECT_NOT_FOUND.getMessage());
         }
 
-        // 检查权限（只有负责人可以删除）
-        if (project.getOwnerId() == null || !project.getOwnerId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(), "只有项目负责人可以删除项目");
+        // 检查权限（只有创建人可以删除）
+        if (project.getCreatorId() == null || !project.getCreatorId().equals(userId.intValue())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(), "只有项目创建人可以删除项目");
         }
 
-        // 逻辑删除
-        project.setDeleted(true);
-        project.setUpdatedBy(userId);
-        projectMapper.updateById(project);
+        // 逻辑删除 - 使用 deleteById 触发 @TableLogic 注解，将 is_deleted 设为 1
+        projectMapper.deleteById(projectId);
 
-        log.info("删除项目成功: id={}, userId={}", projectId, userId);
+        log.info("删除项目成功: id={}, operatorId={}", projectId, userId);
     }
 
     @Override
@@ -157,7 +154,7 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
                     ErrorCode.PROJECT_NOT_FOUND.getMessage());
         }
 
-        User owner = userMapper.selectById(project.getOwnerId());
+        User owner = userMapper.selectById(Long.valueOf(project.getCreatorId()));
 
         return ProjectDetailVO.builder()
                 .id(project.getId())
@@ -168,7 +165,7 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
                 .description(project.getDescription())
                 .startDate(project.getStartDate())
                 .endDate(project.getEndDate())
-                .ownerId(project.getOwnerId())
+                .ownerId(Long.valueOf(project.getCreatorId()))
                 .ownerName(owner != null ? owner.getDisplayName() : null)
                 .iconColor(project.getIconColor())
                 .createdAt(project.getCreatedAt())

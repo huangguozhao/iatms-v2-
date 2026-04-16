@@ -101,9 +101,8 @@ public class TestCaseCommandServiceImpl implements TestCaseCommandService {
                     ErrorCode.TEST_CASE_NOT_FOUND.getMessage());
         }
 
-        testCase.setDeleted(true);
-        testCase.setUpdatedBy(userId);
-        testCaseMapper.updateById(testCase);
+        // 逻辑删除 - 使用 deleteById 触发 @TableLogic 注解
+        testCaseMapper.deleteById(caseId);
 
         log.info("删除测试用例成功: id={}, userId={}", caseId, userId);
     }

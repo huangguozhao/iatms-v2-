@@ -123,8 +123,8 @@ public class ScheduledTaskCommandServiceImpl implements ScheduledTaskCommandServ
         // 取消 Quartz 调度
         unscheduleQuartzJob(taskId);
 
-        task.setDeleted(true);
-        taskMapper.updateById(task);
+        // 逻辑删除 - 使用 deleteById 触发 @TableLogic 注解
+        taskMapper.deleteById(taskId);
 
         log.info("删除定时任务成功: id={}, userId={}", taskId, userId);
     }
