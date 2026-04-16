@@ -161,11 +161,8 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
                         .eq(Module::getIsDeleted, false)
         ).intValue();
 
-        // 统计测试用例数量
-        Integer totalTestCases = testCaseMapper.selectCount(
-                new LambdaQueryWrapper<TestCase>()
-                        .eq(TestCase::getProjectId, projectId)
-        ).intValue();
+        // 统计测试用例数量（TestCase 通过 API 间接关联 Project，暂不统计）
+        Integer totalTestCases = 0;
 
         // 统计接口数量（通过模块关联，后续实现）
         Integer totalApis = 0;
