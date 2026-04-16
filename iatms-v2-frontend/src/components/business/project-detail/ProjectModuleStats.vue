@@ -457,28 +457,17 @@ function handleAdd() {
 
 // 子项列表
 const children = computed(() => {
+  console.log('[DEBUG] children computed, node:', props.node?.id, 'level:', props.level)
   if (!props.node) return []
   if (props.level === 'project') {
     // 项目下的模块在 children 字段中
+    console.log('[DEBUG] project children:', props.node.children)
     return props.node.children || []
   } else {
     // 模块下的接口在 apis 字段中
     return props.node.apis || []
   }
 })
-
-// 调试：打印 children 变化
-watch(() => children.value, (newChildren) => {
-  console.log('[DEBUG] children changed, length:', newChildren.length)
-  if (newChildren.length > 0) {
-    console.log('[DEBUG] first child:', newChildren[0])
-    console.log('[DEBUG] first child.apis:', newChildren[0]?.apis)
-    if (newChildren[0]?.apis?.length > 0) {
-      console.log('[DEBUG] first api:', newChildren[0].apis[0])
-      console.log('[DEBUG] first api.testCases:', newChildren[0].apis[0]?.testCases)
-    }
-  }
-}, { deep: true })
 
 // 获取子项数量
 function getChildCount(): number {
