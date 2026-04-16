@@ -459,8 +459,10 @@ function handleAdd() {
 const children = computed(() => {
   if (!props.node) return []
   if (props.level === 'project') {
-    return props.node.modules || []
+    // 项目下的模块在 children 字段中
+    return props.node.children || []
   } else {
+    // 模块下的接口在 apis 字段中
     return props.node.apis || []
   }
 })
