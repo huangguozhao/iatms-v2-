@@ -1,42 +1,13 @@
 import { client } from '@/api/client'
-import type { ApiResponse, PageResult } from '@/types/api'
+import type {
+  ApiResponse,
+  PageResult,
+  TestCaseSummaryVO,
+  TestCaseDetailVO
+} from '@/types/api'
 
 // Re-export common types for convenience
-export type { PageResult }
-
-/**
- * 测试用例概要VO
- */
-export interface TestCaseSummaryVO {
-  id: number
-  caseCode: string
-  name: string
-  priority: string
-  status: string
-  projectId: number
-  moduleId: number
-  apiId: number | null
-  createdAt: string
-  createdBy: string
-}
-
-/**
- * 测试用例详情VO
- */
-export interface TestCaseDetailVO extends TestCaseSummaryVO {
-  description: string
-  testType: string
-  preconditions: string
-  testSteps: string
-  testData: string
-  headers: Record<string, string> | string
-  requestParams: string
-  requestBody: string
-  assertions: string
-  expectedResponse: string
-  extractors: string
-  updatedAt: string
-}
+export type { PageResult, TestCaseSummaryVO, TestCaseDetailVO }
 
 export interface CreateTestCaseDTO {
   name: string

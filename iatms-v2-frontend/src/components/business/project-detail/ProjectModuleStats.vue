@@ -61,14 +61,14 @@
     </el-card>
 
     <!-- 统计卡片 -->
-    <div class="stats-cards">
+    <div class="stats-cards" v-loading="statsLoading" element-loading-text="加载中...">
       <div class="stat-card">
         <div class="stat-icon-wrapper module-icon">
           <el-icon :size="24"><Folder /></el-icon>
         </div>
         <div class="stat-content">
           <div class="stat-label">{{ level === 'project' ? '模块数' : '接口数' }}</div>
-          <div class="stat-value">{{ getChildCount() }}</div>
+          <div class="stat-value">{{ displayStats.moduleCount }}</div>
         </div>
       </div>
 
@@ -78,7 +78,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-label">用例总数</div>
-          <div class="stat-value">{{ getTotalCases() }}</div>
+          <div class="stat-value">{{ displayStats.testCaseCount }}</div>
         </div>
       </div>
 
@@ -88,7 +88,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-label">通过</div>
-          <div class="stat-value passed">{{ getPassedCount() }}</div>
+          <div class="stat-value passed">{{ displayStats.passedCount }}</div>
         </div>
       </div>
 
@@ -98,7 +98,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-label">失败</div>
-          <div class="stat-value failed">{{ getFailedCount() }}</div>
+          <div class="stat-value failed">{{ displayStats.failedCount }}</div>
         </div>
       </div>
 
@@ -108,7 +108,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-label">未执行</div>
-          <div class="stat-value pending">{{ getNotExecutedCount() }}</div>
+          <div class="stat-value pending">{{ displayStats.notExecutedCount }}</div>
         </div>
       </div>
     </div>
@@ -193,7 +193,7 @@
       :target-type="level"
       :target-id="node?.id"
       :target-name="node?.name || ''"
-      :case-count="getTotalCases()"
+      :case-count="displayStats.testCaseCount"
       :project-id="getProjectId()"
       @execute="handleConfirmExecute"
     />
@@ -201,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import {
   Folder,
@@ -218,6 +218,7 @@ import {
   Warning
 } from '@element-plus/icons-vue'
 import ExecuteConfigDialog from '@/components/business/case-detail/ExecuteConfigDialog.vue'
+import { projectApi } from '@/api/modules/project/project'
 
 interface TreeNode {
   id: number
@@ -234,6 +235,11 @@ interface TreeNode {
     passedCount?: number
     failedCount?: number
     notExecutedCount?: number
+  }
+  stats?: {
+    moduleCount?: number
+    apiCount?: number
+    testCaseCount?: number
   }
 }
 
@@ -257,6 +263,110 @@ const emit = defineEmits<{
 
 // 执行配置对话框
 const executeDialogVisible = ref(false)
+
+// 统计数据加载状态
+const statsLoading = ref(false)
+
+// 项目详情数据
+const projectDetail = ref<any>(null)
+
+// 获取项目ID
+function getProjectId(): number | null {
+  if (!props.node) return null
+  return (props.node as any).projectId || (props.node as any).project_id || props.node.id
+}
+
+// 统计信息
+interface Stats {
+  moduleCount: number
+  testCaseCount: number
+  passedCount: number
+  failedCount: number
+  notExecutedCount: number
+}
+
+// 显示用的统计数据
+const displayStats = computed<Stats>(() => {
+  if (!props.node) {
+    return { moduleCount: 0, testCaseCount: 0, passedCount: 0, failedCount: 0, notExecutedCount: 0 }
+  }
+
+  // 如果有从后端获取的项目详情数据，优先使用
+  if (projectDetail.value) {
+    if (props.level === 'project') {
+      return {
+        moduleCount: projectDetail.value.totalModules || 0,
+        testCaseCount: projectDetail.value.totalTestCases || 0,
+        passedCount: 0,
+        failedCount: 0,
+        notExecutedCount: 0
+      }
+    }
+  }
+
+  // 如果有内联的统计数据，优先使用
+  if (props.node.stats) {
+    if (props.level === 'project') {
+      return {
+        moduleCount: props.node.stats.moduleCount || 0,
+        testCaseCount: props.node.stats.testCaseCount || 0,
+        passedCount: 0,
+        failedCount: 0,
+        notExecutedCount: 0
+      }
+    } else {
+      return {
+        moduleCount: props.node.stats.apiCount || 0,
+        testCaseCount: props.node.stats.testCaseCount || 0,
+        passedCount: 0,
+        failedCount: 0,
+        notExecutedCount: 0
+      }
+    }
+  }
+
+  // 否则从本地计算
+  if (props.level === 'project') {
+    return {
+      moduleCount: getChildCount(),
+      testCaseCount: getTotalCases(),
+      passedCount: getPassedCount(),
+      failedCount: getFailedCount(),
+      notExecutedCount: getNotExecutedCount()
+    }
+  } else {
+    return {
+      moduleCount: getChildCount(),
+      testCaseCount: getTotalCases(),
+      passedCount: getPassedCount(),
+      failedCount: getFailedCount(),
+      notExecutedCount: getNotExecutedCount()
+    }
+  }
+})
+
+// 加载项目详情
+async function loadProjectDetail() {
+  if (props.level !== 'project' || !props.node) return
+
+  statsLoading.value = true
+  try {
+    const id = getProjectId()
+    if (id) {
+      projectDetail.value = await projectApi.getDetail(id)
+    }
+  } catch (error) {
+    console.error('加载项目详情失败:', error)
+  } finally {
+    statsLoading.value = false
+  }
+}
+
+// 监听节点变化，重新加载数据
+watch(() => props.node?.id, () => {
+  projectDetail.value = null
+  loadProjectDetail()
+}, { immediate: true })
 
 // 打开执行配置对话框
 function handleExecuteTest() {
@@ -304,12 +414,6 @@ function handleConfigEnvironment() {
 function handleAdd() {
   if (!props.node) return
   emit('add', props.node)
-}
-
-// 获取项目ID
-function getProjectId(): number | null {
-  if (!props.node) return null
-  return (props.node as any).projectId || (props.node as any).project_id || props.node.id
 }
 
 // 子项列表

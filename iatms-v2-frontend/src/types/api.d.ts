@@ -41,11 +41,14 @@ export interface ProjectSummaryVO {
 export interface ProjectDetailVO extends ProjectSummaryVO {
   description?: string
   members: ProjectMemberVO[]
-  totalModules: number
-  totalApis: number
-  totalTestCases: number
-  updatedAt: string
-  creatorName: string
+  totalModules?: number
+  totalApis?: number
+  totalTestCases?: number
+  updatedAt?: string
+  creatorName?: string
+  startDate?: string
+  endDate?: string
+  iconColor?: string
 }
 
 export interface ProjectMemberVO {
@@ -106,22 +109,35 @@ export interface ApiQuery {
 // TestCase types
 export interface TestCaseSummaryVO {
   id: number
+  caseCode?: string
   name: string
-  apiId: number
-  apiName: string
+  apiId?: number
+  apiName?: string
   projectId: number
-  projectName: string
+  projectName?: string
+  moduleId?: number
   priority: string
   status: string
   createdAt: string
+  createdBy?: string
 }
 
 export interface TestCaseDetailVO extends TestCaseSummaryVO {
-  headers: Record<string, string>
-  requestBody: string
-  assertions: string
-  extractors: string
-  description: string
+  caseCode?: string
+  description?: string
+  testType?: string
+  preconditions?: string
+  testSteps?: string
+  testData?: string
+  headers?: Record<string, string> | string
+  requestParams?: string
+  requestBody?: string
+  assertions?: string
+  expectedResponse?: string
+  extractors?: string
+  updatedAt?: string
+  creatorName?: string
+  creator?: { name?: string }
 }
 
 // TestSuite types

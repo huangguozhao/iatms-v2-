@@ -186,7 +186,7 @@ const hasExpectedResponseSchema = computed(() => {
 })
 
 // 获取状态码标签类型
-function getStatusCodeType(code: number | string | undefined): string {
+function getStatusCodeType(code: number | string | undefined): 'success' | 'warning' | 'danger' | 'info' | 'primary' {
   const numCode = typeof code === 'string' ? parseInt(code, 10) : code
   if (!numCode) return 'success'
   if (numCode >= 200 && numCode < 300) return 'success'

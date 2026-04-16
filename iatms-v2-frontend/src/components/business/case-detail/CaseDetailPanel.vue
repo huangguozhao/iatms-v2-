@@ -32,7 +32,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import CaseDetailHeader from './CaseDetailHeader.vue'
 import CaseDetailBasicInfo from './CaseDetailBasicInfo.vue'
 import CaseDetailApiInfo from './CaseDetailApiInfo.vue'
@@ -62,7 +61,7 @@ interface Props {
   executionHistoryTotal?: number
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   displayHistory: () => [],
   executionHistoryLoading: false,
   executionHistoryTotal: 0

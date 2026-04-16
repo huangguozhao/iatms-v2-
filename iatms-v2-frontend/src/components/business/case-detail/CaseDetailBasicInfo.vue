@@ -10,12 +10,6 @@
           </el-tag>
         </div>
         <div class="info-item">
-          <span class="info-label">严重程度</span>
-          <el-tag :type="getSeverityType(testCase?.severity)" size="small">
-            {{ getSeverityText(testCase?.severity) }}
-          </el-tag>
-        </div>
-        <div class="info-item">
           <span class="info-label">测试类型</span>
           <el-tag :type="getTestTypeTagType(testCase?.testType)" size="small">
             {{ getTestTypeText(testCase?.testType) }}
@@ -24,10 +18,6 @@
         <div class="info-item">
           <span class="info-label">创建人</span>
           <span class="info-value">{{ creatorName }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">版本</span>
-          <span class="info-value">{{ testCase?.version || '1.0' }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">创建时间</span>
@@ -244,7 +234,7 @@ function formatTime(time: string | undefined): string {
 }
 
 // 获取优先级类型
-function getPriorityType(priority: string | undefined): string {
+function getPriorityType(priority: string | undefined): 'success' | 'warning' | 'danger' | 'info' | 'primary' {
   const typeMap: Record<string, string> = {
     'P0': 'danger',
     'P1': 'danger',
@@ -254,33 +244,11 @@ function getPriorityType(priority: string | undefined): string {
     'MEDIUM': 'warning',
     'LOW': 'info'
   }
-  return typeMap[priority || ''] || 'warning'
-}
-
-// 获取严重程度类型
-function getSeverityType(severity: string | undefined): string {
-  const typeMap: Record<string, string> = {
-    'CRITICAL': 'danger',
-    'HIGH': 'warning',
-    'MEDIUM': 'info',
-    'LOW': ''
-  }
-  return typeMap[severity || ''] || 'info'
-}
-
-// 获取严重程度文本
-function getSeverityText(severity: string | undefined): string {
-  const textMap: Record<string, string> = {
-    'CRITICAL': '严重',
-    'HIGH': '高',
-    'MEDIUM': '中',
-    'LOW': '低'
-  }
-  return textMap[severity || ''] || severity || '中'
+  return (typeMap[priority || ''] || 'warning') as 'success' | 'warning' | 'danger' | 'info' | 'primary'
 }
 
 // 获取测试类型标签颜色
-function getTestTypeTagType(type: string | undefined): string {
+function getTestTypeTagType(type: string | undefined): 'success' | 'warning' | 'danger' | 'info' | 'primary' {
   const typeMap: Record<string, string> = {
     'FUNCTIONAL': 'primary',
     'BOUNDARY': 'warning',
@@ -291,7 +259,7 @@ function getTestTypeTagType(type: string | undefined): string {
     'SMOKE': 'success',
     'REGRESSION': 'warning'
   }
-  return typeMap[type || ''] || ''
+  return (typeMap[type || ''] || 'info') as 'success' | 'warning' | 'danger' | 'info' | 'primary'
 }
 
 // 获取测试类型文本
