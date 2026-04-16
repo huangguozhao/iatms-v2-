@@ -31,6 +31,9 @@ public class ProjectDetailVO {
     private Integer totalModules;
     private Integer totalApis;
     private Integer totalTestCases;
+    private Integer passedCount;
+    private Integer failedCount;
+    private Integer notExecutedCount;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

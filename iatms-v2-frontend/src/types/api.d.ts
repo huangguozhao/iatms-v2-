@@ -44,6 +44,9 @@ export interface ProjectDetailVO extends ProjectSummaryVO {
   totalModules?: number
   totalApis?: number
   totalTestCases?: number
+  passedCount?: number
+  failedCount?: number
+  notExecutedCount?: number
   updatedAt?: string
   creatorName?: string
   startDate?: string

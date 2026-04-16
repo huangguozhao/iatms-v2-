@@ -10,6 +10,7 @@ import com.iatms.domain.model.entity.Module;
 import com.iatms.domain.model.entity.Project;
 import com.iatms.domain.model.entity.ProjectMember;
 import com.iatms.domain.model.entity.TestCase;
+import com.iatms.domain.model.entity.TestExecution;
 import com.iatms.domain.model.entity.User;
 import com.iatms.domain.model.vo.ProjectDetailVO;
 import com.iatms.domain.model.vo.ProjectMemberVO;
@@ -19,6 +20,7 @@ import com.iatms.infrastructure.persistence.mapper.ModuleMapper;
 import com.iatms.infrastructure.persistence.mapper.ProjectMapper;
 import com.iatms.infrastructure.persistence.mapper.ProjectMemberMapper;
 import com.iatms.infrastructure.persistence.mapper.TestCaseMapper;
+import com.iatms.infrastructure.persistence.mapper.TestExecutionMapper;
 import com.iatms.infrastructure.persistence.mapper.UserMapper;
 import com.iatms.common.exception.ResourceNotFoundException;
 import com.iatms.domain.model.enums.ErrorCode;
@@ -46,6 +48,7 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
     private final ModuleMapper moduleMapper;
     private final ApiRequestMapper apiRequestMapper;
     private final TestCaseMapper testCaseMapper;
+    private final TestExecutionMapper testExecutionMapper;
 
     @Override
     public ApiResponse.PageResult<ProjectSummaryVO> queryProjects(ProjectQuery query, Long userId) {
@@ -161,11 +164,90 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
                         .eq(Module::getIsDeleted, false)
         ).intValue();
 
-        // 统计测试用例数量（TestCase 通过 API 间接关联 Project，暂不统计）
-        Integer totalTestCases = 0;
+        // 统计接口数量 - 通过模块关联
+        List<Module> projectModules = moduleMapper.selectList(
+                new LambdaQueryWrapper<Module>()
+                        .eq(Module::getProjectId, projectId.intValue())
+                        .eq(Module::getIsDeleted, false)
+        );
+        List<Long> moduleIds = projectModules.stream()
+                .filter(m -> m.getModuleId() != null)
+                .map(m -> m.getModuleId().longValue())
+                .collect(Collectors.toList());
 
-        // 统计接口数量（通过模块关联，后续实现）
         Integer totalApis = 0;
+        if (!moduleIds.isEmpty()) {
+            totalApis = apiRequestMapper.selectCount(
+                    new LambdaQueryWrapper<ApiRequest>()
+                            .in(ApiRequest::getModuleId, moduleIds.stream().map(Long::intValue).collect(Collectors.toList()))
+                            .eq(ApiRequest::getDeleted, false)
+            ).intValue();
+        }
+
+        // 统计测试用例数量 - 通过接口关联
+        List<ApiRequest> moduleApis = moduleIds.isEmpty() ? List.of() :
+                apiRequestMapper.selectList(
+                        new LambdaQueryWrapper<ApiRequest>()
+                                .in(ApiRequest::getModuleId, moduleIds.stream().map(Long::intValue).collect(Collectors.toList()))
+                                .eq(ApiRequest::getDeleted, false)
+                );
+        List<Long> apiIds = moduleApis.stream()
+                .filter(a -> a.getId() != null)
+                .map(a -> a.getId().longValue())
+                .collect(Collectors.toList());
+
+        Integer totalTestCases = 0;
+        Integer passedCount = 0;
+        Integer failedCount = 0;
+        Integer notExecutedCount = 0;
+
+        if (!apiIds.isEmpty()) {
+            totalTestCases = testCaseMapper.selectCount(
+                    new LambdaQueryWrapper<TestCase>()
+                            .in(TestCase::getApiId, apiIds.stream().map(Long::intValue).collect(Collectors.toList()))
+                            .eq(TestCase::getDeleted, false)
+            ).intValue();
+
+            // 统计执行情况 - 获取每个用例的最新执行记录
+            List<TestCase> testCases = testCaseMapper.selectList(
+                    new LambdaQueryWrapper<TestCase>()
+                            .in(TestCase::getApiId, apiIds.stream().map(Long::intValue).collect(Collectors.toList()))
+                            .eq(TestCase::getDeleted, false)
+            );
+
+            notExecutedCount = totalTestCases; // 初始化为全部未执行
+
+            for (TestCase tc : testCases) {
+                if (tc.getId() == null) continue;
+
+                // 查询该用例的最新执行记录
+                TestExecution latestExecution = null;
+                List<TestExecution> executions = testExecutionMapper.selectList(
+                        new LambdaQueryWrapper<TestExecution>()
+                                .eq(TestExecution::getExecutionScope, "test_case")
+                                .eq(TestExecution::getRefId, tc.getId().intValue())
+                                .orderByDesc(TestExecution::getUpdatedAt)
+                                .last("LIMIT 1")
+                );
+
+                if (!executions.isEmpty()) {
+                    latestExecution = executions.get(0);
+                    notExecutedCount--; // 有执行记录的用例，从未执行中扣除
+
+                    // 根据执行状态统计
+                    String status = latestExecution.getStatus();
+                    if ("completed".equals(status) || "passed".equals(status) || "success".equals(status)) {
+                        passedCount++;
+                    } else if ("failed".equals(status) || "error".equals(status)) {
+                        failedCount++;
+                    }
+                    // running、cancelled 等状态不计入通过或失败
+                }
+            }
+
+            // 确保不会变成负数
+            notExecutedCount = Math.max(0, notExecutedCount);
+        }
 
         return ProjectDetailVO.builder()
                 .id(project.getId())
@@ -183,6 +265,9 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
                 .totalModules(totalModules)
                 .totalApis(totalApis)
                 .totalTestCases(totalTestCases)
+                .passedCount(passedCount)
+                .failedCount(failedCount)
+                .notExecutedCount(notExecutedCount)
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
                 .creatorName(owner != null ? owner.getDisplayName() : null)
