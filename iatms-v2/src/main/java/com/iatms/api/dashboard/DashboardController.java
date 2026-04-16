@@ -6,10 +6,7 @@ import com.iatms.domain.model.vo.DashboardStatisticsVO;
 import com.iatms.domain.model.vo.RecentActivityVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -28,8 +25,9 @@ public class DashboardController {
      * 获取仪表盘统计数据
      */
     @GetMapping("/statistics")
-    public ApiResponse<DashboardStatisticsVO> getStatistics() {
-        DashboardStatisticsVO result = dashboardService.getStatistics();
+    public ApiResponse<DashboardStatisticsVO> getStatistics(
+            @RequestAttribute("userId") Long userId) {
+        DashboardStatisticsVO result = dashboardService.getStatistics(userId);
         return ApiResponse.success(result);
     }
 
@@ -38,8 +36,9 @@ public class DashboardController {
      */
     @GetMapping("/activities")
     public ApiResponse<List<RecentActivityVO>> getRecentActivities(
-            @RequestParam(defaultValue = "10") int limit) {
-        List<RecentActivityVO> result = dashboardService.getRecentActivities(limit);
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestAttribute("userId") Long userId) {
+        List<RecentActivityVO> result = dashboardService.getRecentActivities(limit, userId);
         return ApiResponse.success(result);
     }
 }

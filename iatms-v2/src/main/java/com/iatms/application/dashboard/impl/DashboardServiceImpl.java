@@ -1,8 +1,11 @@
 package com.iatms.application.dashboard.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.iatms.application.dashboard.DashboardService;
+import com.iatms.application.system.PermissionService;
 import com.iatms.domain.model.entity.*;
+import com.iatms.domain.model.entity.Module;
 import com.iatms.domain.model.vo.DashboardStatisticsVO;
 import com.iatms.domain.model.vo.RecentActivityVO;
 import com.iatms.infrastructure.persistence.mapper.*;
@@ -29,49 +32,104 @@ public class DashboardServiceImpl implements DashboardService {
     private final TestCaseMapper testCaseMapper;
     private final TestExecutionMapper testExecutionMapper;
     private final UserMapper userMapper;
+    private final PermissionService permissionService;
+    private final ModuleMapper moduleMapper;
 
     @Override
-    public DashboardStatisticsVO getStatistics() {
-        // 统计项目数量
-        Long projectCount = projectMapper.selectCount(
-                new LambdaQueryWrapper<Project>().eq(Project::getDeleted, false)
-        ).longValue();
+    public DashboardStatisticsVO getStatistics(Long userId) {
+        // 获取用户可访问的项目ID列表
+        List<Long> accessibleProjectIds = permissionService.getAccessibleProjectIds(userId);
+        boolean isAdmin = permissionService.isSystemAdmin(userId);
 
-        // 统计 API 数量
-        Long apiCount = apiRequestMapper.selectCount(
-                new LambdaQueryWrapper<ApiRequest>().eq(ApiRequest::getDeleted, false)
-        ).longValue();
+        // 统计项目数量
+        Long projectCount;
+        if (isAdmin) {
+            projectCount = projectMapper.selectCount(
+                    new LambdaQueryWrapper<Project>().eq(Project::getDeleted, false)
+            ).longValue();
+        } else {
+            projectCount = (long) accessibleProjectIds.size();
+        }
+
+        // 统计 API 数量（仅计算可访问项目下的API）
+        Long apiCount;
+        if (isAdmin) {
+            apiCount = apiRequestMapper.selectCount(
+                    new LambdaQueryWrapper<ApiRequest>().eq(ApiRequest::getDeleted, false)
+            ).longValue();
+        } else {
+            // 通过项目下的模块获取API数量
+            Set<Integer> moduleIds = getModuleIdsByProjects(accessibleProjectIds);
+            apiCount = apiRequestMapper.selectCount(
+                    new LambdaQueryWrapper<ApiRequest>()
+                            .eq(ApiRequest::getDeleted, false)
+                            .in(!moduleIds.isEmpty(), ApiRequest::getModuleId, moduleIds)
+            ).longValue();
+        }
 
         // 统计测试用例数量
-        Long testCaseCount = testCaseMapper.selectCount(
-                new LambdaQueryWrapper<TestCase>().eq(TestCase::getDeleted, false)
-        ).longValue();
+        Long testCaseCount;
+        if (isAdmin) {
+            testCaseCount = testCaseMapper.selectCount(
+                    new LambdaQueryWrapper<TestCase>().eq(TestCase::getDeleted, false)
+            ).longValue();
+        } else {
+            // 通过API间接获取用例数量
+            Set<Integer> apiIds = getApiIdsByModuleIds(getModuleIdsByProjects(accessibleProjectIds));
+            testCaseCount = testCaseMapper.selectCount(
+                    new LambdaQueryWrapper<TestCase>()
+                            .eq(TestCase::getDeleted, false)
+                            .in(!apiIds.isEmpty(), TestCase::getApiId, apiIds)
+            ).longValue();
+        }
 
-        // 统计测试执行总数
-        Long executionCount = testExecutionMapper.selectCount(null).longValue();
+        // 统计测试执行总数（仅统计可访问项目的执行）
+        Long executionCount;
+        if (isAdmin) {
+            executionCount = testExecutionMapper.selectCount(null).longValue();
+        } else {
+            executionCount = countExecutionsByProjectIds(accessibleProjectIds);
+        }
 
         // 统计今日执行次数
         LocalDateTime todayStart = LocalDateTime.now().with(LocalTime.MIN);
-        Long todayExecutionCount = testExecutionMapper.selectCount(
-                new LambdaQueryWrapper<TestExecution>()
-                        .ge(TestExecution::getUpdatedAt, todayStart)
-        ).longValue();
+        Long todayExecutionCount;
+        if (isAdmin) {
+            todayExecutionCount = testExecutionMapper.selectCount(
+                    new LambdaQueryWrapper<TestExecution>()
+                            .ge(TestExecution::getUpdatedAt, todayStart)
+            ).longValue();
+        } else {
+            todayExecutionCount = countExecutionsByProjectIdsAndTime(accessibleProjectIds, todayStart);
+        }
 
         // 统计本周执行次数
         LocalDateTime weekStart = LocalDateTime.now().with(java.time.DayOfWeek.MONDAY).with(LocalTime.MIN);
-        Long weekExecutionCount = testExecutionMapper.selectCount(
-                new LambdaQueryWrapper<TestExecution>()
-                        .ge(TestExecution::getUpdatedAt, weekStart)
-        ).longValue();
+        Long weekExecutionCount;
+        if (isAdmin) {
+            weekExecutionCount = testExecutionMapper.selectCount(
+                    new LambdaQueryWrapper<TestExecution>()
+                            .ge(TestExecution::getUpdatedAt, weekStart)
+            ).longValue();
+        } else {
+            weekExecutionCount = countExecutionsByProjectIdsAndTime(accessibleProjectIds, weekStart);
+        }
 
         // 计算成功率
         LambdaQueryWrapper<TestExecution> completedWrapper = new LambdaQueryWrapper<TestExecution>()
                 .eq(TestExecution::getStatus, "completed");
-        Long completedCount = testExecutionMapper.selectCount(completedWrapper).longValue();
-
+        Long completedCount;
         LambdaQueryWrapper<TestExecution> failedWrapper = new LambdaQueryWrapper<TestExecution>()
                 .eq(TestExecution::getStatus, "failed");
-        Long failedCount = testExecutionMapper.selectCount(failedWrapper).longValue();
+        Long failedCount;
+
+        if (isAdmin) {
+            completedCount = testExecutionMapper.selectCount(completedWrapper).longValue();
+            failedCount = testExecutionMapper.selectCount(failedWrapper).longValue();
+        } else {
+            completedCount = countExecutionsByProjectIdsAndStatus(accessibleProjectIds, "completed");
+            failedCount = countExecutionsByProjectIdsAndStatus(accessibleProjectIds, "failed");
+        }
 
         Double successRate = 0.0;
         if (executionCount > 0) {
@@ -90,12 +148,31 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public List<RecentActivityVO> getRecentActivities(int limit) {
-        LambdaQueryWrapper<TestExecution> wrapper = new LambdaQueryWrapper<TestExecution>()
-                .orderByDesc(TestExecution::getUpdatedAt)
-                .last("LIMIT " + limit);
+    public List<RecentActivityVO> getRecentActivities(int limit, Long userId) {
+        // 获取用户可访问的项目ID列表
+        List<Long> accessibleProjectIds = permissionService.getAccessibleProjectIds(userId);
+        boolean isAdmin = permissionService.isSystemAdmin(userId);
 
-        List<TestExecution> executions = testExecutionMapper.selectList(wrapper);
+        List<TestExecution> executions;
+        if (isAdmin) {
+            LambdaQueryWrapper<TestExecution> wrapper = new LambdaQueryWrapper<TestExecution>()
+                    .orderByDesc(TestExecution::getUpdatedAt)
+                    .last("LIMIT " + limit);
+            executions = testExecutionMapper.selectList(wrapper);
+        } else {
+            // 仅获取可访问项目的执行记录
+            List<TestExecution> allExecutions = testExecutionMapper.selectList(
+                    new LambdaQueryWrapper<TestExecution>()
+                            .orderByDesc(TestExecution::getUpdatedAt)
+                            .last("LIMIT 1000")  // 先获取足够多的记录
+            );
+            // 过滤出可访问项目的执行
+            Set<Long> projectIdSet = new HashSet<>(accessibleProjectIds);
+            executions = allExecutions.stream()
+                    .filter(exec -> isExecutionAccessible(exec, projectIdSet))
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        }
 
         if (executions.isEmpty()) {
             return new ArrayList<>();
@@ -143,6 +220,132 @@ public class DashboardServiceImpl implements DashboardService {
             activities.add(vo);
         }
         return activities;
+    }
+
+    /**
+     * 检查执行记录是否可访问
+     */
+    private boolean isExecutionAccessible(TestExecution exec, Set<Long> accessibleProjectIds) {
+        String scope = exec.getExecutionScope();
+        Integer refId = exec.getRefId();
+
+        if (scope == null || refId == null) {
+            return false;
+        }
+
+        return switch (scope) {
+            case "project" -> accessibleProjectIds.contains(refId.longValue());
+            case "test_case" -> {
+                TestCase tc = testCaseMapper.selectById(refId.longValue());
+                if (tc != null && tc.getApiId() != null) {
+                    ApiRequest api = apiRequestMapper.selectById(tc.getApiId().longValue());
+                    if (api != null && api.getModuleId() != null) {
+                        Module module = moduleMapper.selectById(api.getModuleId());
+                        yield module != null && module.getProjectId() != null
+                                && accessibleProjectIds.contains(module.getProjectId().longValue());
+                    }
+                }
+                yield false;
+            }
+            case "api" -> {
+                ApiRequest api = apiRequestMapper.selectById(refId.longValue());
+                if (api != null && api.getModuleId() != null) {
+                    Module module = moduleMapper.selectById(api.getModuleId());
+                    yield module != null && module.getProjectId() != null
+                            && accessibleProjectIds.contains(module.getProjectId().longValue());
+                }
+                yield false;
+            }
+            default -> false;
+        };
+    }
+
+    /**
+     * 根据项目ID列表统计执行记录数
+     */
+    private Long countExecutionsByProjectIds(List<Long> projectIds) {
+        if (projectIds.isEmpty()) {
+            return 0L;
+        }
+
+        Set<Long> projectIdSet = new HashSet<>(projectIds);
+        List<TestExecution> all = testExecutionMapper.selectList(
+                new LambdaQueryWrapper<TestExecution>().last("LIMIT 10000")
+        );
+        return all.stream()
+                .filter(exec -> isExecutionAccessible(exec, projectIdSet))
+                .count();
+    }
+
+    /**
+     * 根据项目ID列表和时间统计执行记录数
+     */
+    private Long countExecutionsByProjectIdsAndTime(List<Long> projectIds, LocalDateTime since) {
+        if (projectIds.isEmpty()) {
+            return 0L;
+        }
+
+        Set<Long> projectIdSet = new HashSet<>(projectIds);
+        List<TestExecution> all = testExecutionMapper.selectList(
+                new LambdaQueryWrapper<TestExecution>()
+                        .ge(TestExecution::getUpdatedAt, since)
+                        .last("LIMIT 10000")
+        );
+        return all.stream()
+                .filter(exec -> isExecutionAccessible(exec, projectIdSet))
+                .count();
+    }
+
+    /**
+     * 根据项目ID列表和状态统计执行记录数
+     */
+    private Long countExecutionsByProjectIdsAndStatus(List<Long> projectIds, String status) {
+        if (projectIds.isEmpty()) {
+            return 0L;
+        }
+
+        Set<Long> projectIdSet = new HashSet<>(projectIds);
+        List<TestExecution> all = testExecutionMapper.selectList(
+                new LambdaQueryWrapper<TestExecution>()
+                        .eq(TestExecution::getStatus, status)
+                        .last("LIMIT 10000")
+        );
+        return all.stream()
+                .filter(exec -> isExecutionAccessible(exec, projectIdSet))
+                .count();
+    }
+
+    /**
+     * 获取项目下的模块ID集合
+     */
+    private Set<Integer> getModuleIdsByProjects(List<Long> projectIds) {
+        if (projectIds.isEmpty()) {
+            return Set.of();
+        }
+        List<Module> modules = moduleMapper.selectList(
+                new LambdaQueryWrapper<Module>()
+                        .in(Module::getProjectId, projectIds)
+        );
+        return modules.stream()
+                .map(Module::getModuleId)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * 获取模块ID集合下的API ID集合
+     */
+    private Set<Integer> getApiIdsByModuleIds(Set<Integer> moduleIds) {
+        if (moduleIds.isEmpty()) {
+            return Set.of();
+        }
+        List<ApiRequest> apis = apiRequestMapper.selectList(
+                new LambdaQueryWrapper<ApiRequest>()
+                        .in(ApiRequest::getModuleId, moduleIds)
+        );
+        return apis.stream()
+                .map(ApiRequest::getId)
+                .map(Number::intValue)
+                .collect(Collectors.toSet());
     }
 
     /**
