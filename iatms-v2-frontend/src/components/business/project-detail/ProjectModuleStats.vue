@@ -371,13 +371,19 @@ async function loadProjectDetail() {
   try {
     if (props.level === 'project') {
       const id = getProjectId()
+      console.log('[DEBUG] Loading project detail, id:', id)
       if (id) {
         projectDetail.value = await projectApi.getDetail(id)
+        console.log('[DEBUG] projectDetail loaded:', projectDetail.value)
       }
     } else if (props.level === 'module') {
       const id = getModuleId()
+      console.log('[DEBUG] Loading module detail, id:', id, 'level:', props.level)
       if (id) {
         moduleDetail.value = await projectApi.getModuleDetail(id)
+        console.log('[DEBUG] moduleDetail loaded:', moduleDetail.value)
+      } else {
+        console.log('[DEBUG] module id is null, node:', props.node)
       }
     }
   } catch (error) {
@@ -390,8 +396,15 @@ async function loadProjectDetail() {
 // 监听节点变化，重新加载数据
 watch(() => props.node?.id, () => {
   projectDetail.value = null
+  moduleDetail.value = null
   loadProjectDetail()
 }, { immediate: true })
+
+// 调试用：监听 moduleDetail 变化
+watch(() => moduleDetail.value, (newVal) => {
+  console.log('[DEBUG] moduleDetail changed:', newVal)
+  console.log('[DEBUG] moduleDetail.stats:', newVal?.stats)
+}, { deep: true })
 
 // 打开执行配置对话框
 function handleExecuteTest() {
