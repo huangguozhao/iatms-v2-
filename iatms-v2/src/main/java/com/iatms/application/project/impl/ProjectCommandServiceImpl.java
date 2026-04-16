@@ -123,7 +123,7 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
         }
 
         // 检查权限（只有负责人可以删除）
-        if (!project.getOwnerId().equals(userId)) {
+        if (project.getOwnerId() == null || !project.getOwnerId().equals(userId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN.getCode(), "只有项目负责人可以删除项目");
         }
 
