@@ -394,7 +394,8 @@ async function loadProjectDetail() {
 }
 
 // 监听节点变化，重新加载数据
-watch(() => props.node?.id, () => {
+watch(() => props.node?.id, (newId, oldId) => {
+  console.log('[DEBUG] watch triggered: node.id changed from', oldId, 'to', newId, 'level:', props.level)
   projectDetail.value = null
   moduleDetail.value = null
   loadProjectDetail()
