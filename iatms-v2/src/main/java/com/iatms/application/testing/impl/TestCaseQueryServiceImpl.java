@@ -3,6 +3,7 @@ package com.iatms.application.testing.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.iatms.application.system.PermissionService;
 import com.iatms.application.testing.TestCaseQueryService;
 import com.iatms.domain.model.entity.ApiRequest;
 import com.iatms.domain.model.entity.Module;
@@ -40,6 +41,7 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
     private final ProjectMapper projectMapper;
     private final ModuleMapper moduleMapper;
     private final ApiRequestMapper apiRequestMapper;
+    private final PermissionService permissionService;
 
     @Override
     public ApiResponse.PageResult<TestCaseSummaryVO> queryTestCases(
@@ -140,7 +142,7 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
     }
 
     @Override
-    public List<ProjectTreeVO> getProjectTree(Long projectId) {
+    public List<ProjectTreeVO> getProjectTree(Long projectId, Long userId) {
         List<Project> projects;
 
         if (projectId != null) {
@@ -148,11 +150,23 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
             if (project == null || project.getDeleted()) {
                 return new ArrayList<>();
             }
+            // 校验用户是否有权限访问该项目
+            if (!permissionService.canAccessProject(userId, projectId)) {
+                log.warn("用户无权限访问该项目: userId={}, projectId={}", userId, projectId);
+                return new ArrayList<>();
+            }
             projects = List.of(project);
         } else {
+            // 获取用户有权限访问的所有项目ID
+            List<Long> accessibleProjectIds = permissionService.getAccessibleProjectIds(userId);
+            if (accessibleProjectIds.isEmpty()) {
+                return new ArrayList<>();
+            }
+
             // 查询用户有权限的所有未删除项目
             LambdaQueryWrapper<Project> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(Project::getDeleted, false);
+            wrapper.in(Project::getId, accessibleProjectIds);
             wrapper.orderByAsc(Project::getName);
             projects = projectMapper.selectList(wrapper);
         }

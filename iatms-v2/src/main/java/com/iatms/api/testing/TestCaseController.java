@@ -46,8 +46,9 @@ public class TestCaseController {
     @GetMapping("/tree")
     @RequirePermission(value = ProjectPermission.CASE_VIEW, requireProjectId = false)
     public ApiResponse<List<ProjectTreeVO>> getProjectTree(
-            @RequestParam(required = false) Long projectId) {
-        List<ProjectTreeVO> tree = testCaseQueryService.getProjectTree(projectId);
+            @RequestParam(required = false) Long projectId,
+            @RequestAttribute("userId") Long userId) {
+        List<ProjectTreeVO> tree = testCaseQueryService.getProjectTree(projectId, userId);
         return ApiResponse.success(tree);
     }
 

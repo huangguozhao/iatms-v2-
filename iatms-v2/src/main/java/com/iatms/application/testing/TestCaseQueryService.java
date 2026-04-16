@@ -31,6 +31,7 @@ public interface TestCaseQueryService {
     /**
      * 获取项目树形结构（项目→模块→接口→用例）
      * @param projectId 项目ID，传入null则返回用户有权限的所有项目树
+     * @param userId 当前用户ID，用于权限过滤
      */
-    List<ProjectTreeVO> getProjectTree(Long projectId);
+    List<ProjectTreeVO> getProjectTree(Long projectId, Long userId);
 }
