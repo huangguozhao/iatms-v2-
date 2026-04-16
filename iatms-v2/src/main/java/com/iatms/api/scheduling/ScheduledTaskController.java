@@ -4,6 +4,8 @@ import com.iatms.api.common.ApiResponse;
 import com.iatms.application.scheduling.ScheduledTaskCommandService;
 import com.iatms.application.scheduling.ScheduledTaskQueryService;
 import com.iatms.application.scheduling.dto.command.CreateScheduledTaskCmd;
+import com.iatms.common.annotation.RequirePermission;
+import com.iatms.domain.model.enums.ProjectPermission;
 import com.iatms.domain.model.vo.ScheduledTaskDetailVO;
 import com.iatms.domain.model.vo.ScheduledTaskSummaryVO;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ public class ScheduledTaskController {
     private final ScheduledTaskQueryService taskQueryService;
 
     @PostMapping
+    @RequirePermission(ProjectPermission.TASK_CREATE)
     public ApiResponse<ScheduledTaskDetailVO> createTask(
             @RequestBody @Valid CreateScheduledTaskCmd cmd,
             @RequestAttribute("userId") Long userId) {
@@ -34,6 +37,7 @@ public class ScheduledTaskController {
     }
 
     @PutMapping("/{taskId}")
+    @RequirePermission(ProjectPermission.TASK_EDIT)
     public ApiResponse<ScheduledTaskDetailVO> updateTask(
             @PathVariable Long taskId,
             @RequestBody @Valid CreateScheduledTaskCmd cmd,
@@ -45,6 +49,7 @@ public class ScheduledTaskController {
     }
 
     @DeleteMapping("/{taskId}")
+    @RequirePermission(ProjectPermission.TASK_DELETE)
     public ApiResponse<Void> deleteTask(
             @PathVariable Long taskId,
             @RequestAttribute("userId") Long userId) {
@@ -55,12 +60,14 @@ public class ScheduledTaskController {
     }
 
     @GetMapping("/{taskId}")
+    @RequirePermission(ProjectPermission.TASK_VIEW)
     public ApiResponse<ScheduledTaskDetailVO> getTaskDetail(@PathVariable Long taskId) {
         ScheduledTaskDetailVO result = taskQueryService.getTaskDetail(taskId);
         return ApiResponse.success(result);
     }
 
     @GetMapping
+    @RequirePermission(ProjectPermission.TASK_VIEW)
     public ApiResponse<ApiResponse.PageResult<ScheduledTaskSummaryVO>> queryTasks(
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) String status,
@@ -72,6 +79,7 @@ public class ScheduledTaskController {
     }
 
     @PostMapping("/{taskId}/run")
+    @RequirePermission(ProjectPermission.TASK_EXECUTE)
     public ApiResponse<Void> runTaskNow(
             @PathVariable Long taskId,
             @RequestAttribute("userId") Long userId) {
@@ -82,6 +90,7 @@ public class ScheduledTaskController {
     }
 
     @PostMapping("/{taskId}/pause")
+    @RequirePermission(ProjectPermission.TASK_EDIT)
     public ApiResponse<Void> pauseTask(
             @PathVariable Long taskId,
             @RequestAttribute("userId") Long userId) {
@@ -92,6 +101,7 @@ public class ScheduledTaskController {
     }
 
     @PostMapping("/{taskId}/resume")
+    @RequirePermission(ProjectPermission.TASK_EDIT)
     public ApiResponse<Void> resumeTask(
             @PathVariable Long taskId,
             @RequestAttribute("userId") Long userId) {

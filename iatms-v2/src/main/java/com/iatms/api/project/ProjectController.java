@@ -1,11 +1,13 @@
 package com.iatms.api.project;
 
 import com.iatms.api.common.ApiResponse;
+import com.iatms.common.annotation.RequirePermission;
 import com.iatms.application.project.ProjectCommandService;
 import com.iatms.application.project.ProjectQueryService;
 import com.iatms.application.project.dto.command.CreateProjectCmd;
 import com.iatms.application.project.dto.command.UpdateProjectCmd;
 import com.iatms.application.project.dto.query.ProjectQuery;
+import com.iatms.domain.model.enums.ProjectPermission;
 import com.iatms.domain.model.vo.ProjectDetailVO;
 import com.iatms.domain.model.vo.ProjectSummaryVO;
 import jakarta.validation.Valid;
@@ -29,6 +31,7 @@ public class ProjectController {
 
     /**
      * 创建项目
+     * 任何登录用户都可以创建项目，创建后成为项目负责人
      */
     @PostMapping
     public ApiResponse<ProjectDetailVO> createProject(
@@ -44,6 +47,7 @@ public class ProjectController {
      * 更新项目
      */
     @PutMapping("/{projectId}")
+    @RequirePermission(ProjectPermission.PROJECT_EDIT)
     public ApiResponse<ProjectDetailVO> updateProject(
             @PathVariable Long projectId,
             @RequestBody @Valid UpdateProjectCmd cmd,
@@ -58,6 +62,7 @@ public class ProjectController {
      * 删除项目
      */
     @DeleteMapping("/{projectId}")
+    @RequirePermission(ProjectPermission.PROJECT_DELETE)
     public ApiResponse<Void> deleteProject(
             @PathVariable Long projectId,
             @RequestAttribute("userId") Long userId) {
@@ -71,6 +76,7 @@ public class ProjectController {
      * 获取项目详情
      */
     @GetMapping("/{projectId}")
+    @RequirePermission(ProjectPermission.PROJECT_VIEW)
     public ApiResponse<ProjectDetailVO> getProjectDetail(
             @PathVariable Long projectId,
             @RequestAttribute("userId") Long userId) {
@@ -81,6 +87,7 @@ public class ProjectController {
 
     /**
      * 分页查询项目列表
+     * 根据用户权限自动过滤可访问的项目
      */
     @GetMapping
     public ApiResponse<ApiResponse.PageResult<ProjectSummaryVO>> queryProjects(
@@ -107,6 +114,7 @@ public class ProjectController {
      * 添加项目成员
      */
     @PostMapping("/{projectId}/members")
+    @RequirePermission(ProjectPermission.PROJECT_MANAGE_MEMBERS)
     public ApiResponse<Void> addMember(
             @PathVariable Long projectId,
             @RequestParam Long userId,
@@ -121,6 +129,7 @@ public class ProjectController {
      * 移除项目成员
      */
     @DeleteMapping("/{projectId}/members/{userId}")
+    @RequirePermission(ProjectPermission.PROJECT_MANAGE_MEMBERS)
     public ApiResponse<Void> removeMember(
             @PathVariable Long projectId,
             @PathVariable Long userId,

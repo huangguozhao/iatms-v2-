@@ -1,6 +1,8 @@
 package com.iatms.api.ai;
 
 import com.iatms.api.common.ApiResponse;
+import com.iatms.common.annotation.RequirePermission;
+import com.iatms.domain.model.enums.ProjectPermission;
 import com.iatms.domain.service.AIProviderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +63,7 @@ public class AIController {
      * 诊断测试失败原因
      */
     @PostMapping("/diagnose-failure")
+    @RequirePermission(ProjectPermission.AI_DIAGNOSE)
     public ApiResponse<Map<String, Object>> diagnoseFailure(@RequestBody Map<String, Object> params) {
         log.info("AI诊断测试失败: params={}", params);
 

@@ -4,6 +4,8 @@ import com.iatms.api.common.ApiResponse;
 import com.iatms.application.testing.TestCaseCommandService;
 import com.iatms.application.testing.TestCaseQueryService;
 import com.iatms.application.testing.dto.command.CreateTestCaseCmd;
+import com.iatms.common.annotation.RequirePermission;
+import com.iatms.domain.model.enums.ProjectPermission;
 import com.iatms.domain.model.vo.TestCaseDetailVO;
 import com.iatms.domain.model.vo.TestCaseSummaryVO;
 import jakarta.validation.Valid;
@@ -26,6 +28,7 @@ public class TestCaseController {
     private final TestCaseQueryService testCaseQueryService;
 
     @PostMapping
+    @RequirePermission(ProjectPermission.CASE_CREATE)
     public ApiResponse<TestCaseDetailVO> createTestCase(
             @RequestBody @Valid CreateTestCaseCmd cmd,
             @RequestAttribute("userId") Long userId) {
@@ -36,6 +39,7 @@ public class TestCaseController {
     }
 
     @PutMapping("/{caseId}")
+    @RequirePermission(ProjectPermission.CASE_EDIT)
     public ApiResponse<TestCaseDetailVO> updateTestCase(
             @PathVariable Long caseId,
             @RequestBody @Valid CreateTestCaseCmd cmd,
@@ -47,6 +51,7 @@ public class TestCaseController {
     }
 
     @DeleteMapping("/{caseId}")
+    @RequirePermission(ProjectPermission.CASE_DELETE)
     public ApiResponse<Void> deleteTestCase(
             @PathVariable Long caseId,
             @RequestAttribute("userId") Long userId) {
@@ -57,12 +62,14 @@ public class TestCaseController {
     }
 
     @GetMapping("/{caseId}")
+    @RequirePermission(ProjectPermission.CASE_VIEW)
     public ApiResponse<TestCaseDetailVO> getTestCaseDetail(@PathVariable Long caseId) {
         TestCaseDetailVO result = testCaseQueryService.getTestCaseDetail(caseId);
         return ApiResponse.success(result);
     }
 
     @GetMapping
+    @RequirePermission(ProjectPermission.CASE_VIEW)
     public ApiResponse<ApiResponse.PageResult<TestCaseSummaryVO>> queryTestCases(
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) Long moduleId,
@@ -75,6 +82,7 @@ public class TestCaseController {
     }
 
     @PostMapping("/{caseId}/execute")
+    @RequirePermission(ProjectPermission.CASE_EXECUTE)
     public ApiResponse<String> executeTestCase(
             @PathVariable Long caseId,
             @RequestAttribute("userId") Long userId) {

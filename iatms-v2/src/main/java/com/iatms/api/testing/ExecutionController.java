@@ -2,6 +2,8 @@ package com.iatms.api.testing;
 
 import com.iatms.api.common.ApiResponse;
 import com.iatms.application.testing.TestCaseQueryService;
+import com.iatms.common.annotation.RequirePermission;
+import com.iatms.domain.model.enums.ProjectPermission;
 import com.iatms.domain.model.vo.ExecutionProgressVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ public class ExecutionController {
      * 获取执行进度
      */
     @GetMapping("/{executionId}/status")
+    @RequirePermission(ProjectPermission.CASE_EXECUTE)
     public ApiResponse<ExecutionProgressVO> getExecutionStatus(@PathVariable String executionId) {
         // TODO: 从 Redis 获取执行状态
         ExecutionProgressVO progress = ExecutionProgressVO.builder()
@@ -41,6 +44,7 @@ public class ExecutionController {
      * 取消执行
      */
     @PostMapping("/{executionId}/cancel")
+    @RequirePermission(ProjectPermission.CASE_EXECUTE)
     public ApiResponse<Void> cancelExecution(
             @PathVariable String executionId,
             @RequestAttribute("userId") Long userId) {

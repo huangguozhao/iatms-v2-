@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.iatms.application.testing.TestSuiteCommandService;
 import com.iatms.application.testing.TestSuiteQueryService;
 import com.iatms.api.common.ApiResponse;
+import com.iatms.common.annotation.RequirePermission;
 import com.iatms.domain.model.entity.TestSuite;
+import com.iatms.domain.model.enums.ProjectPermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,7 @@ public class TestSuiteController {
     private final TestSuiteQueryService testSuiteQueryService;
 
     @GetMapping
+    @RequirePermission(ProjectPermission.SUITE_VIEW)
     public ApiResponse<Page<TestSuite>> query(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long projectId,
@@ -28,11 +31,13 @@ public class TestSuiteController {
     }
 
     @GetMapping("/{id}")
+    @RequirePermission(ProjectPermission.SUITE_VIEW)
     public ApiResponse<TestSuite> getDetail(@PathVariable Long id) {
         return ApiResponse.success(testSuiteQueryService.getById(id));
     }
 
     @PostMapping
+    @RequirePermission(ProjectPermission.SUITE_CREATE)
     public ApiResponse<Long> create(@RequestBody CreateTestSuiteRequest request) {
         TestSuite suite = new TestSuite();
         suite.setSuiteName(request.getName());
@@ -45,6 +50,7 @@ public class TestSuiteController {
     }
 
     @PutMapping("/{id}")
+    @RequirePermission(ProjectPermission.SUITE_EDIT)
     public ApiResponse<Void> update(@PathVariable Long id, @RequestBody CreateTestSuiteRequest request) {
         TestSuite suite = new TestSuite();
         suite.setSuiteName(request.getName());
@@ -55,24 +61,28 @@ public class TestSuiteController {
     }
 
     @DeleteMapping("/{id}")
+    @RequirePermission(ProjectPermission.SUITE_DELETE)
     public ApiResponse<Void> delete(@PathVariable Long id) {
         testSuiteCommandService.delete(id);
         return ApiResponse.success();
     }
 
     @PostMapping("/{id}/enable")
+    @RequirePermission(ProjectPermission.SUITE_EDIT)
     public ApiResponse<Void> enable(@PathVariable Long id) {
         testSuiteCommandService.enable(id);
         return ApiResponse.success();
     }
 
     @PostMapping("/{id}/disable")
+    @RequirePermission(ProjectPermission.SUITE_EDIT)
     public ApiResponse<Void> disable(@PathVariable Long id) {
         testSuiteCommandService.disable(id);
         return ApiResponse.success();
     }
 
     @PostMapping("/{id}/execute")
+    @RequirePermission(ProjectPermission.SUITE_EXECUTE)
     public ApiResponse<Long> execute(@PathVariable Long id) {
         // TODO: 触发执行
         return ApiResponse.success(id);

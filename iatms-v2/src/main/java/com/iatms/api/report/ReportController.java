@@ -2,7 +2,9 @@ package com.iatms.api.report;
 
 import com.iatms.api.common.ApiResponse;
 import com.iatms.application.report.ReportService;
+import com.iatms.common.annotation.RequirePermission;
 import com.iatms.domain.model.entity.TestExecution;
+import com.iatms.domain.model.enums.ProjectPermission;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.iatms.infrastructure.persistence.mapper.TestExecutionMapper;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class ReportController {
      * 查询执行记录列表
      */
     @GetMapping
+    @RequirePermission(ProjectPermission.REPORT_VIEW)
     public ApiResponse<Page<TestExecution>> query(
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
@@ -42,6 +45,7 @@ public class ReportController {
      * 获取执行详情
      */
     @GetMapping("/{executionId}")
+    @RequirePermission(ProjectPermission.REPORT_VIEW)
     public ApiResponse<Map<String, Object>> getDetail(@PathVariable String executionId) {
         Map<String, Object> details = reportService.getExecutionDetails(executionId);
         return ApiResponse.success(details);
@@ -51,6 +55,7 @@ public class ReportController {
      * 获取执行汇总
      */
     @GetMapping("/{executionId}/summary")
+    @RequirePermission(ProjectPermission.REPORT_VIEW)
     public ApiResponse<Map<String, Object>> getSummary(@PathVariable String executionId) {
         Map<String, Object> summary = reportService.getExecutionSummary(executionId);
         return ApiResponse.success(summary);
@@ -60,6 +65,7 @@ public class ReportController {
      * 生成 HTML 报告
      */
     @GetMapping("/{executionId}/html")
+    @RequirePermission(ProjectPermission.REPORT_VIEW)
     public ApiResponse<String> getHtmlReport(@PathVariable String executionId) {
         String html = reportService.generateHtmlReport(executionId);
         return ApiResponse.success(html);
@@ -69,6 +75,7 @@ public class ReportController {
      * 下载 HTML 报告
      */
     @GetMapping(value = "/{executionId}/download", params = "format=HTML")
+    @RequirePermission(ProjectPermission.REPORT_EXPORT)
     public ApiResponse<byte[]> downloadHtmlReport(@PathVariable String executionId) {
         byte[] html = reportService.generateHtmlReport(executionId).getBytes();
         return ApiResponse.success(html);
@@ -78,6 +85,7 @@ public class ReportController {
      * 下载 Excel 报告
      */
     @GetMapping(value = "/{executionId}/download", params = "format=EXCEL")
+    @RequirePermission(ProjectPermission.REPORT_EXPORT)
     public ApiResponse<byte[]> downloadExcelReport(@PathVariable String executionId) {
         byte[] excel = reportService.generateExcelReport(executionId);
         return ApiResponse.success(excel);
@@ -87,6 +95,7 @@ public class ReportController {
      * 下载 PDF 报告
      */
     @GetMapping(value = "/{executionId}/download", params = "format=PDF")
+    @RequirePermission(ProjectPermission.REPORT_EXPORT)
     public ApiResponse<byte[]> downloadPdfReport(@PathVariable String executionId) {
         byte[] pdf = reportService.generatePdfReport(executionId);
         return ApiResponse.success(pdf);

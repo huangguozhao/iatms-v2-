@@ -5,6 +5,8 @@ import com.iatms.application.testing.ApiCommandService;
 import com.iatms.application.testing.ApiQueryService;
 import com.iatms.application.testing.dto.command.CreateApiRequestCmd;
 import com.iatms.application.testing.dto.query.ApiQuery;
+import com.iatms.common.annotation.RequirePermission;
+import com.iatms.domain.model.enums.ProjectPermission;
 import com.iatms.domain.model.vo.ApiDetailVO;
 import com.iatms.domain.model.vo.ApiSummaryVO;
 import jakarta.validation.Valid;
@@ -27,6 +29,7 @@ public class ApiController {
     private final ApiQueryService apiQueryService;
 
     @PostMapping
+    @RequirePermission(ProjectPermission.API_CREATE)
     public ApiResponse<ApiDetailVO> createApi(
             @RequestBody @Valid CreateApiRequestCmd cmd,
             @RequestAttribute("userId") Long userId) {
@@ -37,6 +40,7 @@ public class ApiController {
     }
 
     @PutMapping("/{apiId}")
+    @RequirePermission(ProjectPermission.API_EDIT)
     public ApiResponse<ApiDetailVO> updateApi(
             @PathVariable Long apiId,
             @RequestBody @Valid CreateApiRequestCmd cmd,
@@ -48,6 +52,7 @@ public class ApiController {
     }
 
     @DeleteMapping("/{apiId}")
+    @RequirePermission(ProjectPermission.API_DELETE)
     public ApiResponse<Void> deleteApi(
             @PathVariable Long apiId,
             @RequestAttribute("userId") Long userId) {
@@ -58,12 +63,14 @@ public class ApiController {
     }
 
     @GetMapping("/{apiId}")
+    @RequirePermission(ProjectPermission.API_VIEW)
     public ApiResponse<ApiDetailVO> getApiDetail(@PathVariable Long apiId) {
         ApiDetailVO result = apiQueryService.getApiDetail(apiId);
         return ApiResponse.success(result);
     }
 
     @GetMapping
+    @RequirePermission(ProjectPermission.API_VIEW)
     public ApiResponse<ApiResponse.PageResult<ApiSummaryVO>> queryApis(ApiQuery query) {
         ApiResponse.PageResult<ApiSummaryVO> result = apiQueryService.queryApis(query);
         return ApiResponse.pageSuccess(result);
