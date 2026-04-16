@@ -41,7 +41,7 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
     public ProjectDetailVO createProject(CreateProjectCmd cmd, Long userId) {
         // 检查项目编号唯一性
         LambdaQueryWrapper<Project> codeCheck = new LambdaQueryWrapper<>();
-        codeCheck.eq(Project::getCode, cmd.getCode());
+        codeCheck.eq(Project::getProjectCode, cmd.getCode());
         if (projectMapper.selectCount(codeCheck) > 0) {
             throw new BusinessException(ErrorCode.PROJECT_CODE_EXISTS.getCode(),
                     ErrorCode.PROJECT_CODE_EXISTS.getMessage());
