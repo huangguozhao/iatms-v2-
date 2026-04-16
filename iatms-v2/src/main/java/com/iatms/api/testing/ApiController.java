@@ -29,7 +29,7 @@ public class ApiController {
     private final ApiQueryService apiQueryService;
 
     @PostMapping
-    @RequirePermission(ProjectPermission.API_CREATE)
+    @RequirePermission(value = ProjectPermission.API_CREATE, requireProjectId = false)
     public ApiResponse<ApiDetailVO> createApi(
             @RequestBody @Valid CreateApiRequestCmd cmd,
             @RequestAttribute("userId") Long userId) {
@@ -40,7 +40,7 @@ public class ApiController {
     }
 
     @PutMapping("/{apiId}")
-    @RequirePermission(ProjectPermission.API_EDIT)
+    @RequirePermission(value = ProjectPermission.API_EDIT, requireProjectId = false)
     public ApiResponse<ApiDetailVO> updateApi(
             @PathVariable Long apiId,
             @RequestBody @Valid CreateApiRequestCmd cmd,
@@ -52,7 +52,7 @@ public class ApiController {
     }
 
     @DeleteMapping("/{apiId}")
-    @RequirePermission(ProjectPermission.API_DELETE)
+    @RequirePermission(value = ProjectPermission.API_DELETE, requireProjectId = false)
     public ApiResponse<Void> deleteApi(
             @PathVariable Long apiId,
             @RequestAttribute("userId") Long userId) {
@@ -63,14 +63,14 @@ public class ApiController {
     }
 
     @GetMapping("/{apiId}")
-    @RequirePermission(ProjectPermission.API_VIEW)
+    @RequirePermission(value = ProjectPermission.API_VIEW, requireProjectId = false)
     public ApiResponse<ApiDetailVO> getApiDetail(@PathVariable Long apiId) {
         ApiDetailVO result = apiQueryService.getApiDetail(apiId);
         return ApiResponse.success(result);
     }
 
     @GetMapping
-    @RequirePermission(ProjectPermission.API_VIEW)
+    @RequirePermission(value = ProjectPermission.API_VIEW, requireProjectId = false)
     public ApiResponse<ApiResponse.PageResult<ApiSummaryVO>> queryApis(ApiQuery query) {
         ApiResponse.PageResult<ApiSummaryVO> result = apiQueryService.queryApis(query);
         return ApiResponse.pageSuccess(result);

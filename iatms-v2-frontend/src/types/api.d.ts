@@ -81,13 +81,16 @@ export interface ApiDetailVO extends ApiSummaryVO {
 
 export interface CreateApiDTO {
   name: string
-  projectId?: number | null
-  moduleId?: number | null
-  method: string
-  path: string
   description?: string
+  collectionId: number
+  httpMethod: string
+  url: string
   headers?: Record<string, string>
+  queryParams?: string
   requestBody?: string
+  authConfig?: string
+  preScript?: string
+  postScript?: string
   assertions?: string
 }
 

@@ -65,20 +65,15 @@
         <el-form-item label="接口名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入接口名称" />
         </el-form-item>
-        <el-form-item label="所属项目" prop="projectId">
-          <el-select v-model="form.projectId" style="width: 100%">
-            <el-option v-for="p in projects" :key="p.id" :label="p.name" :value="p.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="所属模块">
-          <el-select v-model="form.moduleId" style="width: 100%">
+        <el-form-item label="所属模块" prop="collectionId">
+          <el-select v-model="form.collectionId" placeholder="请选择所属模块" style="width: 100%">
             <el-option v-for="m in modules" :key="m.id" :label="m.name" :value="m.id" />
           </el-select>
         </el-form-item>
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="请求方法" prop="method">
-              <el-select v-model="form.method" style="width: 100%">
+            <el-form-item label="请求方法" prop="httpMethod">
+              <el-select v-model="form.httpMethod" style="width: 100%">
                 <el-option label="GET" value="GET" />
                 <el-option label="POST" value="POST" />
                 <el-option label="PUT" value="PUT" />
@@ -88,8 +83,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="16">
-            <el-form-item label="请求路径" prop="path">
-              <el-input v-model="form.path" placeholder="/api/xxx" />
+            <el-form-item label="请求路径" prop="url">
+              <el-input v-model="form.url" placeholder="/api/xxx" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -133,18 +128,17 @@ const pagination = reactive({
 const form = reactive({
   id: null as number | null,
   name: '',
-  projectId: null as number | null,
-  moduleId: null as number | null,
-  method: 'GET',
-  path: '',
+  collectionId: null as number | null,
+  httpMethod: 'GET',
+  url: '',
   description: ''
 })
 
 const rules = {
   name: [{ required: true, message: '请输入接口名称', trigger: 'blur' }],
-  projectId: [{ required: true, message: '请选择所属项目', trigger: 'change' }],
-  method: [{ required: true, message: '请选择请求方法', trigger: 'change' }],
-  path: [{ required: true, message: '请输入请求路径', trigger: 'blur' }]
+  collectionId: [{ required: true, message: '请选择所属模块', trigger: 'change' }],
+  httpMethod: [{ required: true, message: '请选择请求方法', trigger: 'change' }],
+  url: [{ required: true, message: '请输入请求路径', trigger: 'blur' }]
 }
 
 const apis = ref<ApiSummaryVO[]>([])
@@ -192,10 +186,9 @@ function handleCreate() {
   Object.assign(form, {
     id: null,
     name: '',
-    projectId: projects.value[0]?.id || null,
-    moduleId: null,
-    method: 'GET',
-    path: '',
+    collectionId: modules.value[0]?.id || null,
+    httpMethod: 'GET',
+    url: '',
     description: ''
   })
   dialogVisible.value = true
@@ -206,10 +199,9 @@ function handleEdit(row: ApiSummaryVO) {
   Object.assign(form, {
     id: row.id,
     name: row.name,
-    projectId: row.projectId,
-    moduleId: row.moduleId,
-    method: row.method,
-    path: row.path,
+    collectionId: row.moduleId,
+    httpMethod: row.method,
+    url: row.path,
     description: ''
   })
   dialogVisible.value = true
@@ -217,11 +209,11 @@ function handleEdit(row: ApiSummaryVO) {
 
 function handleCopy(row: ApiSummaryVO) {
   Object.assign(form, {
+    id: null,
     name: row.name + '_copy',
-    projectId: row.projectId,
-    moduleId: row.moduleId,
-    method: row.method,
-    path: row.path + '_copy',
+    collectionId: row.moduleId,
+    httpMethod: row.method,
+    url: row.path + '_copy',
     description: row.description
   })
   dialogTitle.value = '新建接口'

@@ -10,7 +10,6 @@ export const apiApi = {
         keyword: query.keyword,
         httpMethod: query.method,
         projectId: query.projectId,
-        collectionId: query.moduleId,
         pageNum: query.pageNum,
         pageSize: query.pageSize
       }
