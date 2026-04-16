@@ -138,4 +138,19 @@ public class ProjectController {
         projectCommandService.removeMember(projectId, userId, operatorId);
         return ApiResponse.success();
     }
+
+    /**
+     * 更新项目成员角色
+     */
+    @PutMapping("/{projectId}/members/{userId}")
+    @RequirePermission(ProjectPermission.PROJECT_MANAGE_MEMBERS)
+    public ApiResponse<Void> updateMemberRole(
+            @PathVariable Long projectId,
+            @PathVariable Long userId,
+            @RequestParam String role,
+            @RequestAttribute("userId") Long operatorId) {
+
+        projectCommandService.updateMemberRole(projectId, userId, role, operatorId);
+        return ApiResponse.success();
+    }
 }

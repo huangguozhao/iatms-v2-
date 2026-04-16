@@ -9,11 +9,13 @@ import com.iatms.application.project.dto.command.CreateProjectCmd;
 import com.iatms.application.project.dto.command.UpdateProjectCmd;
 import com.iatms.application.project.dto.query.ProjectQuery;
 import com.iatms.domain.model.entity.Project;
+import com.iatms.domain.model.entity.ProjectMember;
 import com.iatms.domain.model.entity.User;
 import com.iatms.domain.model.vo.ProjectDetailVO;
 import com.iatms.domain.model.vo.ProjectMemberVO;
 import com.iatms.domain.model.vo.ProjectSummaryVO;
 import com.iatms.infrastructure.persistence.mapper.ProjectMapper;
+import com.iatms.infrastructure.persistence.mapper.ProjectMemberMapper;
 import com.iatms.infrastructure.persistence.mapper.UserMapper;
 import com.iatms.common.exception.BusinessException;
 import com.iatms.common.exception.ResourceNotFoundException;
@@ -23,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -34,6 +37,7 @@ import java.util.List;
 public class ProjectCommandServiceImpl implements ProjectCommandService {
 
     private final ProjectMapper projectMapper;
+    private final ProjectMemberMapper projectMemberMapper;
     private final UserMapper userMapper;
 
     @Override
@@ -135,7 +139,30 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void addMember(Long projectId, Long userId, String role, Long operatorId) {
-        // TODO: 实现添加项目成员的逻辑
+        // 检查用户是否存在
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND.getCode(),
+                    ErrorCode.USER_NOT_FOUND.getMessage());
+        }
+
+        // 检查是否已是成员
+        LambdaQueryWrapper<ProjectMember> existCheck = new LambdaQueryWrapper<>();
+        existCheck.eq(ProjectMember::getProjectId, projectId)
+                  .eq(ProjectMember::getUserId, userId.intValue());
+        if (projectMemberMapper.selectCount(existCheck) > 0) {
+            throw new BusinessException(ErrorCode.INVALID_PARAMETER.getCode(), "用户已是项目成员");
+        }
+
+        // 添加成员
+        ProjectMember member = new ProjectMember();
+        member.setProjectId(projectId.intValue());
+        member.setUserId(userId.intValue());
+        member.setProjectRole(role);
+        member.setStatus("active");
+        member.setJoinTime(LocalDateTime.now());
+        projectMemberMapper.insert(member);
+
         log.info("添加项目成员: projectId={}, userId={}, role={}, operatorId={}",
                 projectId, userId, role, operatorId);
     }
@@ -143,8 +170,36 @@ public class ProjectCommandServiceImpl implements ProjectCommandService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void removeMember(Long projectId, Long userId, Long operatorId) {
-        // TODO: 实现移除项目成员的逻辑
+        LambdaQueryWrapper<ProjectMember> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProjectMember::getProjectId, projectId.intValue())
+               .eq(ProjectMember::getUserId, userId.intValue());
+        projectMemberMapper.delete(wrapper);
+
         log.info("移除项目成员: projectId={}, userId={}, operatorId={}", projectId, userId, operatorId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateMemberRole(Long projectId, Long userId, String role, Long operatorId) {
+        LambdaQueryWrapper<ProjectMember> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProjectMember::getProjectId, projectId.intValue())
+               .eq(ProjectMember::getUserId, userId.intValue());
+
+        ProjectMember member = projectMemberMapper.selectOne(wrapper);
+        if (member == null) {
+            throw new ResourceNotFoundException(ErrorCode.INVALID_PARAMETER.getCode(), "项目成员不存在");
+        }
+
+        // 不能修改自己的角色
+        if (member.getUserId().equals(operatorId.intValue())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(), "不能修改自己的角色");
+        }
+
+        member.setProjectRole(role);
+        projectMemberMapper.updateById(member);
+
+        log.info("更新项目成员角色: projectId={}, userId={}, newRole={}, operatorId={}",
+                projectId, userId, role, operatorId);
     }
 
     private ProjectDetailVO getProjectDetail(Long projectId, Long userId) {

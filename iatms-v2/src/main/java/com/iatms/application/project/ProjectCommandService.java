@@ -33,4 +33,9 @@ public interface ProjectCommandService {
      * 移除项目成员
      */
     void removeMember(Long projectId, Long userId, Long operatorId);
+
+    /**
+     * 更新项目成员角色
+     */
+    void updateMemberRole(Long projectId, Long userId, String role, Long operatorId);
 }
