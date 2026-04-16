@@ -72,59 +72,18 @@
     <main class="main-content">
       <!-- 项目/模块统计视图 -->
       <div v-if="selectedNode && (selectedNode.type === 'project' || selectedNode.type === 'module')" class="detail-panel">
-        <div class="panel-header">
-          <div class="header-title">
-            <el-icon v-if="selectedNode.type === 'project'" :size="24" class="header-icon"><FolderOpened /></el-icon>
-            <el-icon v-else :size="24" class="header-icon"><Folder /></el-icon>
-            <h2>{{ selectedNode.name }}</h2>
-          </div>
-          <el-tag :type="selectedNode.type === 'project' ? 'primary' : 'success'" size="large" effect="light">
-            {{ selectedNode.type === 'project' ? '项目' : '模块' }}
-          </el-tag>
-        </div>
-
-        <el-card class="stats-card" shadow="hover">
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-value">{{ selectedNode.stats?.moduleCount || 0 }}</div>
-                <div class="stat-label">
-                  <el-icon><Folder /></el-icon>
-                  子模块
-                </div>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-value">{{ selectedNode.stats?.apiCount || countApis(selectedNode) }}</div>
-                <div class="stat-label">
-                  <el-icon><Link /></el-icon>
-                  接口
-                </div>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <div class="stat-item">
-                <div class="stat-value">{{ selectedNode.stats?.testCaseCount || countTestCases(selectedNode) }}</div>
-                <div class="stat-label">
-                  <el-icon><Document /></el-icon>
-                  用例
-                </div>
-              </div>
-            </el-col>
-          </el-row>
-        </el-card>
-
-        <div class="panel-actions">
-          <el-button type="primary" @click="handleCreateUnderNode">
-            <el-icon><Plus /></el-icon>
-            新建子模块
-          </el-button>
-          <el-button @click="handleEditNode">
-            <el-icon><Edit /></el-icon>
-            编辑
-          </el-button>
-        </div>
+        <ProjectModuleStats
+          :node="selectedNode"
+          :level="selectedNode.type"
+          @edit="handleEditNode"
+          @delete="handleDeleteNode"
+          @add="handleAddChildNode"
+          @edit-child="handleEditChildNode"
+          @delete-child="handleDeleteChildNode"
+          @select-child="handleSelectChildNode"
+          @config-environment="handleConfigEnvironment"
+          @execute="handleExecuteFromProjectModule"
+        />
       </div>
 
       <!-- 接口详情视图 -->
@@ -303,6 +262,7 @@ import {
 import { testCaseApi, type ProjectTreeNode, type TestCaseDetailVO } from '@/api/modules/testing/testCase'
 import type { FormInstance, FormRules } from 'element-plus'
 import { CaseDetailPanel, ExecuteConfigDialog, ExecutionResultDialog } from '@/components/business/case-detail'
+import { ProjectModuleStats } from '@/components/business/project-detail'
 
 // ExecuteConfig type (duplicated here to avoid import issues)
 interface ExecuteConfig {
@@ -704,8 +664,72 @@ function handleCreateUnderNode() {
   ElMessage.info('创建子模块功能开发中')
 }
 
+// 处理编辑节点
 function handleEditNode() {
   ElMessage.info('编辑功能开发中')
+}
+
+// 处理删除节点
+async function handleDeleteNode(node: any) {
+  try {
+    await ElMessageBox.confirm(`确定删除 "${node.name}" 吗?`, '提示', { type: 'warning' })
+    ElMessage.success('删除功能开发中')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '删除失败')
+    }
+  }
+}
+
+// 处理添加子节点
+function handleAddChildNode(node: any) {
+  ElMessage.info('添加子节点功能开发中')
+}
+
+// 处理编辑子节点
+function handleEditChildNode(child: any) {
+  ElMessage.info('编辑子节点功能开发中')
+}
+
+// 处理删除子节点
+async function handleDeleteChildNode(child: any) {
+  try {
+    await ElMessageBox.confirm(`确定删除 "${child.name}" 吗?`, '提示', { type: 'warning' })
+    ElMessage.success('删除功能开发中')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '删除失败')
+    }
+  }
+}
+
+// 处理选择子节点
+function handleSelectChildNode(child: any) {
+  selectedNode.value = child
+  if (child.type === 'api') {
+    caseDetail.value = null
+  } else if (child.type === 'testcase') {
+    caseDetailLoading.value = true
+    testCaseApi.getDetail(child.id).then(detail => {
+      caseDetail.value = detail
+    }).catch(() => {
+      ElMessage.error('加载详情失败')
+    }).finally(() => {
+      caseDetailLoading.value = false
+    })
+  }
+}
+
+// 处理环境配置
+function handleConfigEnvironment(node: any) {
+  ElMessage.info('环境配置功能开发中')
+}
+
+// 从项目/模块执行测试
+function handleExecuteFromProjectModule(config: any) {
+  executeDialogVisible.value = false
+  ElMessage.success('执行已提交')
+  // TODO: 调用执行API
 }
 
 // 格式化 JSON
