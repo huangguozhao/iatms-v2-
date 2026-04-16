@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -44,6 +45,18 @@ public class ReportServiceImpl implements ReportService {
         }
 
         List<TestResult> results = resultMapper.selectByExecutionId(executionId);
+
+        // 计算统计数据
+        int passedCount = 0;
+        int failedCount = 0;
+        int totalCount = results.size();
+        for (TestResult result : results) {
+            if ("passed".equalsIgnoreCase(result.getStatus())) {
+                passedCount++;
+            } else if ("failed".equalsIgnoreCase(result.getStatus()) || "broken".equalsIgnoreCase(result.getStatus())) {
+                failedCount++;
+            }
+        }
 
         StringBuilder html = new StringBuilder();
         html.append("""
@@ -128,19 +141,19 @@ public class ReportServiceImpl implements ReportService {
             """.formatted(
                     executionId,
                     executionId,
-                    execution.getStartedAt() != null ? execution.getStartedAt().format(DATE_FORMATTER) : "-",
-                    execution.getDuration() != null ? execution.getDuration() : 0,
-                    execution.getPassedCases() != null ? execution.getPassedCases() : 0,
-                    execution.getFailedCases() != null ? execution.getFailedCases() : 0,
-                    execution.getTotalCases() != null ? execution.getTotalCases() : 0,
-                    calculatePassRate(execution)
+                    execution.getStartTime() != null ? execution.getStartTime().format(DATE_FORMATTER) : "-",
+                    execution.getDurationSeconds() != null ? execution.getDurationSeconds() : 0,
+                    passedCount,
+                    failedCount,
+                    totalCount,
+                    totalCount > 0 ? (passedCount * 100.0 / totalCount) : 0.0
             ));
 
         for (TestResult result : results) {
             String statusClass = "passed".equalsIgnoreCase(result.getStatus()) ? "passed" :
-                    "failed".equalsIgnoreCase(result.getStatus()) ? "failed" : "skipped";
+                    ("failed".equalsIgnoreCase(result.getStatus()) || "broken".equalsIgnoreCase(result.getStatus())) ? "failed" : "skipped";
             String statusText = "passed".equalsIgnoreCase(result.getStatus()) ? "通过" :
-                    "failed".equalsIgnoreCase(result.getStatus()) ? "失败" : "跳过";
+                    ("failed".equalsIgnoreCase(result.getStatus()) || "broken".equalsIgnoreCase(result.getStatus())) ? "失败" : "跳过";
 
             html.append(String.format("""
                             <tr>
@@ -155,7 +168,7 @@ public class ReportServiceImpl implements ReportService {
                     statusClass,
                     statusText,
                     result.getResponseTime() != null ? result.getResponseTime() : 0,
-                    result.getStartedAt() != null ? result.getStartedAt().format(DATE_FORMATTER) : "-",
+                    result.getStartTime() != null ? result.getStartTime().format(DATE_FORMATTER) : "-",
                     escapeHtml(result.getErrorMessage() != null ? result.getErrorMessage() : "-")
             ));
         }
@@ -219,15 +232,25 @@ public class ReportServiceImpl implements ReportService {
 
             Row startRow = sheet.createRow(2);
             startRow.createCell(0).setCellValue("开始时间");
-            startRow.createCell(1).setCellValue(execution.getStartedAt() != null ? execution.getStartedAt().format(DATE_FORMATTER) : "-");
+            startRow.createCell(1).setCellValue(execution.getStartTime() != null ? execution.getStartTime().format(DATE_FORMATTER) : "-");
 
             Row durationRow = sheet.createRow(3);
             durationRow.createCell(0).setCellValue("执行时长(秒)");
-            durationRow.createCell(1).setCellValue(execution.getDuration() != null ? execution.getDuration() : 0);
+            durationRow.createCell(1).setCellValue(execution.getDurationSeconds() != null ? execution.getDurationSeconds() : 0);
+
+            // 计算通过率
+            int passedCount = 0;
+            int totalCount = results.size();
+            for (TestResult result : results) {
+                if ("passed".equalsIgnoreCase(result.getStatus())) {
+                    passedCount++;
+                }
+            }
+            double passRate = totalCount > 0 ? (passedCount * 100.0 / totalCount) : 0.0;
 
             Row passRateRow = sheet.createRow(4);
             passRateRow.createCell(0).setCellValue("通过率");
-            passRateRow.createCell(1).setCellValue(String.format("%.2f%%", calculatePassRate(execution)));
+            passRateRow.createCell(1).setCellValue(String.format("%.2f%%", passRate));
 
             // 空行
             sheet.createRow(5);
@@ -248,7 +271,7 @@ public class ReportServiceImpl implements ReportService {
                 row.createCell(0).setCellValue(result.getCaseName() != null ? result.getCaseName() : "-");
                 row.createCell(1).setCellValue(result.getStatus() != null ? result.getStatus() : "-");
                 row.createCell(2).setCellValue(result.getResponseTime() != null ? result.getResponseTime() : 0);
-                row.createCell(3).setCellValue(result.getStartedAt() != null ? result.getStartedAt().format(DATE_FORMATTER) : "-");
+                row.createCell(3).setCellValue(result.getStartTime() != null ? result.getStartTime().format(DATE_FORMATTER) : "-");
                 row.createCell(4).setCellValue(result.getErrorMessage() != null ? result.getErrorMessage() : "-");
             }
 
@@ -306,7 +329,7 @@ public class ReportServiceImpl implements ReportService {
             content.endText();
             yPosition -= leading;
 
-            String startTime = execution.getStartedAt() != null ? execution.getStartedAt().format(DATE_FORMATTER) : "-";
+            String startTime = execution.getStartTime() != null ? execution.getStartTime().format(DATE_FORMATTER) : "-";
             content.beginText();
             content.setFont(font, fontSize);
             content.moveTextPositionByAmount(leftMargin, yPosition);
@@ -317,7 +340,7 @@ public class ReportServiceImpl implements ReportService {
             content.beginText();
             content.setFont(font, fontSize);
             content.moveTextPositionByAmount(leftMargin, yPosition);
-            content.showText("执行时长: " + (execution.getDuration() != null ? execution.getDuration() : 0) + "秒");
+            content.showText("执行时长: " + (execution.getDurationSeconds() != null ? execution.getDurationSeconds() : 0) + "秒");
             content.endText();
             yPosition -= leading * 2;
 
@@ -329,16 +352,23 @@ public class ReportServiceImpl implements ReportService {
             content.endText();
             yPosition -= leading;
 
-            int passed = execution.getPassedCases() != null ? execution.getPassedCases() : 0;
-            int failed = execution.getFailedCases() != null ? execution.getFailedCases() : 0;
-            int total = execution.getTotalCases() != null ? execution.getTotalCases() : 0;
-            double passRate = calculatePassRate(execution);
+            int passedCount = 0;
+            int failedCount = 0;
+            for (TestResult result : results) {
+                if ("passed".equalsIgnoreCase(result.getStatus())) {
+                    passedCount++;
+                } else if ("failed".equalsIgnoreCase(result.getStatus()) || "broken".equalsIgnoreCase(result.getStatus())) {
+                    failedCount++;
+                }
+            }
+            int totalCount = results.size();
+            double passRate = totalCount > 0 ? (passedCount * 100.0 / totalCount) : 0.0;
 
             content.beginText();
             content.setFont(font, fontSize);
             content.moveTextPositionByAmount(leftMargin, yPosition);
             content.showText(String.format("通过: %d  |  失败: %d  |  总计: %d  |  通过率: %.2f%%",
-                    passed, failed, total, passRate));
+                    passedCount, failedCount, totalCount, passRate));
             content.endText();
             yPosition -= leading * 2;
 
@@ -373,7 +403,6 @@ public class ReportServiceImpl implements ReportService {
                 TestResult result = results.get(i);
 
                 if (yPosition < 80) {
-                    // 页面空间不足时结束
                     content.beginText();
                     content.setFont(font, fontSize);
                     content.moveTextPositionByAmount(leftMargin, yPosition);
@@ -387,7 +416,7 @@ public class ReportServiceImpl implements ReportService {
                     caseName = caseName.substring(0, 27) + "...";
                 }
                 String status = "passed".equalsIgnoreCase(result.getStatus()) ? "通过" :
-                        "failed".equalsIgnoreCase(result.getStatus()) ? "失败" : "跳过";
+                        ("failed".equalsIgnoreCase(result.getStatus()) || "broken".equalsIgnoreCase(result.getStatus())) ? "失败" : "跳过";
                 String respTime = String.valueOf(result.getResponseTime() != null ? result.getResponseTime() : 0);
 
                 content.beginText();
@@ -430,17 +459,31 @@ public class ReportServiceImpl implements ReportService {
             return Collections.emptyMap();
         }
 
+        List<TestResult> results = resultMapper.selectByExecutionId(executionId);
+
+        int passedCount = 0;
+        int failedCount = 0;
+        for (TestResult result : results) {
+            if ("passed".equalsIgnoreCase(result.getStatus())) {
+                passedCount++;
+            } else if ("failed".equalsIgnoreCase(result.getStatus()) || "broken".equalsIgnoreCase(result.getStatus())) {
+                failedCount++;
+            }
+        }
+        int totalCount = results.size();
+        double passRate = totalCount > 0 ? (passedCount * 100.0 / totalCount) : 0.0;
+
         Map<String, Object> summary = new HashMap<>();
         summary.put("executionId", executionId);
         summary.put("status", execution.getStatus());
-        summary.put("totalCases", execution.getTotalCases());
-        summary.put("passedCases", execution.getPassedCases());
-        summary.put("failedCases", execution.getFailedCases());
-        summary.put("passRate", calculatePassRate(execution));
-        summary.put("duration", execution.getDuration());
-        summary.put("startedAt", execution.getStartedAt());
-        summary.put("completedAt", execution.getCompletedAt());
-        summary.put("triggerType", execution.getTriggerType());
+        summary.put("totalCases", totalCount);
+        summary.put("passedCases", passedCount);
+        summary.put("failedCases", failedCount);
+        summary.put("passRate", passRate);
+        summary.put("duration", execution.getDurationSeconds());
+        summary.put("startedAt", execution.getStartTime());
+        summary.put("completedAt", execution.getEndTime());
+        summary.put("triggerType", execution.getExecutionType());
         summary.put("executedBy", execution.getExecutedBy());
 
         return summary;
@@ -464,15 +507,6 @@ public class ReportServiceImpl implements ReportService {
         details.put("summary", getExecutionSummary(executionId));
 
         return details;
-    }
-
-    private double calculatePassRate(TestExecution execution) {
-        int total = execution.getTotalCases() != null ? execution.getTotalCases() : 0;
-        int passed = execution.getPassedCases() != null ? execution.getPassedCases() : 0;
-        if (total == 0) {
-            return 0.0;
-        }
-        return (passed * 100.0) / total;
     }
 
     private String escapeHtml(String text) {

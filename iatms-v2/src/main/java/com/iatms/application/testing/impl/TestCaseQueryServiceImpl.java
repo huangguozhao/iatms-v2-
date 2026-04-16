@@ -163,11 +163,11 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
                 return new ArrayList<>();
             }
 
-            // 查询用户有权限的所有未删除项目
+            // 查询用户有权限的所有未删除项目，按创建时间倒序（最新的在前）
             LambdaQueryWrapper<Project> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(Project::getDeleted, false);
             wrapper.in(Project::getId, accessibleProjectIds);
-            wrapper.orderByAsc(Project::getName);
+            wrapper.orderByDesc(Project::getCreatedAt);
             projects = projectMapper.selectList(wrapper);
         }
 

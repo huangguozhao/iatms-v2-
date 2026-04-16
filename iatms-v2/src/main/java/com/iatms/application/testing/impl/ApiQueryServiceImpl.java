@@ -5,13 +5,17 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.iatms.application.testing.ApiQueryService;
 import com.iatms.application.testing.dto.query.ApiQuery;
-import com.iatms.domain.model.entity.ApiRequest;
 import com.iatms.domain.model.entity.ApiCollection;
+import com.iatms.domain.model.entity.ApiRequest;
+import com.iatms.domain.model.entity.Module;
+import com.iatms.domain.model.entity.Project;
 import com.iatms.domain.model.entity.User;
 import com.iatms.domain.model.vo.ApiDetailVO;
 import com.iatms.domain.model.vo.ApiSummaryVO;
 import com.iatms.infrastructure.persistence.mapper.ApiRequestMapper;
 import com.iatms.infrastructure.persistence.mapper.ApiCollectionMapper;
+import com.iatms.infrastructure.persistence.mapper.ModuleMapper;
+import com.iatms.infrastructure.persistence.mapper.ProjectMapper;
 import com.iatms.infrastructure.persistence.mapper.UserMapper;
 import com.iatms.domain.model.enums.ErrorCode;
 import com.iatms.common.exception.ResourceNotFoundException;
@@ -33,6 +37,8 @@ public class ApiQueryServiceImpl implements ApiQueryService {
 
     private final ApiRequestMapper apiRequestMapper;
     private final ApiCollectionMapper collectionMapper;
+    private final ModuleMapper moduleMapper;
+    private final ProjectMapper projectMapper;
     private final UserMapper userMapper;
 
     @Override
@@ -54,11 +60,11 @@ public class ApiQueryServiceImpl implements ApiQueryService {
 
         if (query.getKeyword() != null && !query.getKeyword().isEmpty()) {
             wrapper.and(w -> w.like(ApiRequest::getName, query.getKeyword())
-                    .or().like(ApiRequest::getUrl, query.getKeyword()));
+                    .or().like(ApiRequest::getPath, query.getKeyword()));
         }
 
         if (query.getHttpMethod() != null) {
-            wrapper.eq(ApiRequest::getHttpMethod, query.getHttpMethod());
+            wrapper.eq(ApiRequest::getMethod, query.getHttpMethod());
         }
 
         if (query.getStatus() != null) {
@@ -66,12 +72,12 @@ public class ApiQueryServiceImpl implements ApiQueryService {
         }
 
         wrapper.eq(ApiRequest::getDeleted, false);
-        wrapper.orderByAsc(ApiRequest::getOrderNum);
+        wrapper.orderByDesc(ApiRequest::getCreatedAt);
 
         IPage<ApiRequest> page = new Page<>(query.getPageNum(), query.getPageSize());
         IPage<ApiRequest> result = apiRequestMapper.selectPage(page, wrapper);
 
-        List<ApiSummaryVO> voList = convertToSummaryVO(result.getRecords());
+        List<ApiSummaryVO> voList = convertToSummaryVOForList(result.getRecords());
 
         return ApiResponse.PageResult.of(voList, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
@@ -156,6 +162,62 @@ public class ApiQueryServiceImpl implements ApiQueryService {
         wrapper.eq(ApiCollection::getDeleted, false);
         List<ApiCollection> collections = collectionMapper.selectList(wrapper);
         return collections.stream().map(ApiCollection::getId).collect(Collectors.toList());
+    }
+
+    private List<ApiSummaryVO> convertToSummaryVOForList(List<ApiRequest> apis) {
+        if (apis.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Integer> moduleIds = apis.stream()
+                .map(ApiRequest::getModuleId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Integer, Module> moduleMap = moduleIds.isEmpty()
+                ? Collections.emptyMap()
+                : moduleMapper.selectBatchIds(moduleIds).stream()
+                .collect(Collectors.toMap(Module::getModuleId, module -> module));
+
+        List<Long> projectIds = moduleMap.values().stream()
+                .map(Module::getProjectId)
+                .filter(Objects::nonNull)
+                .map(Integer::longValue)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<Long, Project> projectMap = projectIds.isEmpty()
+                ? Collections.emptyMap()
+                : projectMapper.selectBatchIds(projectIds).stream()
+                .collect(Collectors.toMap(Project::getId, project -> project));
+
+        return apis.stream()
+                .map(api -> {
+                    Module module = api.getModuleId() != null ? moduleMap.get(api.getModuleId()) : null;
+                    Long projectId = module != null && module.getProjectId() != null ? module.getProjectId().longValue() : null;
+                    Project project = projectId != null ? projectMap.get(projectId) : null;
+
+                    return ApiSummaryVO.builder()
+                            .id(api.getId())
+                            .name(api.getName())
+                            .method(api.getMethod())
+                            .path(api.getPath())
+                            .projectId(projectId)
+                            .projectName(project != null ? project.getName() : null)
+                            .moduleId(api.getModuleId() != null ? api.getModuleId().longValue() : null)
+                            .moduleName(module != null ? module.getName() : null)
+                            .description(api.getDescription())
+                            .createdAt(api.getCreatedAt())
+                            .httpMethod(api.getHttpMethod())
+                            .url(api.getPath())
+                            .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
+                            .collectionName(module != null ? module.getName() : null)
+                            .status(api.getStatus())
+                            .updatedAt(api.getUpdatedAt())
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 
     private List<ApiSummaryVO> convertToSummaryVO(List<ApiRequest> apis) {

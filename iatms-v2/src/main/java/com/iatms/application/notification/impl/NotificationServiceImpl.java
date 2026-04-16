@@ -45,7 +45,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         if (read != null) {
-            wrapper.eq(Notification::getRead, read);
+            wrapper.eq(Notification::getIsRead, read);
         }
 
         IPage<Notification> page = new Page<>(pageNum, pageSize);
@@ -67,7 +67,7 @@ public class NotificationServiceImpl implements NotificationService {
     public int getUnreadCount(Long userId) {
         LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Notification::getUserId, userId)
-                .eq(Notification::getRead, false);
+                .eq(Notification::getIsRead, false);
         return notificationMapper.selectCount(wrapper).intValue();
     }
 
@@ -79,8 +79,8 @@ public class NotificationServiceImpl implements NotificationService {
                         .eq(Notification::getUserId, userId)
         );
 
-        if (notification != null && !Boolean.TRUE.equals(notification.getRead())) {
-            notification.setRead(true);
+        if (notification != null && !Boolean.TRUE.equals(notification.getIsRead())) {
+            notification.setIsRead(true);
             notificationMapper.updateById(notification);
         }
     }
@@ -88,11 +88,11 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void markAllAsRead(Long userId) {
         Notification update = new Notification();
-        update.setRead(true);
+        update.setIsRead(true);
         notificationMapper.update(update,
                 new LambdaQueryWrapper<Notification>()
                         .eq(Notification::getUserId, userId)
-                        .eq(Notification::getRead, false));
+                        .eq(Notification::getIsRead, false));
     }
 
     @Override
@@ -113,7 +113,7 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setContent(content);
         notification.setRelatedId(relatedId);
         notification.setRelatedType(relatedType);
-        notification.setRead(false);
+        notification.setIsRead(false);
         notification.setCreatedAt(LocalDateTime.now());
         notificationMapper.insert(notification);
     }
@@ -126,7 +126,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .content(notification.getContent())
                 .relatedId(notification.getRelatedId())
                 .relatedType(notification.getRelatedType())
-                .read(notification.getRead())
+                .isRead(notification.getIsRead())
                 .createdAt(notification.getCreatedAt())
                 .build();
     }

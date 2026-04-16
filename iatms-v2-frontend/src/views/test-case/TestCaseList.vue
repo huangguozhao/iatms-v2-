@@ -16,13 +16,15 @@
         <div class="sidebar-toolbar">
           <el-input
             v-model="treeSearch"
-            placeholder="搜索..."
+            placeholder="搜索节点..."
             :prefix-icon="Search"
             size="small"
             clearable
             class="search-input"
           />
-          <el-button size="small" circle @click="loadTree" :icon="Refresh" />
+          <el-button size="small" circle @click="loadTree" title="刷新">
+            <el-icon><Refresh /></el-icon>
+          </el-button>
         </div>
 
         <el-scrollbar class="tree-scrollbar">

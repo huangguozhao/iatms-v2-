@@ -14,6 +14,14 @@ public class ApiSummaryVO {
 
     private Long id;
     private String name;
+    private String method;
+    private String path;
+    private Long projectId;
+    private String projectName;
+    private Long moduleId;
+    private String moduleName;
+    private String description;
+    private LocalDateTime createdAt;
     private String httpMethod;
     private String url;
     private Long collectionId;
