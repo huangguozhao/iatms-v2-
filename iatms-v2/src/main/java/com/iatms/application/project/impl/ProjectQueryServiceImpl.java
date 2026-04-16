@@ -54,7 +54,7 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
         // 关键字搜索
         if (query.getKeyword() != null && !query.getKeyword().isEmpty()) {
             wrapper.and(w -> w.like(Project::getName, query.getKeyword())
-                    .or().like(Project::getCode, query.getKeyword())
+                    .or().like(Project::getProjectCode, query.getKeyword())
                     .or().like(Project::getDescription, query.getKeyword()));
         }
 
