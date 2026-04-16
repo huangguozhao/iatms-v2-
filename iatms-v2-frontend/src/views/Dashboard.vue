@@ -20,7 +20,7 @@
         <el-col :span="6">
           <div class="metric-card modern-card hover-lift">
             <div class="metric-icon" style="background-color: #409eff">
-              📁
+              <el-icon :size="28"><Folder /></el-icon>
             </div>
             <div class="metric-info">
               <div class="metric-value">{{ stats?.projectCount ?? '-' }}</div>
@@ -34,7 +34,7 @@
         <el-col :span="6">
           <div class="metric-card modern-card hover-lift">
             <div class="metric-icon" style="background-color: #67c23a">
-              🔗
+              <el-icon :size="28"><Link /></el-icon>
             </div>
             <div class="metric-info">
               <div class="metric-value">{{ stats?.apiCount ?? '-' }}</div>
@@ -48,7 +48,7 @@
         <el-col :span="6">
           <div class="metric-card modern-card hover-lift">
             <div class="metric-icon" style="background-color: #e6a23c">
-              📋
+              <el-icon :size="28"><Document /></el-icon>
             </div>
             <div class="metric-info">
               <div class="metric-value">{{ stats?.testCaseCount ?? '-' }}</div>
@@ -62,7 +62,7 @@
         <el-col :span="6">
           <div class="metric-card modern-card hover-lift">
             <div class="metric-icon" style="background-color: #f56c6c">
-              ▶️
+              <el-icon :size="28"><VideoPlay /></el-icon>
             </div>
             <div class="metric-info">
               <div class="metric-value">{{ stats?.executionCount ?? '-' }}</div>
@@ -106,27 +106,27 @@
           </div>
           <div class="quick-actions">
             <div class="quick-item hover-lift" @click="router.push('/apis')">
-              <span class="quick-icon">🔗</span>
+              <el-icon class="quick-icon"><Link /></el-icon>
               <span class="quick-text">接口管理</span>
             </div>
             <div class="quick-item hover-lift" @click="router.push('/test-cases')">
-              <span class="quick-icon">📋</span>
+              <el-icon class="quick-icon"><Document /></el-icon>
               <span class="quick-text">测试用例</span>
             </div>
             <div class="quick-item hover-lift" @click="router.push('/test-suites')">
-              <span class="quick-icon">📚</span>
+              <el-icon class="quick-icon"><Collection /></el-icon>
               <span class="quick-text">测试套件</span>
             </div>
             <div class="quick-item hover-lift" @click="router.push('/scheduled-tasks')">
-              <span class="quick-icon">📅</span>
+              <el-icon class="quick-icon"><Calendar /></el-icon>
               <span class="quick-text">定时任务</span>
             </div>
             <div class="quick-item hover-lift" @click="router.push('/executions')">
-              <span class="quick-icon">▶️</span>
+              <el-icon class="quick-icon"><VideoPlay /></el-icon>
               <span class="quick-text">执行记录</span>
             </div>
             <div class="quick-item hover-lift" @click="router.push('/reports')">
-              <span class="quick-icon">📊</span>
+              <el-icon class="quick-icon"><DataAnalysis /></el-icon>
               <span class="quick-text">测试报告</span>
             </div>
           </div>
@@ -142,7 +142,7 @@
       <div class="activity-list scrollbar-thin">
         <div v-for="activity in recentActivities" :key="activity.executionId" class="activity-item">
           <div class="activity-icon" :class="getActivityType(activity.status)">
-            {{ getActivityIcon(activity.status, activity.executionType) }}
+            <el-icon><component :is="getActivityIconComponent(activity.status, activity.executionType)" /></el-icon>
           </div>
           <div class="activity-content">
             <div class="activity-text">{{ formatActivityText(activity) }}</div>
@@ -160,6 +160,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { projectApi } from '@/api/modules/project/project'
 import { dashboardApi, type DashboardStatisticsVO, type RecentActivityVO } from '@/api/modules/dashboard/dashboard'
+import {
+  Folder, Link, Document, VideoPlay, Collection,
+  Calendar, DataAnalysis, Close, Loading, Clock, User, Check
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -187,12 +191,12 @@ function getStatusText(status: string) {
   return map[status] || status
 }
 
-function getActivityIcon(status: string, type: string): string {
-  if (status === 'failed') return '❌'
-  if (status === 'running') return '🔄'
-  if (type === 'scheduled') return '⏰'
-  if (type === 'manual') return '👤'
-  return '✅'
+function getActivityIconComponent(status: string, type: string) {
+  if (status === 'failed') return Close
+  if (status === 'running') return Loading
+  if (type === 'scheduled') return Clock
+  if (type === 'manual') return User
+  return Check
 }
 
 function getActivityType(status: string): string {
@@ -437,6 +441,9 @@ onMounted(async () => {
 
   .quick-icon {
     font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .quick-text {

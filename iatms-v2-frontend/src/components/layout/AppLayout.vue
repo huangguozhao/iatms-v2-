@@ -56,7 +56,7 @@
             :class="{ 'is-active': activeMenu === item.index }"
             @click="handleMenuSelect(item.index)"
           >
-            <span class="menu-icon">{{ item.icon }}</span>
+            <el-icon class="menu-icon"><component :is="item.icon" /></el-icon>
             <span class="menu-label" v-if="!sidebarCollapsed">{{ item.label }}</span>
           </div>
         </div>
@@ -78,14 +78,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
   Search,
   Bell,
   User,
-  ArrowDown
+  ArrowDown,
+  Home,
+  Folder,
+  Link,
+  Document,
+  Collection,
+  VideoPlay,
+  Calendar,
+  DataAnalysis,
+  Robot,
+  Setting
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
@@ -101,16 +111,16 @@ const sidebarCollapsed = ref(false)
 // 根据用户角色获取菜单项
 const menuItems = computed(() => {
   const items = [
-    { index: 'dashboard', label: '首页', icon: '🏠', path: '/dashboard' },
-    { index: 'projects', label: '项目管理', icon: '📁', path: '/projects' },
-    { index: 'apis', label: '接口管理', icon: '🔗', path: '/apis' },
-    { index: 'test-cases', label: '测试用例', icon: '📋', path: '/test-cases' },
-    { index: 'test-suites', label: '测试套件', icon: '📚', path: '/test-suites' },
-    { index: 'executions', label: '执行记录', icon: '▶️', path: '/executions' },
-    { index: 'scheduled-tasks', label: '定时任务', icon: '📅', path: '/scheduled-tasks' },
-    { index: 'reports', label: '测试报告', icon: '📊', path: '/reports' },
-    { index: 'ai-diagnosis', label: 'AI 诊断', icon: '🤖', path: '/ai-diagnosis' },
-    { index: 'settings', label: '系统设置', icon: '⚙️', path: '/settings' }
+    { index: 'dashboard', label: '首页', icon: Home, path: '/dashboard' },
+    { index: 'projects', label: '项目管理', icon: Folder, path: '/projects' },
+    { index: 'apis', label: '接口管理', icon: Link, path: '/apis' },
+    { index: 'test-cases', label: '测试用例', icon: Document, path: '/test-cases' },
+    { index: 'test-suites', label: '测试套件', icon: Collection, path: '/test-suites' },
+    { index: 'executions', label: '执行记录', icon: VideoPlay, path: '/executions' },
+    { index: 'scheduled-tasks', label: '定时任务', icon: Calendar, path: '/scheduled-tasks' },
+    { index: 'reports', label: '测试报告', icon: DataAnalysis, path: '/reports' },
+    { index: 'ai-diagnosis', label: 'AI 诊断', icon: Robot, path: '/ai-diagnosis' },
+    { index: 'settings', label: '系统设置', icon: Setting, path: '/settings' }
   ]
   return items
 })
@@ -436,7 +446,9 @@ onMounted(() => {
   font-size: 18px;
   flex-shrink: 0;
   width: 20px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .menu-label {
