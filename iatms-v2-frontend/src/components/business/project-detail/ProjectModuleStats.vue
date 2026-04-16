@@ -270,10 +270,19 @@ const statsLoading = ref(false)
 // 项目详情数据
 const projectDetail = ref<any>(null)
 
+// 模块详情数据
+const moduleDetail = ref<any>(null)
+
 // 获取项目ID
 function getProjectId(): number | null {
   if (!props.node) return null
   return (props.node as any).projectId || (props.node as any).project_id || props.node.id
+}
+
+// 获取模块ID
+function getModuleId(): number | null {
+  if (!props.node) return null
+  return (props.node as any).moduleId || (props.node as any).module_id || props.node.id
 }
 
 // 统计信息
@@ -292,15 +301,24 @@ const displayStats = computed<Stats>(() => {
   }
 
   // 如果有从后端获取的项目详情数据，优先使用
-  if (projectDetail.value) {
-    if (props.level === 'project') {
-      return {
-        moduleCount: projectDetail.value.totalModules || 0,
-        testCaseCount: projectDetail.value.totalTestCases || 0,
-        passedCount: 0,
-        failedCount: 0,
-        notExecutedCount: 0
-      }
+  if (projectDetail.value && props.level === 'project') {
+    return {
+      moduleCount: projectDetail.value.totalModules || 0,
+      testCaseCount: projectDetail.value.totalTestCases || 0,
+      passedCount: projectDetail.value.passedCount || 0,
+      failedCount: projectDetail.value.failedCount || 0,
+      notExecutedCount: projectDetail.value.notExecutedCount || 0
+    }
+  }
+
+  // 如果有从后端获取的模块详情数据，优先使用
+  if (moduleDetail.value && props.level === 'module') {
+    return {
+      moduleCount: 0,
+      testCaseCount: moduleDetail.value.stats?.testCaseCount || 0,
+      passedCount: moduleDetail.value.stats?.passedCount || 0,
+      failedCount: moduleDetail.value.stats?.failedCount || 0,
+      notExecutedCount: moduleDetail.value.stats?.notExecutedCount || 0
     }
   }
 
@@ -347,16 +365,23 @@ const displayStats = computed<Stats>(() => {
 
 // 加载项目详情
 async function loadProjectDetail() {
-  if (props.level !== 'project' || !props.node) return
+  if (!props.node) return
 
   statsLoading.value = true
   try {
-    const id = getProjectId()
-    if (id) {
-      projectDetail.value = await projectApi.getDetail(id)
+    if (props.level === 'project') {
+      const id = getProjectId()
+      if (id) {
+        projectDetail.value = await projectApi.getDetail(id)
+      }
+    } else if (props.level === 'module') {
+      const id = getModuleId()
+      if (id) {
+        moduleDetail.value = await projectApi.getModuleDetail(id)
+      }
     }
   } catch (error) {
-    console.error('加载项目详情失败:', error)
+    console.error('加载详情失败:', error)
   } finally {
     statsLoading.value = false
   }

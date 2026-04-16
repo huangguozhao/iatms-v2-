@@ -3,6 +3,33 @@ import type { PageResult, ProjectSummaryVO, ProjectDetailVO } from '@/types/api'
 
 export type { ProjectSummaryVO, ProjectDetailVO }
 
+/**
+ * 模块详情 VO
+ */
+export interface ModuleDetailVO {
+  id: number
+  name: string
+  code: string
+  projectId: number | null
+  projectName: string | null
+  parentId: number | null
+  parentName: string | null
+  description: string | null
+  status: string
+  ownerId: number | null
+  ownerName: string | null
+  createdAt: string
+  updatedAt: string
+  creatorName: string | null
+  stats: {
+    apiCount: number
+    testCaseCount: number
+    passedCount: number
+    failedCount: number
+    notExecutedCount: number
+  }
+}
+
 export interface CreateProjectDTO {
   name: string
   code: string
@@ -56,5 +83,9 @@ export const projectApi = {
 
   removeMember(projectId: number, userId: number): Promise<void> {
     return client.delete(`/v1/projects/${projectId}/members/${userId}`)
+  },
+
+  getModuleDetail(moduleId: number): Promise<ModuleDetailVO> {
+    return client.get(`/v1/modules/${moduleId}`)
   }
 }
