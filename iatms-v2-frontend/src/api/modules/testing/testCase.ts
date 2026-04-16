@@ -43,26 +43,26 @@ export interface TestCaseQuery {
 
 export const testCaseApi = {
   query: (query: TestCaseQuery) => {
-    return client.get<any, ApiResponse<PageResult<TestCaseSummaryVO>>>('/test-cases', { params: query })
+    return client.get<any, ApiResponse<PageResult<TestCaseSummaryVO>>>('/v1/test-cases', { params: query })
   },
 
   getDetail: (id: number) => {
-    return client.get<any, ApiResponse<TestCaseDetailVO>>(`/test-cases/${id}`)
+    return client.get<any, ApiResponse<TestCaseDetailVO>>(`/v1/test-cases/${id}`)
   },
 
   create: (data: CreateTestCaseDTO) => {
-    return client.post<any, ApiResponse<void>>('/test-cases', data)
+    return client.post<any, ApiResponse<void>>('/v1/test-cases', data)
   },
 
   update: (id: number, data: CreateTestCaseDTO) => {
-    return client.put<any, ApiResponse<void>>(`/test-cases/${id}`, data)
+    return client.put<any, ApiResponse<void>>(`/v1/test-cases/${id}`, data)
   },
 
   delete: (id: number) => {
-    return client.delete<any, ApiResponse<void>>(`/test-cases/${id}`)
+    return client.delete<any, ApiResponse<void>>(`/v1/test-cases/${id}`)
   },
 
   execute: (id: number) => {
-    return client.post<any, ApiResponse<void>>(`/test-cases/${id}/execute`)
+    return client.post<any, ApiResponse<void>>(`/v1/test-cases/${id}/execute`)
   }
 }

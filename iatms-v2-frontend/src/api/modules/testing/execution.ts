@@ -61,22 +61,22 @@ export interface ExecutionProgressVO {
 
 export const executionApi = {
   query: (query: ExecutionQuery) => {
-    return client.get<any, ApiResponse<PageResult<ExecutionSummaryVO>>>('/executions', { params: query })
+    return client.get<any, ApiResponse<PageResult<ExecutionSummaryVO>>>('/v1/executions', { params: query })
   },
 
   getDetail: (id: number) => {
-    return client.get<any, ApiResponse<ExecutionDetailVO>>(`/executions/${id}`)
+    return client.get<any, ApiResponse<ExecutionDetailVO>>(`/v1/executions/${id}`)
   },
 
   getProgress: (id: number) => {
-    return client.get<any, ApiResponse<ExecutionProgressVO>>(`/executions/${id}/progress`)
+    return client.get<any, ApiResponse<ExecutionProgressVO>>(`/v1/executions/${id}/progress`)
   },
 
   start: (type: string, targetId: number) => {
-    return client.post<any, ApiResponse<{ executionId: number }>>('/executions/start', { type, targetId })
+    return client.post<any, ApiResponse<{ executionId: number }>>('/v1/executions/start', { type, targetId })
   },
 
   cancel: (id: number) => {
-    return client.post<any, ApiResponse<void>>(`/executions/${id}/cancel`)
+    return client.post<any, ApiResponse<void>>(`/v1/executions/${id}/cancel`)
   }
 }

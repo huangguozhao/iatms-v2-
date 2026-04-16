@@ -154,8 +154,8 @@ async function loadCases() {
       pageSize: pagination.pageSize
     }
     const res = await testCaseApi.query(params)
-    cases.value = res.data?.list || []
-    pagination.total = res.data?.total || 0
+    cases.value = res.records || []
+    pagination.total = res.total || 0
   } catch (error) {
     console.error('加载用例失败:', error)
     ElMessage.error('加载用例失败')

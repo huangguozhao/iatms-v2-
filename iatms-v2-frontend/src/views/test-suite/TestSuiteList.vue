@@ -145,8 +145,8 @@ async function loadSuites() {
       pageSize: pagination.pageSize
     }
     const res = await testSuiteApi.query(params)
-    suites.value = res.data?.list || []
-    pagination.total = res.data?.total || 0
+    suites.value = res.records || []
+    pagination.total = res.total || 0
   } catch (error) {
     console.error('加载套件失败:', error)
     ElMessage.error('加载套件失败')

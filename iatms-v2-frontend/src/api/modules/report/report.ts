@@ -54,15 +54,15 @@ export interface ReportQuery {
 
 export const reportApi = {
   query: (query: ReportQuery) => {
-    return client.get<any, ApiResponse<PageResult<ReportSummaryVO>>>('/reports', { params: query })
+    return client.get<any, ApiResponse<PageResult<ReportSummaryVO>>>('/v1/reports', { params: query })
   },
 
   getDetail: (id: number) => {
-    return client.get<any, ApiResponse<ReportDetailVO>>(`/reports/${id}`)
+    return client.get<any, ApiResponse<ReportDetailVO>>(`/v1/reports/${id}`)
   },
 
   download: (id: number, format: 'HTML' | 'PDF' | 'JSON') => {
-    return client.get<any, ApiResponse<Blob>>(`/reports/${id}/download`, {
+    return client.get<any, ApiResponse<Blob>>(`/v1/reports/${id}/download`, {
       params: { format },
       responseType: 'blob'
     })

@@ -119,8 +119,8 @@ async function loadReports() {
       params.endDate = searchForm.dateRange[1]
     }
     const res = await reportApi.query(params)
-    reports.value = res.data?.list || []
-    pagination.total = res.data?.total || 0
+    reports.value = res.records || []
+    pagination.total = res.total || 0
   } catch (error) {
     console.error('加载报告失败:', error)
     ElMessage.error('加载报告失败')

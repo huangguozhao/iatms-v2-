@@ -5,19 +5,19 @@
 // 状态类型映射
 export function getStatusType(status: string): string {
   const map: Record<string, string> = {
-    // 项目状态
+    // 项目状态 (与数据库一致)
     ACTIVE: 'success',
     INACTIVE: 'info',
     ARCHIVED: 'warning',
     NOT_STARTED: 'info',
     IN_PROGRESS: 'primary',
     COMPLETED: 'success',
-    // 执行状态
-    PENDING: 'info',
-    RUNNING: 'primary',
-    SUCCESS: 'success',
-    FAILED: 'danger',
-    CANCELLED: 'warning',
+    // 执行状态 (与数据库 testexecutionrecords.status 一致: running/completed/failed/cancelled)
+    running: 'primary',
+    completed: 'success',
+    failed: 'danger',
+    cancelled: 'warning',
+    pending: 'info',
     // 通用
     ENABLED: 'success',
     DISABLED: 'info'
@@ -34,11 +34,13 @@ export function getStatusText(status: string): string {
     NOT_STARTED: '未开始',
     IN_PROGRESS: '进行中',
     COMPLETED: '已完成',
-    PENDING: '待执行',
-    RUNNING: '执行中',
-    SUCCESS: '成功',
-    FAILED: '失败',
-    CANCELLED: '已取消',
+    // 执行状态 (与数据库一致)
+    running: '执行中',
+    completed: '已完成',
+    failed: '失败',
+    cancelled: '已取消',
+    pending: '待执行',
+    // 通用
     ENABLED: '启用',
     DISABLED: '禁用'
   }

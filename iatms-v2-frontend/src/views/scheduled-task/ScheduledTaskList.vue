@@ -158,8 +158,8 @@ async function loadTasks() {
       pageSize: pagination.pageSize
     }
     const res = await scheduledTaskApi.query(params)
-    tasks.value = res.data?.list || []
-    pagination.total = res.data?.total || 0
+    tasks.value = res.records || []
+    pagination.total = res.total || 0
   } catch (error) {
     console.error('加载任务失败:', error)
     ElMessage.error('加载任务失败')

@@ -12,11 +12,11 @@
           <el-option label="套件" value="TEST_SUITE" />
         </el-select>
         <el-select v-model="searchForm.status" placeholder="执行状态" clearable style="width: 120px">
-          <el-option label="待执行" value="PENDING" />
-          <el-option label="执行中" value="RUNNING" />
-          <el-option label="成功" value="SUCCESS" />
-          <el-option label="失败" value="FAILED" />
-          <el-option label="已取消" value="CANCELLED" />
+          <el-option label="待执行" value="pending" />
+          <el-option label="执行中" value="running" />
+          <el-option label="已完成" value="completed" />
+          <el-option label="失败" value="failed" />
+          <el-option label="已取消" value="cancelled" />
         </el-select>
         <el-button type="primary" @click="loadExecutions">搜索</el-button>
         <el-button @click="handleReset">重置</el-button>
@@ -32,7 +32,7 @@
         <el-table-column prop="targetName" label="执行目标" min-width="150" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small">{{ row.statusText }}</el-tag>
+            <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="total" label="总数" width="80" />
@@ -56,7 +56,7 @@
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleView(row)">查看</el-button>
-            <el-button link type="danger" @click="handleCancel(row)" :disabled="row.status === 'RUNNING'">取消</el-button>
+            <el-button link type="danger" @click="handleCancel(row)" :disabled="row.status === 'running'">取消</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -106,8 +106,8 @@ async function loadExecutions() {
       pageSize: pagination.pageSize
     }
     const res = await executionApi.query(params)
-    executions.value = res.data?.list || []
-    pagination.total = res.data?.total || 0
+    executions.value = res.records || []
+    pagination.total = res.total || 0
   } catch (error) {
     console.error('加载执行记录失败:', error)
     ElMessage.error('加载执行记录失败')
