@@ -467,6 +467,19 @@ const children = computed(() => {
   }
 })
 
+// 调试：打印 children 变化
+watch(() => children.value, (newChildren) => {
+  console.log('[DEBUG] children changed, length:', newChildren.length)
+  if (newChildren.length > 0) {
+    console.log('[DEBUG] first child:', newChildren[0])
+    console.log('[DEBUG] first child.apis:', newChildren[0]?.apis)
+    if (newChildren[0]?.apis?.length > 0) {
+      console.log('[DEBUG] first api:', newChildren[0].apis[0])
+      console.log('[DEBUG] first api.testCases:', newChildren[0].apis[0]?.testCases)
+    }
+  }
+}, { deep: true })
+
 // 获取子项数量
 function getChildCount(): number {
   if (!props.node) return 0
@@ -600,11 +613,11 @@ function getChildCaseCount(child: any): number {
   if (props.level === 'project') {
     let total = 0
     child.apis?.forEach((api: any) => {
-      total += api.cases?.length || 0
+      total += api.testCases?.length || 0
     })
     return total
   }
-  return child.cases?.length || 0
+  return child.testCases?.length || 0
 }
 
 // 获取通过率
