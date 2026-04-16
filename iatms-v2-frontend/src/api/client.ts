@@ -44,15 +44,12 @@ client.interceptors.response.use(
       if (status === 401) {
         localStorage.removeItem('token')
         window.location.href = '/login'
-      } else if (status === 403) {
-        ElMessage.error('权限不足，请联系管理员')
-      } else if (status === 404) {
-        ElMessage.error('资源不存在')
-      } else {
-        ElMessage.error(data.message || '请求失败')
+        return Promise.reject(new Error('登录已过期，请重新登录'))
       }
+      // 设置错误信息，让调用方统一处理提示
+      error.message = data?.message || error.message || '请求失败'
     } else {
-      ElMessage.error('网络错误，请检查后端服务是否启动')
+      error.message = '网络错误，请检查后端服务是否启动'
     }
     return Promise.reject(error)
   }
