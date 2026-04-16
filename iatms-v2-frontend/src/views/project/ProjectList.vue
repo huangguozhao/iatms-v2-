@@ -13,6 +13,15 @@
           <el-option label="进行中" value="IN_PROGRESS" />
           <el-option label="已完成" value="COMPLETED" />
         </el-select>
+        <el-select v-model="searchForm.sortBy" placeholder="排序方式" style="width: 150px">
+          <el-option label="默认排序" value="createdAt" />
+          <el-option label="按名称" value="name" />
+          <el-option label="按更新时间" value="updatedAt" />
+        </el-select>
+        <el-select v-model="searchForm.sortOrder" placeholder="排序方向" style="width: 120px">
+          <el-option label="升序" value="ASC" />
+          <el-option label="降序" value="DESC" />
+        </el-select>
         <el-button type="primary" @click="loadProjects">搜索</el-button>
         <el-button @click="handleReset">重置</el-button>
       </div>
@@ -101,7 +110,9 @@ const formRef = ref()
 
 const searchForm = reactive({
   keyword: '',
-  status: ''
+  status: '',
+  sortBy: 'createdAt' as 'createdAt' | 'updatedAt' | 'name',
+  sortOrder: 'DESC' as 'ASC' | 'DESC'
 })
 
 const pagination = reactive({
@@ -133,7 +144,9 @@ async function loadProjects() {
       keyword: searchForm.keyword || undefined,
       status: searchForm.status || undefined,
       pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize
+      pageSize: pagination.pageSize,
+      sortBy: searchForm.sortBy,
+      sortOrder: searchForm.sortOrder
     })
     projects.value = result.records
     pagination.total = result.total
@@ -147,6 +160,8 @@ async function loadProjects() {
 function handleReset() {
   searchForm.keyword = ''
   searchForm.status = ''
+  searchForm.sortBy = 'createdAt'
+  searchForm.sortOrder = 'DESC'
   pagination.pageNum = 1
   loadProjects()
 }

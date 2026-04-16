@@ -19,6 +19,8 @@ export interface ProjectQuery {
   ownerId?: number
   pageNum?: number
   pageSize?: number
+  sortBy?: 'createdAt' | 'updatedAt' | 'name'
+  sortOrder?: 'ASC' | 'DESC'
 }
 
 export const projectApi = {

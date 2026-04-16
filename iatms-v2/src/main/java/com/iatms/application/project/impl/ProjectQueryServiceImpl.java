@@ -77,10 +77,28 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
         wrapper.eq(Project::getDeleted, false);
 
         // 排序
-        if ("DESC".equalsIgnoreCase(query.getSortOrder())) {
-            wrapper.orderByDesc(Project::getCreatedAt);
+        String sortBy = query.getSortBy();
+        boolean isDesc = "DESC".equalsIgnoreCase(query.getSortOrder());
+
+        if ("name".equalsIgnoreCase(sortBy)) {
+            if (isDesc) {
+                wrapper.orderByDesc(Project::getName);
+            } else {
+                wrapper.orderByAsc(Project::getName);
+            }
+        } else if ("updatedAt".equalsIgnoreCase(sortBy)) {
+            if (isDesc) {
+                wrapper.orderByDesc(Project::getUpdatedAt);
+            } else {
+                wrapper.orderByAsc(Project::getUpdatedAt);
+            }
         } else {
-            wrapper.orderByAsc(Project::getCreatedAt);
+            // 默认按创建时间排序
+            if (isDesc) {
+                wrapper.orderByDesc(Project::getCreatedAt);
+            } else {
+                wrapper.orderByAsc(Project::getCreatedAt);
+            }
         }
 
         // 分页查询
