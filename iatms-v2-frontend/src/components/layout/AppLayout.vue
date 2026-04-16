@@ -94,7 +94,7 @@ import {
   VideoPlay,
   Calendar,
   DataAnalysis,
-  Robot,
+  MagicStick,
   Setting
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
@@ -119,7 +119,7 @@ const menuItems = computed(() => {
     { index: 'executions', label: '执行记录', icon: VideoPlay, path: '/executions' },
     { index: 'scheduled-tasks', label: '定时任务', icon: Calendar, path: '/scheduled-tasks' },
     { index: 'reports', label: '测试报告', icon: DataAnalysis, path: '/reports' },
-    { index: 'ai-diagnosis', label: 'AI 诊断', icon: Robot, path: '/ai-diagnosis' },
+    { index: 'ai-diagnosis', label: 'AI 诊断', icon: MagicStick, path: '/ai-diagnosis' },
     { index: 'settings', label: '系统设置', icon: Setting, path: '/settings' }
   ]
   return items
