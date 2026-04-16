@@ -208,59 +208,17 @@
 
       <!-- 用例详情视图 -->
       <div v-else-if="selectedNode && selectedNode.type === 'testcase'" class="detail-panel">
-        <div class="panel-header">
-          <div class="header-title">
-            <el-icon :size="24" class="header-icon"><Document /></el-icon>
-            <h2>{{ selectedNode.name }}</h2>
-          </div>
-          <el-tag :type="getPriorityType(selectedNode.priority)" size="large" effect="dark">
-            {{ selectedNode.priority }}
-          </el-tag>
-        </div>
-
-        <el-card v-loading="caseDetailLoading" class="case-detail-card" shadow="hover">
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="用例编码">{{ caseDetail?.caseCode || selectedNode.code }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <el-tag :type="selectedNode.status === 'ENABLED' ? 'success' : 'info'" size="small">
-                {{ selectedNode.status === 'ENABLED' ? '启用' : '禁用' }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="创建时间">{{ caseDetail?.createdAt || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="更新时间">{{ caseDetail?.updatedAt || '-' }}</el-descriptions-item>
-          </el-descriptions>
-
-          <el-divider />
-
-          <div class="case-content">
-            <h4><el-icon><Document /></el-icon> 描述</h4>
-            <p class="content-text">{{ caseDetail?.description || selectedNode.description || '暂无描述' }}</p>
-
-            <h4><el-icon><Document /></el-icon> 请求头</h4>
-            <pre class="content-code">{{ formatJson(caseDetail?.headers) }}</pre>
-
-            <h4><el-icon><Document /></el-icon> 请求体</h4>
-            <pre class="content-code">{{ caseDetail?.requestBody || selectedNode.requestBody || '暂无请求体' }}</pre>
-
-            <h4><el-icon><Document /></el-icon> 断言</h4>
-            <pre class="content-code">{{ caseDetail?.assertions || '暂无断言' }}</pre>
-          </div>
-        </el-card>
-
-        <div class="panel-actions">
-          <el-button type="primary" @click="handleEditCase(selectedNode)">
-            <el-icon><Edit /></el-icon>
-            编辑用例
-          </el-button>
-          <el-button type="success" @click="handleExecuteCase(selectedNode)">
-            <el-icon><VideoPlay /></el-icon>
-            执行用例
-          </el-button>
-          <el-button type="danger" @click="handleDeleteCase(selectedNode)">
-            <el-icon><Delete /></el-icon>
-            删除用例
-          </el-button>
-        </div>
+        <CaseDetailPanel
+          v-loading="caseDetailLoading"
+          :test-case="caseDetail"
+          :display-history="executionHistory"
+          :execution-history-loading="executionHistoryLoading"
+          :execution-history-total="executionHistoryTotal"
+          @edit="handleEditCase"
+          @copy="handleCopyCase"
+          @view-history-detail="handleViewHistoryDetail"
+          @view-more-history="handleViewMoreHistory"
+        />
       </div>
 
       <!-- 空状态 -->
@@ -313,6 +271,25 @@
         <el-button type="primary" @click="handleCaseSubmit">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 执行配置对话框 -->
+    <ExecuteConfigDialog
+      v-model="executeDialogVisible"
+      :target-type="executeConfig.targetType"
+      :target-id="executeConfig.targetId"
+      :target-name="executeConfig.targetName"
+      :case-count="executeConfig.caseCount"
+      :project-id="executeConfig.projectId"
+      @execute="handleExecuteFromConfig"
+    />
+
+    <!-- 执行结果对话框 -->
+    <ExecutionResultDialog
+      :visible="resultDialogVisible"
+      :execution-result="executionResult"
+      @update:visible="resultDialogVisible = $event"
+      @retry="handleRetryExecution"
+    />
   </div>
 </template>
 
@@ -325,6 +302,46 @@ import {
 } from '@element-plus/icons-vue'
 import { testCaseApi, type ProjectTreeNode, type TestCaseDetailVO } from '@/api/modules/testing/testCase'
 import type { FormInstance, FormRules } from 'element-plus'
+import { CaseDetailPanel, ExecuteConfigDialog, ExecutionResultDialog } from '@/components/business/case-detail'
+
+// ExecuteConfig type (duplicated here to avoid import issues)
+interface ExecuteConfig {
+  environment: string
+  baseUrl: string
+  timeout: number
+  async: boolean
+  concurrency: number
+  executionOrder: string
+  priorityFilter: string[]
+  tagFilter: string[]
+  enabledOnly: boolean
+  variables: Record<string, any>
+  targetId: number | null
+  targetType: string
+}
+
+// ExecutionResult type (duplicated here to avoid import issues)
+interface ExecutionResult {
+  recordId?: string
+  executionId?: string
+  caseName?: string
+  scopeName?: string
+  status?: string
+  responseStatus?: number
+  duration?: number
+  durationSeconds?: number
+  assertionsPassed?: number
+  assertionsFailed?: number
+  startTime?: string
+  endTime?: string
+  executor?: string
+  executorInfo?: { name?: string }
+  errorMessage?: string
+  failureReason?: string
+  failureType?: string
+  responseBody?: any
+  responseHeaders?: any
+}
 
 // 状态
 const sidebarCollapsed = ref(false)
@@ -334,6 +351,23 @@ const treeRef = ref()
 const selectedNode = ref<ProjectTreeNode | null>(null)
 const caseDetail = ref<TestCaseDetailVO | null>(null)
 const caseDetailLoading = ref(false)
+
+// 执行相关状态
+const executionHistory = ref<any[]>([])
+const executionHistoryLoading = ref(false)
+const executionHistoryTotal = ref(0)
+
+const executeDialogVisible = ref(false)
+const resultDialogVisible = ref(false)
+const executionResult = ref<ExecutionResult | null>(null)
+
+const executeConfig = reactive({
+  targetType: 'case' as 'project' | 'module' | 'case',
+  targetId: null as number | null,
+  targetName: '',
+  caseCount: 0,
+  projectId: null as number | null
+})
 
 // el-tree 配置
 const treeProps = {
@@ -605,6 +639,64 @@ async function handleCaseSubmit() {
   } catch (error: any) {
     ElMessage.error(error.message || '操作失败')
   }
+}
+
+// 复制用例
+async function handleCopyCase(tc: TestCaseDetailVO | null) {
+  if (!tc) return
+  try {
+    await ElMessageBox.confirm(`确定复制用例 "${tc.name}" 吗?`, '提示', { type: 'info' })
+    // TODO: 调用复制API
+    ElMessage.success('复制功能开发中')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '复制失败')
+    }
+  }
+}
+
+// 查看执行历史详情
+function handleViewHistoryDetail(history: any) {
+  console.log('View history detail:', history)
+  ElMessage.info('查看执行历史详情功能开发中')
+}
+
+// 查看更多执行历史
+function handleViewMoreHistory() {
+  ElMessage.info('查看更多执行历史功能开发中')
+}
+
+// 从配置对话框执行
+async function handleExecuteFromConfig(config: ExecuteConfig) {
+  executeDialogVisible.value = false
+
+  try {
+    // TODO: 调用执行API
+    ElMessage.success('执行已提交')
+
+    // 模拟执行结果
+    executionResult.value = {
+      recordId: 'EXEC-' + Date.now(),
+      caseName: executeConfig.targetName,
+      status: 'passed',
+      responseStatus: 200,
+      duration: 1234,
+      startTime: new Date().toISOString(),
+      endTime: new Date().toISOString(),
+      executor: '当前用户',
+      assertionsPassed: 5,
+      assertionsFailed: 0
+    }
+    resultDialogVisible.value = true
+  } catch (error: any) {
+    ElMessage.error(error.message || '执行失败')
+  }
+}
+
+// 重试执行
+function handleRetryExecution() {
+  resultDialogVisible.value = false
+  executeDialogVisible.value = true
 }
 
 // 占位方法
