@@ -353,7 +353,7 @@ function transformTreeData(nodes: ProjectTreeNode[]): ProjectTreeNode[] {
 
     const processChildren = (modules: ProjectTreeNode[], parentChildren: ProjectTreeNode[]) => {
       for (const mod of modules) {
-        const moduleNode: ProjectTreeNode = { ...mod, type: 'module', children: [] }
+        const moduleNode: ProjectTreeNode = { ...mod, type: 'module', children: [], apis: mod.apis || [] }
 
         if (mod.children && mod.children.length > 0) {
           processChildren(mod.children, moduleNode.children!)
