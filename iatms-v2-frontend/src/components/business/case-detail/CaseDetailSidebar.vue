@@ -118,22 +118,7 @@ import {
   Link,
   ChatLineSquare
 } from '@element-plus/icons-vue'
-
-interface ExecutionHistory {
-  status?: string
-  executor?: string
-  executorName?: string
-  type?: string
-  action?: string
-  environment?: string
-  note?: string
-  remark?: string
-  executedAt?: string
-  executed_time?: string
-  createTime?: string
-  durationSeconds?: number
-  duration?: number
-}
+import type { ExecutionHistory } from '@/types/components'
 
 interface Props {
   displayHistory?: ExecutionHistory[]

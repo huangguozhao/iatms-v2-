@@ -211,28 +211,7 @@ import {
   Document,
   RefreshRight
 } from '@element-plus/icons-vue'
-
-export interface ExecutionResult {
-  recordId?: string
-  executionId?: string
-  caseName?: string
-  scopeName?: string
-  status?: string
-  responseStatus?: number
-  duration?: number
-  durationSeconds?: number
-  assertionsPassed?: number
-  assertionsFailed?: number
-  startTime?: string
-  endTime?: string
-  executor?: string
-  executorInfo?: { name?: string }
-  errorMessage?: string
-  failureReason?: string
-  failureType?: string
-  responseBody?: any
-  responseHeaders?: any
-}
+import type { ExecutionResult } from '@/types/components'
 
 interface Props {
   visible: boolean

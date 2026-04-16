@@ -255,6 +255,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { VideoPlay, Connection, Link, Filter, Timer, List } from '@element-plus/icons-vue'
+import type { ExecuteConfig } from '@/types/components'
 
 interface Environment {
   label: string
@@ -321,21 +322,6 @@ const formData = ref({
   enabledOnly: true,
   variables: ''
 })
-
-export interface ExecuteConfig {
-  environment: string
-  baseUrl: string
-  timeout: number
-  async: boolean
-  concurrency: number
-  executionOrder: string
-  priorityFilter: string[]
-  tagFilter: string[]
-  enabledOnly: boolean
-  variables: Record<string, any>
-  targetId: number | null
-  targetType: string
-}
 
 function getEnvironmentTagType(env: string): string {
   const types: Record<string, string> = {

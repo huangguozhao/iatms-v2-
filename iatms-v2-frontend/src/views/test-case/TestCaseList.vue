@@ -263,45 +263,7 @@ import { testCaseApi, type ProjectTreeNode, type TestCaseDetailVO } from '@/api/
 import type { FormInstance, FormRules } from 'element-plus'
 import { CaseDetailPanel, ExecuteConfigDialog, ExecutionResultDialog } from '@/components/business/case-detail'
 import { ProjectModuleStats } from '@/components/business/project-detail'
-
-// ExecuteConfig type (duplicated here to avoid import issues)
-interface ExecuteConfig {
-  environment: string
-  baseUrl: string
-  timeout: number
-  async: boolean
-  concurrency: number
-  executionOrder: string
-  priorityFilter: string[]
-  tagFilter: string[]
-  enabledOnly: boolean
-  variables: Record<string, any>
-  targetId: number | null
-  targetType: string
-}
-
-// ExecutionResult type (duplicated here to avoid import issues)
-interface ExecutionResult {
-  recordId?: string
-  executionId?: string
-  caseName?: string
-  scopeName?: string
-  status?: string
-  responseStatus?: number
-  duration?: number
-  durationSeconds?: number
-  assertionsPassed?: number
-  assertionsFailed?: number
-  startTime?: string
-  endTime?: string
-  executor?: string
-  executorInfo?: { name?: string }
-  errorMessage?: string
-  failureReason?: string
-  failureType?: string
-  responseBody?: any
-  responseHeaders?: any
-}
+import type { ExecuteConfig, ExecutionResult } from '@/types/components'
 
 // 状态
 const sidebarCollapsed = ref(false)
