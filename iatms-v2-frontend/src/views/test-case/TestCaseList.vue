@@ -38,26 +38,28 @@
             @node-click="handleNodeClick"
           >
             <template #default="{ node, data }">
-              <div class="tree-node" :class="`node-${data.type}`">
-                <!-- 节点图标 -->
-                <span class="node-icon">
-                  <el-icon v-if="data.type === 'project'" :size="16" class="icon-project"><FolderOpened /></el-icon>
-                  <el-icon v-else-if="data.type === 'module'" :size="16" class="icon-module"><Folder /></el-icon>
-                  <el-icon v-else-if="data.type === 'api'" :size="16" class="icon-api"><Link /></el-icon>
-                  <el-icon v-else :size="16" class="icon-testcase"><Document /></el-icon>
-                </span>
+              <el-tooltip :content="node.label" placement="top" :show-after="500" :enterable="false" :disabled="node.label.length <= 20">
+                <div class="tree-node" :class="`node-${data.type}`">
+                  <!-- 节点图标 -->
+                  <span class="node-icon">
+                    <el-icon v-if="data.type === 'project'" :size="16" class="icon-project"><FolderOpened /></el-icon>
+                    <el-icon v-else-if="data.type === 'module'" :size="16" class="icon-module"><Folder /></el-icon>
+                    <el-icon v-else-if="data.type === 'api'" :size="16" class="icon-api"><Link /></el-icon>
+                    <el-icon v-else :size="16" class="icon-testcase"><Document /></el-icon>
+                  </span>
 
-                <!-- 节点标签 -->
-                <span class="node-label">{{ node.label }}</span>
+                  <!-- 节点标签 -->
+                  <span class="node-label">{{ node.label }}</span>
 
-                <!-- HTTP方法标签（仅API节点） -->
-                <span v-if="data.type === 'api' && data.httpMethod" class="method-badge" :class="`method-${data.httpMethod?.toLowerCase()}`">
-                  {{ data.httpMethod }}
-                </span>
+                  <!-- HTTP方法标签（仅API节点） -->
+                  <span v-if="data.type === 'api' && data.httpMethod" class="method-badge" :class="`method-${data.httpMethod?.toLowerCase()}`">
+                    {{ data.httpMethod }}
+                  </span>
 
-                <!-- 状态点 -->
-                <span v-if="data.type === 'testcase'" class="status-dot" :class="data.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'" />
-              </div>
+                  <!-- 状态点 -->
+                  <span v-if="data.type === 'testcase'" class="status-dot" :class="data.status === 'ENABLED' ? 'status-enabled' : 'status-disabled'" />
+                </div>
+              </el-tooltip>
             </template>
           </el-tree>
         </el-scrollbar>
@@ -723,6 +725,7 @@ $info-color: #909399;
   gap: 8px;
   flex: 1;
   padding-right: 8px;
+  overflow: hidden;
 
   .node-icon {
     display: flex;
@@ -732,6 +735,7 @@ $info-color: #909399;
     height: 24px;
     border-radius: 6px;
     transition: all 0.2s ease;
+    flex-shrink: 0;
   }
 
   .node-label {
@@ -741,6 +745,7 @@ $info-color: #909399;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
   }
 
   // 节点类型图标颜色
