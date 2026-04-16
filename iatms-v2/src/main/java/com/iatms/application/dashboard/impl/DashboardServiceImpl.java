@@ -268,13 +268,31 @@ public class DashboardServiceImpl implements DashboardService {
             return 0L;
         }
 
-        Set<Long> projectIdSet = new HashSet<>(projectIds);
-        List<TestExecution> all = testExecutionMapper.selectList(
-                new LambdaQueryWrapper<TestExecution>().last("LIMIT 10000")
+        // 获取可访问的模块ID和API ID
+        Set<Integer> moduleIds = getModuleIdsByProjects(projectIds);
+        if (moduleIds.isEmpty()) {
+            return 0L;
+        }
+        Set<Integer> apiIds = getApiIdsByModuleIds(moduleIds);
+        if (apiIds.isEmpty()) {
+            return 0L;
+        }
+        Set<Integer> caseIds = getCaseIdsByApiIds(apiIds);
+
+        // 构建查询条件
+        LambdaQueryWrapper<TestExecution> wrapper = new LambdaQueryWrapper<>();
+        wrapper.and(w -> w
+                .eq(TestExecution::getExecutionScope, "project")
+                .in(TestExecution::getRefId, projectIds)
+                .or()
+                .eq(TestExecution::getExecutionScope, "test_case")
+                .in(TestExecution::getRefId, caseIds)
+                .or()
+                .eq(TestExecution::getExecutionScope, "api")
+                .in(TestExecution::getRefId, apiIds)
         );
-        return all.stream()
-                .filter(exec -> isExecutionAccessible(exec, projectIdSet))
-                .count();
+
+        return testExecutionMapper.selectCount(wrapper).longValue();
     }
 
     /**
@@ -285,15 +303,30 @@ public class DashboardServiceImpl implements DashboardService {
             return 0L;
         }
 
-        Set<Long> projectIdSet = new HashSet<>(projectIds);
-        List<TestExecution> all = testExecutionMapper.selectList(
-                new LambdaQueryWrapper<TestExecution>()
-                        .ge(TestExecution::getUpdatedAt, since)
-                        .last("LIMIT 10000")
-        );
-        return all.stream()
-                .filter(exec -> isExecutionAccessible(exec, projectIdSet))
-                .count();
+        Set<Integer> moduleIds = getModuleIdsByProjects(projectIds);
+        if (moduleIds.isEmpty()) {
+            return 0L;
+        }
+        Set<Integer> apiIds = getApiIdsByModuleIds(moduleIds);
+        if (apiIds.isEmpty()) {
+            return 0L;
+        }
+        Set<Integer> caseIds = getCaseIdsByApiIds(apiIds);
+
+        LambdaQueryWrapper<TestExecution> wrapper = new LambdaQueryWrapper<TestExecution>()
+                .ge(TestExecution::getUpdatedAt, since)
+                .and(w -> w
+                        .eq(TestExecution::getExecutionScope, "project")
+                        .in(TestExecution::getRefId, projectIds)
+                        .or()
+                        .eq(TestExecution::getExecutionScope, "test_case")
+                        .in(TestExecution::getRefId, caseIds)
+                        .or()
+                        .eq(TestExecution::getExecutionScope, "api")
+                        .in(TestExecution::getRefId, apiIds)
+                );
+
+        return testExecutionMapper.selectCount(wrapper).longValue();
     }
 
     /**
@@ -304,15 +337,48 @@ public class DashboardServiceImpl implements DashboardService {
             return 0L;
         }
 
-        Set<Long> projectIdSet = new HashSet<>(projectIds);
-        List<TestExecution> all = testExecutionMapper.selectList(
-                new LambdaQueryWrapper<TestExecution>()
-                        .eq(TestExecution::getStatus, status)
-                        .last("LIMIT 10000")
+        Set<Integer> moduleIds = getModuleIdsByProjects(projectIds);
+        if (moduleIds.isEmpty()) {
+            return 0L;
+        }
+        Set<Integer> apiIds = getApiIdsByModuleIds(moduleIds);
+        if (apiIds.isEmpty()) {
+            return 0L;
+        }
+        Set<Integer> caseIds = getCaseIdsByApiIds(apiIds);
+
+        LambdaQueryWrapper<TestExecution> wrapper = new LambdaQueryWrapper<TestExecution>()
+                .eq(TestExecution::getStatus, status)
+                .and(w -> w
+                        .eq(TestExecution::getExecutionScope, "project")
+                        .in(TestExecution::getRefId, projectIds)
+                        .or()
+                        .eq(TestExecution::getExecutionScope, "test_case")
+                        .in(TestExecution::getRefId, caseIds)
+                        .or()
+                        .eq(TestExecution::getExecutionScope, "api")
+                        .in(TestExecution::getRefId, apiIds)
+                );
+
+        return testExecutionMapper.selectCount(wrapper).longValue();
+    }
+
+    /**
+     * 根据API ID列表获取用例ID列表
+     */
+    private Set<Integer> getCaseIdsByApiIds(Set<Integer> apiIds) {
+        if (apiIds.isEmpty()) {
+            return Set.of();
+        }
+        List<TestCase> cases = testCaseMapper.selectList(
+                new LambdaQueryWrapper<TestCase>()
+                        .eq(TestCase::getDeleted, false)
+                        .in(TestCase::getApiId, apiIds)
         );
-        return all.stream()
-                .filter(exec -> isExecutionAccessible(exec, projectIdSet))
-                .count();
+        return cases.stream()
+                .map(tc -> tc.getId() != null ? tc.getId().intValue() : null)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     /**

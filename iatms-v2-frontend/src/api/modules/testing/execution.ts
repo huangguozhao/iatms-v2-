@@ -1,43 +1,7 @@
 import { client } from '@/api/client'
-import type { ApiResponse, PageResult } from '@/types/api'
+import type { ApiResponse, PageResult, ExecutionSummaryVO, ExecutionDetailVO, TestResultVO, AssertionResult, ExecutionProgressVO } from '@/types/api'
 
-export interface ExecutionSummaryVO {
-  id: number
-  type: string
-  targetId: number
-  targetName: string
-  status: string
-  statusText: string
-  total: number
-  passed: number
-  failed: number
-  skipped: number
-  duration: number
-  executor: string
-  createdAt: string
-}
-
-export interface ExecutionDetailVO extends ExecutionSummaryVO {
-  results: TestResultVO[]
-}
-
-export interface TestResultVO {
-  id: number
-  name: string
-  status: string
-  duration: number
-  errorMessage: string
-  requestData: string
-  responseData: string
-  assertions: AssertionResult[]
-}
-
-export interface AssertionResult {
-  expression: string
-  expected: string
-  actual: string
-  passed: boolean
-}
+export type { ExecutionSummaryVO, ExecutionDetailVO, TestResultVO, AssertionResult, ExecutionProgressVO }
 
 export interface ExecutionQuery {
   type?: string
@@ -47,16 +11,6 @@ export interface ExecutionQuery {
   endTime?: string
   pageNum: number
   pageSize: number
-}
-
-export interface ExecutionProgressVO {
-  executionId: number
-  status: string
-  total: number
-  passed: number
-  failed: number
-  current: number
-  currentName: string
 }
 
 export const executionApi = {

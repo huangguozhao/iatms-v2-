@@ -8,6 +8,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppLayout: typeof import('./components/layout/AppLayout.vue')['default']
+    CaseDetailPanel: typeof import('./components/test-case/CaseDetailPanel.vue')['default']
+    CaseFormDialog: typeof import('./components/test-case/CaseFormDialog.vue')['default']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBadge: typeof import('element-plus/es')['ElBadge']
@@ -49,6 +51,7 @@ declare module 'vue' {
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     ElTree: typeof import('element-plus/es')['ElTree']
     LoadingTransition: typeof import('./components/common/LoadingTransition.vue')['default']
+    ProjectTree: typeof import('./components/test-case/ProjectTree.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatusTag: typeof import('./components/common/StatusTag.vue')['default']

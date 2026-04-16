@@ -79,6 +79,27 @@ export interface ApiDetailVO extends ApiSummaryVO {
   assertions: string
 }
 
+export interface CreateApiDTO {
+  name: string
+  projectId?: number | null
+  moduleId?: number | null
+  method: string
+  path: string
+  description?: string
+  headers?: Record<string, string>
+  requestBody?: string
+  assertions?: string
+}
+
+export interface ApiQuery {
+  keyword?: string
+  method?: string
+  projectId?: number
+  moduleId?: number
+  pageNum: number
+  pageSize: number
+}
+
 // TestCase types
 export interface TestCaseSummaryVO {
   id: number
@@ -116,6 +137,22 @@ export interface TestSuiteSummaryVO {
 export interface TestSuiteDetailVO extends TestSuiteSummaryVO {
   caseIds: number[]
   description: string
+}
+
+export interface CreateTestSuiteDTO {
+  name: string
+  projectId: number
+  caseIds: number[]
+  executionStrategy: string
+  failStrategy: string
+  description?: string
+}
+
+export interface TestSuiteQuery {
+  keyword?: string
+  projectId?: number
+  pageNum: number
+  pageSize: number
 }
 
 // Execution types

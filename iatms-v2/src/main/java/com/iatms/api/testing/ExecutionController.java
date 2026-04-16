@@ -1,6 +1,7 @@
 package com.iatms.api.testing;
 
 import com.iatms.api.common.ApiResponse;
+import com.iatms.application.testing.TestExecutionCommandService;
 import com.iatms.common.annotation.RequirePermission;
 import com.iatms.domain.model.enums.ProjectPermission;
 import com.iatms.domain.model.vo.ExecutionProgressVO;
@@ -17,23 +18,15 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ExecutionController {
 
+    private final TestExecutionCommandService executionCommandService;
+
     /**
      * 获取执行进度
      */
     @GetMapping("/{executionId}/status")
     @RequirePermission(value = ProjectPermission.CASE_EXECUTE, requireProjectId = false)
     public ApiResponse<ExecutionProgressVO> getExecutionStatus(@PathVariable String executionId) {
-        // TODO: 从 Redis 获取执行状态
-        ExecutionProgressVO progress = ExecutionProgressVO.builder()
-                .executionIdStr(executionId)
-                .status("PENDING")
-                .progress(0)
-                .totalCases(1)
-                .completedCases(0)
-                .passedCases(0)
-                .failedCases(0)
-                .build();
-
+        ExecutionProgressVO progress = executionCommandService.getExecutionProgress(executionId);
         return ApiResponse.success(progress);
     }
 
@@ -47,7 +40,7 @@ public class ExecutionController {
             @RequestAttribute("userId") Long userId) {
 
         log.info("取消执行: executionId={}, userId={}", executionId, userId);
-        // TODO: 实现取消逻辑
+        executionCommandService.cancelExecution(executionId, userId);
         return ApiResponse.success();
     }
 }

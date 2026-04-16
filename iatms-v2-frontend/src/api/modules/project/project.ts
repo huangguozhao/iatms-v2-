@@ -1,5 +1,7 @@
 import client from '../../client'
-import type { ApiResponse, PageResult, ProjectSummaryVO, ProjectDetailVO } from '@/types/api'
+import type { PageResult, ProjectSummaryVO, ProjectDetailVO } from '@/types/api'
+
+export type { ProjectSummaryVO, ProjectDetailVO }
 
 export interface CreateProjectDTO {
   name: string

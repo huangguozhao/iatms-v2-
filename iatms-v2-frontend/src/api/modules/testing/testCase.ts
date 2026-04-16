@@ -1,24 +1,41 @@
 import { client } from '@/api/client'
 import type { ApiResponse, PageResult } from '@/types/api'
 
+// Re-export common types for convenience
+export type { PageResult }
+
+/**
+ * 测试用例概要VO
+ */
 export interface TestCaseSummaryVO {
   id: number
+  caseCode: string
   name: string
-  apiId: number
-  apiName: string
-  projectId: number
-  projectName: string
   priority: string
   status: string
+  projectId: number
+  moduleId: number
+  apiId: number | null
   createdAt: string
+  createdBy: string
 }
 
+/**
+ * 测试用例详情VO
+ */
 export interface TestCaseDetailVO extends TestCaseSummaryVO {
-  headers: Record<string, string>
+  description: string
+  testType: string
+  preconditions: string
+  testSteps: string
+  testData: string
+  headers: Record<string, string> | string
+  requestParams: string
   requestBody: string
   assertions: string
+  expectedResponse: string
   extractors: string
-  description: string
+  updatedAt: string
 }
 
 export interface CreateTestCaseDTO {
@@ -70,27 +87,27 @@ export interface ProjectTreeNode {
 
 export const testCaseApi = {
   query: (query: TestCaseQuery) => {
-    return client.get<any, ApiResponse<PageResult<TestCaseSummaryVO>>>('/v1/test-cases', { params: query })
+    return client.get<any, PageResult<TestCaseSummaryVO>>('/v1/test-cases', { params: query })
   },
 
   getDetail: (id: number) => {
-    return client.get<any, ApiResponse<TestCaseDetailVO>>(`/v1/test-cases/${id}`)
+    return client.get<any, TestCaseDetailVO>(`/v1/test-cases/${id}`)
   },
 
   create: (data: CreateTestCaseDTO) => {
-    return client.post<any, ApiResponse<void>>('/v1/test-cases', data)
+    return client.post<any, void>('/v1/test-cases', data)
   },
 
   update: (id: number, data: CreateTestCaseDTO) => {
-    return client.put<any, ApiResponse<void>>(`/v1/test-cases/${id}`, data)
+    return client.put<any, void>(`/v1/test-cases/${id}`, data)
   },
 
   delete: (id: number) => {
-    return client.delete<any, ApiResponse<void>>(`/v1/test-cases/${id}`)
+    return client.delete<any, void>(`/v1/test-cases/${id}`)
   },
 
   execute: (id: number) => {
-    return client.post<any, ApiResponse<void>>(`/v1/test-cases/${id}/execute`)
+    return client.post<any, void>(`/v1/test-cases/${id}/execute`)
   },
 
   /**
@@ -98,6 +115,6 @@ export const testCaseApi = {
    */
   getTree: (projectId?: number) => {
     const params = projectId ? { projectId } : {}
-    return client.get<any, ApiResponse<ProjectTreeNode[]>>('/v1/test-cases/tree', { params })
+    return client.get<any, ProjectTreeNode[]>('/v1/test-cases/tree', { params })
   }
 }

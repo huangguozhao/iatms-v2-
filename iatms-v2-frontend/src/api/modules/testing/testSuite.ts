@@ -1,38 +1,7 @@
 import { client } from '@/api/client'
-import type { ApiResponse, PageResult } from '@/types/api'
+import type { ApiResponse, PageResult, TestSuiteSummaryVO, TestSuiteDetailVO, CreateTestSuiteDTO, TestSuiteQuery } from '@/types/api'
 
-export interface TestSuiteSummaryVO {
-  id: number
-  name: string
-  projectId: number
-  projectName: string
-  caseCount: number
-  executionStrategy: string
-  failStrategy: string
-  status: string
-  createdAt: string
-}
-
-export interface TestSuiteDetailVO extends TestSuiteSummaryVO {
-  caseIds: number[]
-  description: string
-}
-
-export interface CreateTestSuiteDTO {
-  name: string
-  projectId: number
-  caseIds: number[]
-  executionStrategy: string
-  failStrategy: string
-  description?: string
-}
-
-export interface TestSuiteQuery {
-  keyword?: string
-  projectId?: number
-  pageNum: number
-  pageSize: number
-}
+export type { TestSuiteSummaryVO, TestSuiteDetailVO, CreateTestSuiteDTO, TestSuiteQuery }
 
 export const testSuiteApi = {
   query: (query: TestSuiteQuery) => {

@@ -1,47 +1,7 @@
 import { client } from '@/api/client'
-import type { ApiResponse, PageResult } from '@/types/api'
+import type { ApiResponse, PageResult, ReportSummaryVO, ReportDetailVO, ReportResult, AssertionResult } from '@/types/api'
 
-export interface ReportSummaryVO {
-  id: number
-  executionId: number
-  projectId: number
-  projectName: string
-  type: string
-  status: string
-  total: number
-  passed: number
-  failed: number
-  skipped: number
-  passRate: number
-  duration: number
-  createdAt: string
-}
-
-export interface ReportDetailVO extends ReportSummaryVO {
-  results: ReportResult[]
-  summary: string
-}
-
-export interface ReportResult {
-  id: number
-  name: string
-  method: string
-  path: string
-  status: string
-  duration: number
-  errorMessage: string
-  requestData: string
-  responseData: string
-  assertions: AssertionResult[]
-  logs: string[]
-}
-
-export interface AssertionResult {
-  expression: string
-  expected: string
-  actual: string
-  passed: boolean
-}
+export type { ReportSummaryVO, ReportDetailVO, ReportResult, AssertionResult }
 
 export interface ReportQuery {
   startDate?: string

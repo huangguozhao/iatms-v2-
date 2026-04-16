@@ -1,23 +1,7 @@
 import { client } from '@/api/client'
-import type { ApiResponse, PageResult } from '@/types/api'
+import type { ApiResponse, PageResult, ScheduledTaskSummaryVO, ScheduledTaskDetailVO } from '@/types/api'
 
-export interface ScheduledTaskSummaryVO {
-  id: number
-  name: string
-  type: string
-  targetId: number
-  targetName: string
-  cron: string
-  status: string
-  nextRunTime: string
-  lastRunTime: string | null
-  createdAt: string
-}
-
-export interface ScheduledTaskDetailVO extends ScheduledTaskSummaryVO {
-  notifyOn: string[]
-  description: string
-}
+export type { ScheduledTaskSummaryVO, ScheduledTaskDetailVO }
 
 export interface CreateScheduledTaskDTO {
   name: string
