@@ -314,7 +314,7 @@ const displayStats = computed<Stats>(() => {
   // 如果有从后端获取的模块详情数据，优先使用
   if (moduleDetail.value && props.level === 'module') {
     return {
-      moduleCount: 0,
+      moduleCount: moduleDetail.value.stats?.apiCount || 0,
       testCaseCount: moduleDetail.value.stats?.testCaseCount || 0,
       passedCount: moduleDetail.value.stats?.passedCount || 0,
       failedCount: moduleDetail.value.stats?.failedCount || 0,
