@@ -46,6 +46,11 @@ export interface ProjectTreeNode {
   httpMethod?: string
   path?: string
   priority?: string
+  testType?: string
+  testData?: string
+  requestBody?: string
+  expectedResult?: string
+  isEnabled?: boolean
   children?: ProjectTreeNode[]
   apis?: ProjectTreeNode[]
   testCases?: ProjectTreeNode[]

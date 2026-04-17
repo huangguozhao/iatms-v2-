@@ -82,6 +82,36 @@ public class ProjectTreeVO {
     private String priority;
 
     /**
+     * 测试类型（仅用例节点）：functional, performance, security, compatibility, smoke, regression
+     */
+    private String testType;
+
+    /**
+     * 测试数据（仅用例节点）
+     */
+    private String testData;
+
+    /**
+     * 请求体（仅用例节点）
+     */
+    private String requestBody;
+
+    /**
+     * 预期结果（仅用例节点）
+     */
+    private String expectedResult;
+
+    /**
+     * 预期HTTP状态码（仅用例节点）
+     */
+    private Integer expectedHttpStatus;
+
+    /**
+     * 是否启用（仅用例节点）
+     */
+    private Boolean isEnabled;
+
+    /**
      * 子模块列表
      */
     private List<ProjectTreeVO> children;

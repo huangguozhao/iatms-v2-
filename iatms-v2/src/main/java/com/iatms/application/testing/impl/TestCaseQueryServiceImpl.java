@@ -323,6 +323,12 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
                         .description(tc.getDescription())
                         .status(tc.getIsEnabled() != null && tc.getIsEnabled() ? "ENABLED" : "DISABLED")
                         .priority(tc.getPriority())
+                        .testType(tc.getTestType())
+                        .testData(tc.getTestData())
+                        .requestBody(tc.getRequestBody())
+                        .expectedResult(tc.getExpectedResponseBody())
+                        .expectedHttpStatus(tc.getExpectedHttpStatus())
+                        .isEnabled(tc.getIsEnabled())
                         .build()).collect(Collectors.toList()));
 
                 return apiNode;
