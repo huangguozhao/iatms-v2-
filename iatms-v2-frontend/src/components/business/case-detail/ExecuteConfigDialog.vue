@@ -35,11 +35,22 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="执行环境" required>
-                <el-select v-model="formData.environment" placeholder="请选择执行环境" style="width: 100%">
-                  <el-option v-for="env in environmentList" :key="env.value" :label="env.label" :value="env.value">
+                <el-select
+                  v-model="formData.environment"
+                  placeholder="请选择执行环境"
+                  style="width: 100%"
+                  :loading="environmentLoading"
+                >
+                  <el-option
+                    v-for="env in environmentList"
+                    :key="env.envId"
+                    :label="env.envName"
+                    :value="env.envCode"
+                  >
                     <div class="option-content">
-                      <span class="option-dot" :class="env.value"></span>
-                      <span>{{ env.label }}</span>
+                      <span class="option-dot" :class="env.envCode"></span>
+                      <span>{{ env.envName }}</span>
+                      <span v-if="env.isDefault" class="default-tag">默认</span>
                     </div>
                   </el-option>
                 </el-select>
@@ -252,15 +263,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { VideoPlay, Connection, Link, Filter, Timer, List } from '@element-plus/icons-vue'
+import { environmentApi } from '@/api/modules/environment/environment'
 import type { ExecuteConfig } from '@/types/components'
-
-interface Environment {
-  label: string
-  value: string
-}
+import type { EnvironmentVO } from '@/api/modules/environment/environment'
 
 interface Props {
   modelValue: boolean
@@ -304,12 +312,8 @@ const targetTypeLabel = computed(() => {
 })
 
 const executing = ref(false)
-const environmentList = ref<Environment[]>([
-  { label: '开发环境', value: 'dev' },
-  { label: '测试环境', value: 'test' },
-  { label: '预发布环境', value: 'staging' },
-  { label: '生产环境', value: 'prod' }
-])
+const environmentList = ref<EnvironmentVO[]>([])
+const environmentLoading = ref(false)
 const availableTags = ref<string[]>(['冒烟测试', '回归测试', '功能测试', '缺陷验证', '性能测试'])
 
 const formData = ref({
@@ -325,12 +329,39 @@ const formData = ref({
   variables: ''
 })
 
+/**
+ * 加载环境列表
+ */
+async function loadEnvironments() {
+  environmentLoading.value = true
+  try {
+    const environments = await environmentApi.list()
+    environmentList.value = environments || []
+
+    // 设置默认环境
+    const defaultEnv = environmentList.value.find(env => env.isDefault)
+    if (defaultEnv) {
+      formData.value.environment = defaultEnv.envCode
+    } else if (environmentList.value.length > 0) {
+      // 如果没有默认环境，选择第一个
+      formData.value.environment = environmentList.value[0].envCode
+    }
+  } catch (error: any) {
+    console.error('加载环境列表失败:', error)
+    ElMessage.error('加载环境列表失败')
+    // 失败时使用空列表
+    environmentList.value = []
+  } finally {
+    environmentLoading.value = false
+  }
+}
+
 function getEnvironmentTagType(env: string): string {
   const types: Record<string, string> = {
-    dev: 'success',
-    test: 'warning',
+    development: 'success',
+    testing: 'warning',
     staging: 'danger',
-    prod: 'info'
+    production: 'info'
   }
   return types[env] || 'info'
 }
@@ -387,7 +418,14 @@ function handleExecute() {
 watch(visible, (val) => {
   if (!val) {
     executing.value = false
+  } else {
+    // 打开对话框时加载环境列表
+    loadEnvironments()
   }
+})
+
+onMounted(() => {
+  loadEnvironments()
 })
 </script>
 
@@ -474,10 +512,19 @@ watch(visible, (val) => {
   height: 8px;
   border-radius: 50%;
 
-  &.dev { background: #67c23a; }
-  &.test { background: #e6a23c; }
+  &.development { background: #67c23a; }
+  &.testing { background: #e6a23c; }
   &.staging { background: #f56c6c; }
-  &.prod { background: #909399; }
+  &.production { background: #909399; }
+}
+
+.default-tag {
+  margin-left: 8px;
+  font-size: 10px;
+  color: #909399;
+  background: #f4f4f5;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .url-preview {

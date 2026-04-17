@@ -26,8 +26,20 @@ public interface TestCaseQueryService {
 
     /**
      * 执行测试用例
+     * @param caseId 用例ID
+     * @param async 是否异步执行
+     * @param userId 用户ID
+     * @return 执行ID
      */
-    String executeTestCase(Long caseId, Long userId);
+    String executeTestCase(Long caseId, Boolean async, Long userId);
+
+    /**
+     * 同步执行测试用例并返回结果
+     * @param caseId 用例ID
+     * @param userId 用户ID
+     * @return 执行结果
+     */
+    com.iatms.application.testing.dto.result.ExecuteTestCaseResult executeTestCaseSync(Long caseId, Long userId);
 
     /**
      * 获取项目树形结构（项目→模块→接口→用例）

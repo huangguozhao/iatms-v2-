@@ -107,6 +107,7 @@
           :display-history="executionHistory"
           :execution-history-loading="executionHistoryLoading"
           :execution-history-total="executionHistoryTotal"
+          @execute="handleExecute"
           @edit="handleEditCase"
           @copy="handleCopyCase"
           @view-history-detail="handleViewHistoryDetail"
@@ -168,13 +169,13 @@
 
     <!-- 执行配置对话框 -->
     <ExecuteConfigDialog
-      v-model="executeDialogVisible"
+      v-model="configDialogVisible"
       :target-type="executeConfig.targetType"
       :target-id="executeConfig.targetId"
       :target-name="executeConfig.targetName"
       :case-count="executeConfig.caseCount"
       :project-id="executeConfig.projectId"
-      @execute="handleExecuteFromConfig"
+      @execute="execute"
     />
 
     <!-- 执行结果对话框 -->
@@ -182,7 +183,7 @@
       :visible="resultDialogVisible"
       :execution-result="executionResult"
       @update:visible="resultDialogVisible = $event"
-      @retry="handleRetryExecution"
+      @retry="handleRetry"
     />
   </div>
 </template>
@@ -200,9 +201,27 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { CaseDetailPanel, ExecuteConfigDialog, ExecutionResultDialog } from '@/components/business/case-detail'
 import { ApiDetailPanel } from '@/components/business/api-detail'
 import { ProjectModuleStats } from '@/components/business/project-detail'
-import type { ExecuteConfig, ExecutionResult } from '@/types/components'
+import type { ExecuteConfig } from '@/types/components'
+import { useExecution } from '@/composables'
 
 const router = useRouter()
+
+// 执行相关 composable
+const {
+  executionResult,
+  configDialogVisible,
+  resultDialogVisible,
+  executeConfig,
+  openConfigDialog,
+  execute
+} = useExecution({
+  onSuccess: (result) => {
+    console.log('执行成功:', result)
+  },
+  onError: (error) => {
+    ElMessage.error(error.message || '执行失败')
+  }
+})
 
 // 状态
 const sidebarCollapsed = ref(false)
@@ -217,18 +236,6 @@ const caseDetailLoading = ref(false)
 const executionHistory = ref<any[]>([])
 const executionHistoryLoading = ref(false)
 const executionHistoryTotal = ref(0)
-
-const executeDialogVisible = ref(false)
-const resultDialogVisible = ref(false)
-const executionResult = ref<ExecutionResult | null>(null)
-
-const executeConfig = reactive({
-  targetType: 'case' as 'project' | 'module' | 'api' | 'case',
-  targetId: null as number | null,
-  targetName: '',
-  caseCount: 0,
-  projectId: null as number | null
-})
 
 // el-tree 配置
 const treeProps = {
@@ -427,27 +434,26 @@ async function handleEditCase(tc: TestCaseDetailVO | ProjectTreeNode | null) {
   caseDialogVisible.value = true
 }
 
-// 执行用例
-async function handleExecuteCase(tc: ProjectTreeNode) {
-  try {
-    await ElMessageBox.confirm(`确定执行用例 "${tc.name}" 吗?`, '提示', { type: 'warning' })
-    await testCaseApi.execute(tc.id)
-    ElMessage.success('执行已提交')
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.message || '执行失败')
-    }
+// 执行用例 - 打开配置对话框
+function handleExecuteCase(tc: ProjectTreeNode) {
+  openConfigDialog({ id: tc.id, name: tc.name })
+}
+
+// 处理用例详情页的"执行测试"按钮点击
+function handleExecute() {
+  if (caseDetail.value) {
+    openConfigDialog({ id: caseDetail.value.id!, name: caseDetail.value.name })
   }
 }
 
 // 执行接口
 async function handleExecuteApi(api: ProjectTreeNode) {
-  executeConfig.targetType = 'api'
-  executeConfig.targetId = api.id
-  executeConfig.targetName = api.name
-  executeConfig.caseCount = api.testCases?.length || 0
-  executeConfig.projectId = null
-  executeDialogVisible.value = true
+  executeConfig.value.targetType = 'api'
+  executeConfig.value.targetId = api.id
+  executeConfig.value.targetName = api.name
+  executeConfig.value.caseCount = api.testCases?.length || 0
+  executeConfig.value.projectId = null
+  configDialogVisible.value = true
 }
 
 // 为接口创建用例
@@ -568,39 +574,6 @@ function handleViewMoreHistory(caseId: number | null) {
   }
 }
 
-// 从配置对话框执行
-async function handleExecuteFromConfig(_config: ExecuteConfig) {
-  executeDialogVisible.value = false
-
-  try {
-    // TODO: 调用执行API
-    ElMessage.success('执行已提交')
-
-    // 模拟执行结果
-    executionResult.value = {
-      recordId: 'EXEC-' + Date.now(),
-      caseName: executeConfig.targetName,
-      status: 'passed',
-      responseStatus: 200,
-      duration: 1234,
-      startTime: new Date().toISOString(),
-      endTime: new Date().toISOString(),
-      executor: '当前用户',
-      assertionsPassed: 5,
-      assertionsFailed: 0
-    }
-    resultDialogVisible.value = true
-  } catch (error: any) {
-    ElMessage.error(error.message || '执行失败')
-  }
-}
-
-// 重试执行
-function handleRetryExecution() {
-  resultDialogVisible.value = false
-  executeDialogVisible.value = true
-}
-
 // 处理编辑节点
 function handleEditNode() {
   ElMessage.info('编辑功能开发中')
@@ -664,8 +637,17 @@ function handleConfigEnvironment(_node: any) {
 
 // 从项目/模块执行测试
 function handleExecuteFromProjectModule(_config: any) {
-  executeDialogVisible.value = false
+  configDialogVisible.value = false
   ElMessage.success('执行已提交')
+}
+
+// 处理重试执行
+function handleRetry() {
+  resultDialogVisible.value = false
+  // 重新打开配置对话框
+  if (caseDetail.value) {
+    openConfigDialog({ id: caseDetail.value.id!, name: caseDetail.value.name })
+  }
 }
 
 onMounted(() => {

@@ -3,6 +3,8 @@ package com.iatms.application.testing;
 import com.iatms.application.testing.dto.command.StartExecutionCmd;
 import com.iatms.domain.model.vo.ExecutionProgressVO;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * 测试执行命令服务
  */
@@ -20,8 +22,9 @@ public interface TestExecutionCommandService {
      * 异步开始执行测试
      * @param cmd 执行参数
      * @param userId 执行人ID
+     * @return 执行ID的CompletableFuture
      */
-    void startExecutionAsync(StartExecutionCmd cmd, Long userId);
+    CompletableFuture<String> startExecutionAsync(StartExecutionCmd cmd, Long userId);
 
     /**
      * 取消执行

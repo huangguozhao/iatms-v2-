@@ -4,12 +4,17 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.iatms.application.system.PermissionService;
+
 import com.iatms.application.testing.TestCaseQueryService;
+import com.iatms.application.testing.TestExecutionCommandService;
+import com.iatms.application.testing.dto.command.StartExecutionCmd;
+import com.iatms.application.testing.dto.result.ExecuteTestCaseResult;
 import com.iatms.domain.model.entity.ApiRequest;
 import com.iatms.domain.model.entity.Module;
 import com.iatms.domain.model.entity.Project;
 import com.iatms.domain.model.entity.TestCase;
 import com.iatms.domain.model.entity.TestExecution;
+import com.iatms.domain.model.vo.ExecutionProgressVO;
 import com.iatms.domain.model.vo.ProjectTreeVO;
 import com.iatms.domain.model.vo.TestCaseDetailVO;
 import com.iatms.domain.model.vo.TestCaseSummaryVO;
@@ -43,6 +48,7 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
     private final ModuleMapper moduleMapper;
     private final ApiRequestMapper apiRequestMapper;
     private final PermissionService permissionService;
+    private final TestExecutionCommandService executionCommandService;
 
     @Override
     public ApiResponse.PageResult<TestCaseSummaryVO> queryTestCases(
@@ -178,7 +184,7 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
     }
 
     @Override
-    public String executeTestCase(Long caseId, Long userId) {
+    public String executeTestCase(Long caseId, Boolean async, Long userId) {
         TestCase testCase = testCaseMapper.selectById(caseId);
         if (testCase == null || testCase.getDeleted()) {
             throw new ResourceNotFoundException(ErrorCode.TEST_CASE_NOT_FOUND.getCode(),
@@ -190,27 +196,71 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
             throw new BusinessException(ErrorCode.FORBIDDEN.getCode(), "无权限执行该用例");
         }
 
-        // 创建执行记录
-        String executionId = "EXEC-" + UUID.randomUUID().toString();
+        // 构建执行命令
+        StartExecutionCmd cmd = new StartExecutionCmd();
+        cmd.setExecutionType("TEST_CASE");
+        cmd.setTargetId(caseId);
+        cmd.setTriggerType("MANUAL");
+        cmd.setEnvironmentId(null); // 使用默认环境
 
-        TestExecution execution = new TestExecution();
-        execution.setExecutionId(executionId);
-        execution.setExecutionScope("test_case");
-        execution.setRefId(caseId.intValue());
-        execution.setStatus("pending");
-        execution.setTotalCases(1);
-        execution.setFailedCases(0);
-        execution.setExecutionType("manual");
-        execution.setExecutedBy(userId);
-        execution.setCreatedBy(userId);
+        String executionId;
 
-        executionMapper.insert(execution);
-
-        log.info("创建测试执行记录: executionId={}, caseId={}, userId={}", executionId, caseId, userId);
-
-        // TODO: 异步执行测试用例
+        if (Boolean.FALSE.equals(async)) {
+            // 同步执行：等待执行完成
+            log.info("同步执行测试用例: caseId={}", caseId);
+            executionId = executionCommandService.startExecution(cmd, userId);
+            log.info("同步执行完成: caseId={}, executionId={}", caseId, executionId);
+        } else {
+            // 异步执行：立即返回executionId
+            log.info("异步执行测试用例: caseId={}", caseId);
+            executionId = executionCommandService.startExecutionAsync(cmd, userId).join();
+            log.info("异步执行已触发: caseId={}, executionId={}", caseId, executionId);
+        }
 
         return executionId;
+    }
+
+    @Override
+    public ExecuteTestCaseResult executeTestCaseSync(Long caseId, Long userId) {
+        TestCase testCase = testCaseMapper.selectById(caseId);
+        if (testCase == null || testCase.getDeleted()) {
+            throw new ResourceNotFoundException(ErrorCode.TEST_CASE_NOT_FOUND.getCode(),
+                    ErrorCode.TEST_CASE_NOT_FOUND.getMessage());
+        }
+
+        // 校验用户是否有权限执行该用例所属的项目
+        if (testCase.getProjectId() != null && !permissionService.canAccessProject(userId, testCase.getProjectId().longValue())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(), "无权限执行该用例");
+        }
+
+        // 构建执行命令
+        StartExecutionCmd cmd = new StartExecutionCmd();
+        cmd.setExecutionType("TEST_CASE");
+        cmd.setTargetId(caseId);
+        cmd.setTriggerType("MANUAL");
+        cmd.setEnvironmentId(null);
+
+        // 同步执行
+        log.info("同步执行测试用例: caseId={}", caseId);
+        String executionId = executionCommandService.startExecution(cmd, userId);
+        log.info("同步执行完成: caseId={}, executionId={}", caseId, executionId);
+
+        // 获取执行结果
+        ExecutionProgressVO progress = executionCommandService.getExecutionProgress(executionId);
+
+        // 转换为结果对象
+        ExecuteTestCaseResult result = new ExecuteTestCaseResult();
+        result.setExecutionId(executionId);
+        result.setStatus(progress != null ? progress.getStatus() : "unknown");
+        result.setDuration(progress != null && progress.getDuration() != null ? progress.getDuration().longValue() : 0L);
+        result.setAssertionsPassed(progress != null ? progress.getPassedCases() : 0);
+        result.setAssertionsFailed(progress != null ? progress.getFailedCases() : 0);
+        result.setStartTime(progress != null && progress.getStartedAt() != null ? progress.getStartedAt().toString() : null);
+        result.setEndTime(progress != null && progress.getStartedAt() != null ? java.time.LocalDateTime.now().toString() : null);
+        result.setExecutor("当前用户");
+        result.setErrorMessage(progress != null ? progress.getErrorMessage() : null);
+
+        return result;
     }
 
     @Override

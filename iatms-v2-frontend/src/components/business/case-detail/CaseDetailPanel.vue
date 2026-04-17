@@ -35,10 +35,10 @@
     <TestCaseFormDialog
       v-model="editDialogVisible"
       mode="edit"
-      :case-id="testCase?.id ?? null"
-      :api-id="(testCase as any)?.apiId ?? null"
-      :project-id="(testCase as any)?.projectId ?? null"
-      :module-id="(testCase as any)?.moduleId ?? null"
+      :case-id="testCase?.id"
+      :api-id="(testCase as any)?.apiId"
+      :project-id="(testCase as any)?.projectId"
+      :module-id="(testCase as any)?.moduleId"
       @success="handleEditSuccess"
     />
   </div>
@@ -76,26 +76,26 @@ interface Props {
   executionHistoryTotal?: number
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   displayHistory: () => [],
   executionHistoryLoading: false,
   executionHistoryTotal: 0
 })
 
-defineEmits<{
+const emit = defineEmits<{
   execute: []
   edit: [testCase: TestCaseDetailVO | null]
   copy: [testCase: TestCaseDetailVO | null]
   'view-history-detail': [history: ExecutionHistory]
-  'view-more-history': []
+  'view-more-history': [caseId: number | null]
   'more-action': [command: string]
 }>()
 
 const editDialogVisible = ref(false)
 
-// 处理执行测试
+// 处理执行测试 - 传递给父组件
 function handleExecute() {
-  // 触发执行事件，由父组件处理
+  emit('execute')
 }
 
 // 处理编辑用例

@@ -18,6 +18,10 @@ export interface ExecuteConfig {
   variables: Record<string, any>
   targetId: number | null
   targetType: 'project' | 'module' | 'api' | 'case'
+  // 对话框显示用字段
+  targetName?: string
+  caseCount?: number
+  projectId?: number | null
 }
 
 /**

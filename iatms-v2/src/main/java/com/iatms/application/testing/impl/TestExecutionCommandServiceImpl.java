@@ -6,6 +6,7 @@ import com.iatms.application.testing.TestExecutionCommandService;
 import com.iatms.application.testing.dto.command.StartExecutionCmd;
 import com.iatms.common.constant.RedisKeys;
 import com.iatms.domain.model.entity.*;
+import com.iatms.domain.model.entity.Module;
 import com.iatms.domain.model.enums.ExecutionStatus;
 import com.iatms.domain.model.vo.ExecutionProgressVO;
 import com.iatms.domain.service.TestExecutionDomainService;
@@ -39,6 +40,8 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     private final TestSuiteRequestMapper testSuiteRequestMapper;
     private final ApiRequestMapper apiRequestMapper;
     private final TestResultMapper testResultMapper;
+    private final ProjectMapper projectMapper;
+    private final ModuleMapper moduleMapper;
     private final TestExecutionDomainService executionDomainService;
     private final ApiClient apiClient;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -88,7 +91,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
 
     @Override
     @Async("testExecutionExecutor")
-    public void startExecutionAsync(StartExecutionCmd cmd, Long userId) {
+    public CompletableFuture<String> startExecutionAsync(StartExecutionCmd cmd, Long userId) {
         String executionId = generateExecutionId();
 
         log.info("开始异步执行: executionId={}, type={}, targetId={}, userId={}",
@@ -120,6 +123,9 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                 removeCachedContext(executionId);
             }
         }, testExecutionExecutor);
+
+        // 立即返回executionId
+        return CompletableFuture.completedFuture(executionId);
     }
 
     @Override
@@ -220,6 +226,10 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         execution.setExecutionScope(scope);
         execution.setRefId(cmd.getTargetId().intValue());
 
+        // 设置执行范围名称
+        String scopeName = getScopeName(cmd.getExecutionType(), cmd.getTargetId());
+        execution.setScopeName(scopeName);
+
         // 设置执行类型: manual/scheduled/triggered
         String execType = mapTriggerType(cmd.getTriggerType());
         execution.setExecutionType(execType);
@@ -234,6 +244,38 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         execution.setStartTime(LocalDateTime.now());
         execution.setCreatedBy(userId);
         return execution;
+    }
+
+    /**
+     * 根据执行类型和目标ID获取范围名称
+     */
+    private String getScopeName(String executionType, Long targetId) {
+        if (executionType == null || targetId == null) {
+            return "未知";
+        }
+        return switch (executionType.toUpperCase()) {
+            case "TEST_CASE" -> {
+                TestCase testCase = testCaseMapper.selectById(targetId);
+                yield testCase != null ? testCase.getName() : "用例-" + targetId;
+            }
+            case "TEST_SUITE" -> {
+                TestSuite testSuite = testSuiteMapper.selectById(targetId);
+                yield testSuite != null ? testSuite.getSuiteName() : "套件-" + targetId;
+            }
+            case "PROJECT" -> {
+                Project project = projectMapper.selectById(targetId);
+                yield project != null ? project.getName() : "项目-" + targetId;
+            }
+            case "MODULE" -> {
+                Module module = moduleMapper.selectById(targetId);
+                yield module != null ? module.getName() : "模块-" + targetId;
+            }
+            case "API" -> {
+                ApiRequest api = apiRequestMapper.selectById(targetId);
+                yield api != null ? api.getName() : "接口-" + targetId;
+            }
+            default -> "范围-" + targetId;
+        };
     }
 
     private String mapExecutionTypeToScope(String executionType) {
@@ -280,13 +322,19 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         TestResult result = executeTestCase(testCase, context);
 
         context.setCompletedCases(1);
+        int passedCases = 0;
         if ("passed".equalsIgnoreCase(result.getStatus())) {
-            context.setPassedCases(1);
+            passedCases = 1;
+            context.setPassedCases(passedCases);
             updateExecutionStatus(context.getExecutionId(), ExecutionStatus.COMPLETED.name(), null);
         } else {
             context.setFailedCases(1);
             updateExecutionStatus(context.getExecutionId(), ExecutionStatus.FAILED.name(), result.getErrorMessage());
         }
+
+        // 更新统计信息
+        updateExecutionStats(context.getExecutionId(), 1, passedCases, context.getFailedCases());
+
         context.setProgress(100);
         context.setStatus(ExecutionStatus.COMPLETED.name());
     }
@@ -599,6 +647,27 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         }
     }
 
+    /**
+     * 更新执行记录的统计信息
+     */
+    private void updateExecutionStats(String executionId, int totalCases, int passedCases, int failedCases) {
+        try {
+            TestExecution execution = testExecutionMapper.selectByExecutionId(executionId);
+            if (execution != null) {
+                execution.setTotalCases(totalCases);
+                execution.setFailedCases(failedCases);
+                // 设置成功率
+                if (totalCases > 0) {
+                    java.math.BigDecimal rate = java.math.BigDecimal.valueOf((double) passedCases / totalCases * 100);
+                    execution.setSuccessRate(rate);
+                }
+                testExecutionMapper.updateById(execution);
+            }
+        } catch (Exception e) {
+            log.error("更新执行统计失败: executionId={}", executionId, e);
+        }
+    }
+
     private void updateExecutionProgress(ExecutionContext context) {
         cacheExecutionContext(context.getExecutionId(), context);
     }
@@ -637,14 +706,22 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     }
 
     private ExecutionProgressVO buildProgressFromExecution(TestExecution execution) {
+        // 计算 passedCases：如果数据库没有存储，则通过 totalCases - failedCases 计算
+        Integer passedCases = execution.getPassedCases();
+        if (passedCases == null && execution.getTotalCases() != null && execution.getFailedCases() != null) {
+            passedCases = execution.getTotalCases() - execution.getFailedCases();
+        }
+        // completedCases 等于 totalCases（假设所有用例都已处理）
+        Integer completedCases = execution.getTotalCases();
+
         return ExecutionProgressVO.builder()
                 .executionId(execution.getId())
                 .executionIdStr(execution.getExecutionId())
                 .status(execution.getStatus())
-                .progress(execution.getProgress())
+                .progress(execution.getProgress() != null ? execution.getProgress() : 100)
                 .totalCases(execution.getTotalCases())
-                .completedCases(execution.getCompletedCases())
-                .passedCases(execution.getPassedCases())
+                .completedCases(completedCases)
+                .passedCases(passedCases)
                 .failedCases(execution.getFailedCases())
                 .startedAt(execution.getStartedAt())
                 .duration(execution.getDuration())

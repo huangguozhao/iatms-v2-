@@ -22,6 +22,13 @@ export const executionApi = {
     return client.get<any, ApiResponse<ExecutionDetailVO>>(`/v1/executions/${id}`)
   },
 
+  /**
+   * 获取执行进度（轮询状态）
+   */
+  getStatus: (executionId: string) => {
+    return client.get<any, ApiResponse<ExecutionProgressVO>>(`/v1/executions/${executionId}/status`)
+  },
+
   getProgress: (id: number) => {
     return client.get<any, ApiResponse<ExecutionProgressVO>>(`/v1/executions/${id}/progress`)
   },

@@ -97,13 +97,22 @@ public class TestCaseController {
 
     @PostMapping("/{caseId}/execute")
     @RequirePermission(ProjectPermission.CASE_EXECUTE)
-    public ApiResponse<String> executeTestCase(
+    public ApiResponse<?> executeTestCase(
             @PathVariable Long caseId,
-            @RequestAttribute("userId") Long userId) {
+            @RequestAttribute("userId") Long userId,
+            @RequestParam(defaultValue = "true") Boolean async) {
 
-        log.info("执行测试用例: caseId={}, userId={}", caseId, userId);
-        String executionId = testCaseQueryService.executeTestCase(caseId, userId);
-        return ApiResponse.success(executionId);
+        log.info("执行测试用例: caseId={}, async={}, userId={}", caseId, async, userId);
+
+        if (Boolean.FALSE.equals(async)) {
+            // 同步执行：返回完整结果
+            var result = testCaseQueryService.executeTestCaseSync(caseId, userId);
+            return ApiResponse.success(result);
+        } else {
+            // 异步执行：返回 executionId
+            String executionId = testCaseQueryService.executeTestCase(caseId, async, userId);
+            return ApiResponse.success(executionId);
+        }
     }
 
     @GetMapping("/{caseId}/executions")

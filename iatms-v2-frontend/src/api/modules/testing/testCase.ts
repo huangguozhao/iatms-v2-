@@ -94,8 +94,8 @@ export const testCaseApi = {
     return client.delete<any, void>(`/v1/test-cases/${id}`)
   },
 
-  execute: (id: number) => {
-    return client.post<any, void>(`/v1/test-cases/${id}/execute`)
+  execute: (id: number, async: boolean = true) => {
+    return client.post<any, string>(`/v1/test-cases/${id}/execute`, null, { params: { async } })
   },
 
   /**
