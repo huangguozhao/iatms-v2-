@@ -4,7 +4,7 @@
     <CaseDetailHeader
       :test-case="testCase"
       @execute="handleExecute"
-      @edit="$emit('edit', testCase)"
+      @edit="handleEdit"
       @copy="$emit('copy', testCase)"
       @more-action="$emit('more-action', $event)"
     />
@@ -30,14 +30,27 @@
         @view-more-history="$emit('view-more-history', $event)"
       />
     </div>
+
+    <!-- 编辑用例对话框 -->
+    <TestCaseFormDialog
+      v-model="editDialogVisible"
+      mode="edit"
+      :case-id="testCase?.id ?? null"
+      :api-id="(testCase as any)?.apiId ?? null"
+      :project-id="(testCase as any)?.projectId ?? null"
+      :module-id="(testCase as any)?.moduleId ?? null"
+      @success="handleEditSuccess"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import CaseDetailHeader from './CaseDetailHeader.vue'
 import CaseDetailBasicInfo from './CaseDetailBasicInfo.vue'
 import CaseDetailApiInfo from './CaseDetailApiInfo.vue'
 import CaseDetailSidebar from './CaseDetailSidebar.vue'
+import TestCaseFormDialog from '@/components/business/api-detail/TestCaseFormDialog.vue'
 import type { TestCaseDetailVO } from '@/types/api'
 
 interface ExecutionHistory {
@@ -78,10 +91,21 @@ defineEmits<{
   'more-action': [command: string]
 }>()
 
+const editDialogVisible = ref(false)
+
 // 处理执行测试
 function handleExecute() {
   // 触发执行事件，由父组件处理
-  // The parent component will handle opening the execute config dialog
+}
+
+// 处理编辑用例
+function handleEdit() {
+  editDialogVisible.value = true
+}
+
+// 编辑成功后
+function handleEditSuccess() {
+  editDialogVisible.value = false
 }
 </script>
 

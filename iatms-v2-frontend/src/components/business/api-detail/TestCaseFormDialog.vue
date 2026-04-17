@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="添加测试用例"
+    :title="dialogTitle"
     width="900px"
     :close-on-click-modal="false"
     destroy-on-close
@@ -213,7 +213,7 @@
 
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="handleSubmit" :loading="saving">创建用例</el-button>
+      <el-button type="primary" @click="handleSubmit" :loading="saving">{{ isEditMode ? '保存修改' : '创建用例' }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -227,6 +227,8 @@ import { testCaseApi } from '@/api/modules/testing/testCase'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
+  mode: { type: String as () => 'create' | 'edit', default: 'create' },
+  caseId: { type: Number, default: null },
   apiId: { type: Number, default: null },
   projectId: { type: Number, default: null },
   moduleId: { type: Number, default: null }
@@ -238,12 +240,19 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(props.modelValue)
-watch(() => props.modelValue, (v) => { visible.value = v })
+watch(() => props.modelValue, async (v) => {
+  visible.value = v
+  if (v && isEditMode.value && props.caseId) {
+    await loadCaseData()
+  }
+})
 watch(visible, (v) => { emit('update:modelValue', v) })
 
 const formRef = ref<FormInstance>()
 const saving = ref(false)
 const activeTab = ref('basic')
+const isEditMode = computed(() => props.mode === 'edit')
+const dialogTitle = computed(() => isEditMode.value ? '编辑测试用例' : '添加测试用例')
 
 const priorityOptions = [
   { label: 'P0（最高优先级）', value: 'P0' },
@@ -343,11 +352,71 @@ function removeExtractor(index: number) {
   formData.extractors.splice(index, 1)
 }
 
+async function loadCaseData() {
+  if (!props.caseId) return
+  try {
+    const detail = await testCaseApi.getDetail(props.caseId)
+    // 填充表单数据
+    formData.name = detail.name || ''
+    formData.caseCode = detail.caseCode || ''
+    formData.description = detail.description || ''
+    formData.priority = detail.priority || 'P2'
+    formData.testType = detail.testType || 'functional'
+    formData.severity = (detail as any).severity || 'medium'
+    formData.tags = (detail as any).tags || ''
+    formData.isEnabled = detail.isEnabled ?? true
+    // 解析 JSON 字段
+    formData.testSteps = parseJson(detail.testSteps, [])
+    formData.preConditionsStr = detail.preconditions || ''
+    formData.assertions = parseJson(detail.assertions, [])
+    formData.extractors = parseJson(detail.extractors, [])
+    formData.expectedHttpStatus = (detail as any).expectedHttpStatus || 200
+    formData.expectedResponseBody = (detail as any).expectedResponseBody || ''
+    formData.expectedResponseSchemaStr = (detail as any).expectedResponseSchema || ''
+    // 解析请求覆盖参数
+    const reqOverride = (detail as any).requestOverride
+    if (reqOverride) {
+      const overrideObj = typeof reqOverride === 'string' ? JSON.parse(reqOverride) : reqOverride
+      if (overrideObj.headers && typeof overrideObj.headers === 'object') {
+        formData.overrideHeaders = Object.entries(overrideObj.headers).map(([name, value]) => ({ name, value: String(value) }))
+      }
+      if (overrideObj.queryParams && Array.isArray(overrideObj.queryParams)) {
+        formData.overrideQueryParams = overrideObj.queryParams.map((p: any) => ({ name: p.name || '', value: p.value || '', description: p.description || '' }))
+      }
+      if (overrideObj.body) {
+        formData.overrideBody = typeof overrideObj.body === 'object' ? JSON.stringify(overrideObj.body) : String(overrideObj.body)
+      }
+    }
+    // 尝试从 requestParams 和 requestBody 获取
+    if (detail.requestParams && !formData.overrideQueryParams.length) {
+      const params = typeof detail.requestParams === 'string' ? JSON.parse(detail.requestParams) : detail.requestParams
+      if (Array.isArray(params)) {
+        formData.overrideQueryParams = params.map((p: any) => ({ name: p.name || '', value: p.value || '', description: p.description || '' }))
+      }
+    }
+    if (detail.requestBody && !formData.overrideBody) {
+      formData.overrideBody = typeof detail.requestBody === 'object' ? JSON.stringify(detail.requestBody) : detail.requestBody
+    }
+  } catch (e: any) {
+    ElMessage.error('加载用例详情失败')
+  }
+}
+
+function parseJson(str: any, defaultValue: any): any {
+  if (!str) return defaultValue
+  if (Array.isArray(str)) return str
+  try {
+    return JSON.parse(str)
+  } catch {
+    return defaultValue
+  }
+}
+
 async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
-  if (!props.projectId) {
+  if (!isEditMode.value && !props.projectId) {
     ElMessage.error('缺少项目信息，请从API详情页添加用例')
     return
   }
@@ -386,8 +455,13 @@ async function handleSubmit() {
       isEnabled: formData.isEnabled
     }
 
-    await testCaseApi.create(data)
-    ElMessage.success('用例创建成功')
+    if (isEditMode.value && props.caseId) {
+      await testCaseApi.update(props.caseId, data)
+      ElMessage.success('用例更新成功')
+    } else {
+      await testCaseApi.create(data)
+      ElMessage.success('用例创建成功')
+    }
     visible.value = false
     resetForm()
     emit('success')
