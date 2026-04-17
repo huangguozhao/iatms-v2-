@@ -362,7 +362,9 @@ async function handleNodeClick(data: ProjectTreeNode) {
       ])
       caseDetail.value = detail
       // 转换执行历史字段以匹配前端期望的格式
-      executionHistory.value = (historyData.data || []).map((item: any) => ({
+      // 注意：响应拦截器已直接返回 data 数组，不需要再访问 .data
+      const rawHistory = Array.isArray(historyData) ? historyData : []
+      executionHistory.value = rawHistory.map((item: any) => ({
         status: item.status,
         executor: item.executedBy?.toString() || '未知',
         executorName: item.scopeName || '未知',
@@ -377,9 +379,9 @@ async function handleNodeClick(data: ProjectTreeNode) {
         durationSeconds: item.durationSeconds || item.duration || 0,
         duration: item.durationSeconds || item.duration || 0
       }))
-      executionHistoryTotal.value = (historyData.data || []).length
-    } catch {
-      ElMessage.error('加载用例详情失败')
+      executionHistoryTotal.value = executionHistory.value.length
+    } catch (e: any) {
+      ElMessage.error('加载用例详情失败: ' + (e.message || '未知错误'))
     } finally {
       caseDetailLoading.value = false
       executionHistoryLoading.value = false
