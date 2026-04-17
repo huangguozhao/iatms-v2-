@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,9 +14,8 @@ import java.time.LocalDateTime;
  * 对应数据库表: testexecutionrecords
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
 @TableName("testexecutionrecords")
-public class TestExecution extends BaseEntity {
+public class TestExecution {
 
     /**
      * 记录ID (record_id)
@@ -156,60 +154,6 @@ public class TestExecution extends BaseEntity {
     @TableField(exist = false)
     private Integer skippedCases;
 
-    // ========== BaseEntity 字段覆盖（数据库表中不存在 created_at/updater_id/creator_id/version）==========
-
-    /**
-     * 覆盖父类字段，避免查询不存在的 created_at 列
-     */
-    @TableField(exist = false)
-    private LocalDateTime createdAt;
-
-    /**
-     * 覆盖父类字段，避免查询不存在的 updated_at 列
-     */
-    @TableField(exist = false)
-    private LocalDateTime updatedAt;
-
-    /**
-     * 覆盖父类字段，避免查询不存在的 creator_id 列
-     */
-    @TableField(exist = false)
-    private Long createdBy;
-
-    /**
-     * 覆盖父类字段，避免查询不存在的 updater_id 列
-     */
-    @TableField(exist = false)
-    private Long updatedBy;
-
-    /**
-     * 覆盖父类字段，避免查询不存在的 version 列
-     */
-    @TableField(exist = false)
-    private Integer version;
-
-    @Override
-    public Long getCreatedBy() {
-        // 使用 executedBy 作为 createdBy 的替代值
-        return this.executedBy != null ? this.executedBy.longValue() : null;
-    }
-
-    @Override
-    public void setCreatedBy(Long createdBy) {
-        // 数据库表中没有 creator_id 字段，此处为空操作
-    }
-
-    @Override
-    public Long getUpdatedBy() {
-        // 数据库表中没有 updater_id 字段
-        return null;
-    }
-
-    @Override
-    public void setUpdatedBy(Long updatedBy) {
-        // 数据库表中没有 updater_id 字段，此处为空操作
-    }
-
     // ========== 兼容性别名（用于旧代码）==========
 
     public String getTriggerType() {
@@ -220,10 +164,16 @@ public class TestExecution extends BaseEntity {
         this.executionType = triggerType;
     }
 
+    /**
+     * 获取执行人ID，返回 Long 类型（兼容需要 Long 的场景）
+     */
     public Long getExecutedBy() {
         return this.executedBy != null ? this.executedBy.longValue() : null;
     }
 
+    /**
+     * 设置执行人ID，接收 Long 类型
+     */
     public void setExecutedBy(Long executedBy) {
         this.executedBy = executedBy != null ? executedBy.intValue() : null;
     }
@@ -250,5 +200,49 @@ public class TestExecution extends BaseEntity {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.endTime = completedAt;
+    }
+
+    // ========== BaseEntity 兼容方法（使用 startTime/executedBy 代理）==========
+
+    /**
+     * 获取更新时间，使用 startTime 作为代理
+     */
+    public LocalDateTime getUpdatedAt() {
+        return this.startTime;
+    }
+
+    /**
+     * 获取创建时间，使用 startTime 作为代理
+     */
+    public LocalDateTime getCreatedAt() {
+        return this.startTime;
+    }
+
+    /**
+     * 获取创建人ID，使用 executedBy 作为代理
+     */
+    public Long getCreatedBy() {
+        return this.executedBy != null ? this.executedBy.longValue() : null;
+    }
+
+    /**
+     * 设置创建人ID，设置到 executedBy
+     */
+    public void setCreatedBy(Long createdBy) {
+        this.executedBy = createdBy != null ? createdBy.intValue() : null;
+    }
+
+    /**
+     * 获取更新人ID，使用 executedBy 作为代理
+     */
+    public Long getUpdatedBy() {
+        return this.executedBy != null ? this.executedBy.longValue() : null;
+    }
+
+    /**
+     * 设置更新人ID，设置到 executedBy
+     */
+    public void setUpdatedBy(Long updatedBy) {
+        this.executedBy = updatedBy != null ? updatedBy.intValue() : null;
     }
 }

@@ -152,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, ref } from 'vue'
+import { ref } from 'vue'
 import type { ApiData } from '@/composables/useApiData'
 
 const props = defineProps({
@@ -166,6 +166,12 @@ const props = defineProps({
 
 const emit = defineEmits(['project-change', 'module-change', 'save', 'test', 'delete'])
 
+// 使用 v-model 直接绑定到父组件的 apiData，不使用本地副本
+const localApiData = props.apiData
+
+const showTagInput = ref(false)
+const newTag = ref('')
+
 const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 
 const authOptions = [
@@ -175,18 +181,6 @@ const authOptions = [
   { label: 'API Key', value: 'api_key' },
   { label: 'OAuth 2.0', value: 'oauth2' }
 ]
-
-const localApiData = reactive<ApiData>({ ...props.apiData })
-const showTagInput = ref(false)
-const newTag = ref('')
-
-watch(
-  () => props.apiData,
-  (newData) => {
-    Object.assign(localApiData, newData)
-  },
-  { deep: true }
-)
 
 function onProjectChange(val: number) {
   // 切换项目时，清空模块选择
@@ -202,8 +196,11 @@ function onModuleChange(val: number) {
 }
 
 function addTag() {
-  if (newTag.value && !localApiData.tags.includes(newTag.value)) {
-    localApiData.tags.push(newTag.value)
+  if (newTag.value) {
+    if (!localApiData.tags) localApiData.tags = []
+    if (!localApiData.tags.includes(newTag.value)) {
+      localApiData.tags.push(newTag.value)
+    }
   }
   newTag.value = ''
   showTagInput.value = false

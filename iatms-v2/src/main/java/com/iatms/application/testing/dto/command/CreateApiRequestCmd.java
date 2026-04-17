@@ -51,4 +51,6 @@ public class CreateApiRequestCmd {
     private String tags;
 
     private Integer timeoutSeconds;
+
+    private String version;
 }

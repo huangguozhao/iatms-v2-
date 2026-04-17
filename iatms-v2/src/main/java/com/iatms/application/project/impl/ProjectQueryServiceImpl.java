@@ -226,7 +226,7 @@ public class ProjectQueryServiceImpl implements ProjectQueryService {
                         new LambdaQueryWrapper<TestExecution>()
                                 .eq(TestExecution::getExecutionScope, "test_case")
                                 .eq(TestExecution::getRefId, tc.getId().intValue())
-                                .orderByDesc(TestExecution::getUpdatedAt)
+                                .orderByDesc(TestExecution::getStartTime)
                                 .last("LIMIT 1")
                 );
 

@@ -97,7 +97,7 @@ public class DashboardServiceImpl implements DashboardService {
         if (isAdmin) {
             todayExecutionCount = testExecutionMapper.selectCount(
                     new LambdaQueryWrapper<TestExecution>()
-                            .ge(TestExecution::getUpdatedAt, todayStart)
+                            .ge(TestExecution::getStartTime, todayStart)
             ).longValue();
         } else {
             todayExecutionCount = countExecutionsByProjectIdsAndTime(accessibleProjectIds, todayStart);
@@ -109,7 +109,7 @@ public class DashboardServiceImpl implements DashboardService {
         if (isAdmin) {
             weekExecutionCount = testExecutionMapper.selectCount(
                     new LambdaQueryWrapper<TestExecution>()
-                            .ge(TestExecution::getUpdatedAt, weekStart)
+                            .ge(TestExecution::getStartTime, weekStart)
             ).longValue();
         } else {
             weekExecutionCount = countExecutionsByProjectIdsAndTime(accessibleProjectIds, weekStart);
@@ -156,14 +156,14 @@ public class DashboardServiceImpl implements DashboardService {
         List<TestExecution> executions;
         if (isAdmin) {
             LambdaQueryWrapper<TestExecution> wrapper = new LambdaQueryWrapper<TestExecution>()
-                    .orderByDesc(TestExecution::getUpdatedAt)
+                    .orderByDesc(TestExecution::getStartTime)
                     .last("LIMIT " + limit);
             executions = testExecutionMapper.selectList(wrapper);
         } else {
             // 仅获取可访问项目的执行记录
             List<TestExecution> allExecutions = testExecutionMapper.selectList(
                     new LambdaQueryWrapper<TestExecution>()
-                            .orderByDesc(TestExecution::getUpdatedAt)
+                            .orderByDesc(TestExecution::getStartTime)
                             .last("LIMIT 1000")  // 先获取足够多的记录
             );
             // 过滤出可访问项目的执行
@@ -314,7 +314,7 @@ public class DashboardServiceImpl implements DashboardService {
         Set<Integer> caseIds = getCaseIdsByApiIds(apiIds);
 
         LambdaQueryWrapper<TestExecution> wrapper = new LambdaQueryWrapper<TestExecution>()
-                .ge(TestExecution::getUpdatedAt, since)
+                .ge(TestExecution::getStartTime, since)
                 .and(w -> w
                         .eq(TestExecution::getExecutionScope, "project")
                         .in(TestExecution::getRefId, projectIds)

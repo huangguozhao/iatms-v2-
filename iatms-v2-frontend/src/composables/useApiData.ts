@@ -353,9 +353,13 @@ export function useApiData() {
         queryParams: JSON.stringify(queryParamsObj),
         authConfig: typeof apiData.authConfig === 'object' ? JSON.stringify(apiData.authConfig) : apiData.authConfig,
         requestBodyType: requestParams.bodyType,
+        responseBodyType: (apiData as any).responseBodyType || 'json',
         status: apiData.status,
         tags: Array.isArray(apiData.tags) ? apiData.tags.join(',') : apiData.tags,
-        timeoutSeconds: apiData.timeoutSeconds
+        timeoutSeconds: apiData.timeoutSeconds,
+        requestType: apiData.requestType || 'HTTP',
+        orderNum: (apiData as any).orderNum || 0,
+        version: apiData.version || ''
       }
 
       await apiApi.update(apiData.id, data)

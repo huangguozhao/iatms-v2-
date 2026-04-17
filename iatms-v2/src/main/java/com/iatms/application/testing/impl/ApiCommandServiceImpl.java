@@ -103,6 +103,7 @@ public class ApiCommandServiceImpl implements ApiCommandService {
         if (cmd.getResponseBodyType() != null) api.setResponseBodyType(cmd.getResponseBodyType());
         if (cmd.getTags() != null) api.setTags(cmd.getTags());
         if (cmd.getTimeoutSeconds() != null) api.setTimeoutSeconds(cmd.getTimeoutSeconds());
+        if (cmd.getVersion() != null) api.setApiVersion(cmd.getVersion());
 
         api.setUpdatedBy(userId);
         apiRequestMapper.updateById(api);
