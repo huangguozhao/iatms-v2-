@@ -33,21 +33,33 @@
 
       <!-- 响应体 -->
       <div v-if="resultTab === 'response'" class="tab-content">
-        <div class="response-toolbar">
-          <div class="toolbar-left">
-            <el-button size="small" @click="copyResponse">复制</el-button>
-            <el-button size="small" @click="formatResponseBody">格式化</el-button>
+        <!-- 无执行结果时显示空状态 -->
+        <div v-if="testStatus === 'not_executed'" class="empty-state">
+          <el-icon :size="48" color="#c0c4cc"><DocumentDelete /></el-icon>
+          <p>暂无执行结果</p>
+          <p class="empty-hint">请先在「测试历史」中执行测试，或点击「执行测试」按钮</p>
+        </div>
+        <template v-else>
+          <div class="response-toolbar">
+            <div class="toolbar-left">
+              <el-button size="small" @click="copyResponse">复制</el-button>
+              <el-button size="small" @click="formatResponseBody">格式化</el-button>
+            </div>
+            <el-input v-model="searchText" placeholder="搜索" size="small" style="width: 180px" clearable />
           </div>
-          <el-input v-model="searchText" placeholder="搜索" size="small" style="width: 180px" clearable />
-        </div>
-        <div class="response-body">
-          <pre v-html="highlightedResponse"></pre>
-        </div>
+          <div class="response-body">
+            <pre v-html="highlightedResponse"></pre>
+          </div>
+        </template>
       </div>
 
       <!-- 断言结果 -->
       <div v-if="resultTab === 'assertions'" class="tab-content">
-        <el-table :data="assertionResults" border>
+        <div v-if="testStatus === 'not_executed'" class="empty-state">
+          <el-icon :size="48" color="#c0c4cc"><DocumentDelete /></el-icon>
+          <p>暂无断言结果</p>
+        </div>
+        <el-table v-else :data="assertionResults" border>
           <el-table-column label="断言项" min-width="180">
             <template #default="{ row }">
               <div class="assertion-field">
@@ -73,7 +85,11 @@
 
       <!-- 响应头 -->
       <div v-if="resultTab === 'headers'" class="tab-content">
-        <el-table :data="responseHeaders" border>
+        <div v-if="testStatus === 'not_executed'" class="empty-state">
+          <el-icon :size="48" color="#c0c4cc"><DocumentDelete /></el-icon>
+          <p>暂无响应头信息</p>
+        </div>
+        <el-table v-else :data="responseHeaders" border>
           <el-table-column label="名称" width="250" prop="name" />
           <el-table-column label="值" min-width="400" prop="value" />
         </el-table>
@@ -97,7 +113,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { Refresh, Download } from '@element-plus/icons-vue'
-import { CircleCheckFilled, CircleCloseFilled, InfoFilled } from '@element-plus/icons-vue'
+import { CircleCheckFilled, CircleCloseFilled, InfoFilled, DocumentDelete } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { formatDateTime } from '@/utils/formatters'
 import type { ProjectTreeNode } from '@/api/modules/testing/testCase'
@@ -141,11 +157,11 @@ const statusText = computed(() => {
 })
 
 const formattedResponse = computed(() => {
-  if (!actualResponse.body) return '{}'
+  if (!actualResponse.body && testStatus.value === 'not_executed') return ''
   if (typeof actualResponse.body === 'object') {
     return JSON.stringify(actualResponse.body, null, 2)
   }
-  return String(actualResponse.body)
+  return String(actualResponse.body || '')
 })
 
 const highlightedResponse = computed(() => {
@@ -323,5 +339,24 @@ function exportReport() {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid #e4e7ed;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #909399;
+
+  p {
+    margin: 12px 0 0 0;
+    font-size: 14px;
+  }
+
+  .empty-hint {
+    font-size: 12px;
+    color: #c0c4cc;
+  }
 }
 </style>

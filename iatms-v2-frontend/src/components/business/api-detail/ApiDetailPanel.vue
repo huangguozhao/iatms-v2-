@@ -142,7 +142,7 @@ const testCases = computed(() => props.api?.testCases || [])
 const tabs = [
   { key: 'basic', label: '基本信息' },
   { key: 'params', label: '请求参数' },
-  { key: 'result', label: '响应结果' },
+  { key: 'result', label: '最近结果' },
   { key: 'history', label: '测试历史' },
   { key: 'cases', label: `相关用例 (${testCases.value.length})` }
 ]
