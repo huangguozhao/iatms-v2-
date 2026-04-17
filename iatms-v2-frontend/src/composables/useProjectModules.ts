@@ -29,7 +29,7 @@ export function useProjectModules() {
     projectsLoading.value = true
     try {
       const res = await projectApi.query({ pageNum: 1, pageSize: 100 })
-      availableProjects.value = res.list || []
+      availableProjects.value = res.records || []
     } catch (e) {
       console.error('加载项目列表失败', e)
       availableProjects.value = []
@@ -41,8 +41,8 @@ export function useProjectModules() {
   const loadModules = async (projectId: number) => {
     modulesLoading.value = true
     try {
-      const res = await projectApi.getModuleDetail(projectId)
-      availableModules.value = res ? [res as ModuleOption] : []
+      const res = await projectApi.getModulesByProject(projectId)
+      availableModules.value = res || []
     } catch (e) {
       console.error('加载模块列表失败', e)
       availableModules.value = []

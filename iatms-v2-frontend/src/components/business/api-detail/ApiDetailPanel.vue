@@ -112,7 +112,7 @@ const emit = defineEmits<{
 }>()
 
 // Composables
-const { apiData, requestParams, saving, syncFromNode, reset } = useApiData()
+const { apiData, requestParams, loading, saving, syncFromNode, loadApiDetail, reset } = useApiData()
 const {
   availableProjects,
   projectsLoading,
@@ -150,11 +150,22 @@ const tabs = [
 // 监听 API 变化
 watch(
   () => props.api,
-  (newApi) => {
+  async (newApi) => {
     if (newApi) {
+      // 先同步基本信息（从树节点）
       syncFromNode(newApi)
+      // 加载完整的 API 详情（从后端）
+      if (newApi.id) {
+        try {
+          await loadApiDetail(newApi.id)
+        } catch (e) {
+          console.error('加载 API 详情失败', e)
+        }
+      }
+      // 加载项目和模块列表
+      loadProjects()
       if (apiData.projectId) {
-        loadProjects()
+        loadModules(apiData.projectId)
       }
     } else {
       reset()

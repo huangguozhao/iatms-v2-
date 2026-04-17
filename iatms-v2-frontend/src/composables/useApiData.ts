@@ -1,34 +1,37 @@
 /**
  * API 数据状态管理 Composable
  */
-import { reactive, ref, watch } from 'vue'
-import type { ProjectTreeNode } from '@/api/modules/testing/testCase'
+import { reactive, ref } from 'vue'
+import { apiApi } from '@/api/modules/testing/api'
+import type { ApiDetailVO } from '@/types/api'
 
 export interface ApiData {
-  project: string
-  projectId: number | null
-  module: string
-  moduleId: number | null
-  apiCode: string
+  // 基本信息
+  id: number | null
   name: string
-  path: string
-  method: string
-  baseUrl: string
   description: string
-  precondition: string
-  tags: string[]
-  requestParameters: any[]
-  pathParameters: any[]
-  requestHeaders: any[]
-  requestBody: any
-  requestBodyType: string
-  responseBodyType: string
+  httpMethod: string
+  url: string
+  requestType: string
   status: string
   version: string
+  // 项目/模块
+  projectId: number | null
+  projectName: string
+  moduleId: number | null
+  moduleName: string
+  // 认证
   authType: string
   authConfig: any
-  examples: any[]
+  // 请求信息
+  headers: any
+  queryParams: any
+  requestBody: any
+  requestBodyType: string
+  // 其他
   timeoutSeconds: number
+  tags: string[]
+  // 审计
   creatorName: string
   createdAt: string
   updatedAt: string
@@ -44,30 +47,26 @@ export interface RequestParams {
 }
 
 const defaultApiData = (): ApiData => ({
-  project: '',
-  projectId: null,
-  module: '',
-  moduleId: null,
-  apiCode: '',
+  id: null,
   name: '',
-  path: '',
-  method: 'GET',
-  baseUrl: '',
   description: '',
-  precondition: '',
-  tags: [],
-  requestParameters: [],
-  pathParameters: [],
-  requestHeaders: [],
-  requestBody: null,
-  requestBodyType: 'json',
-  responseBodyType: '',
+  httpMethod: 'GET',
+  url: '',
+  requestType: '',
   status: 'active',
   version: '',
+  projectId: null,
+  projectName: '',
+  moduleId: null,
+  moduleName: '',
   authType: '',
   authConfig: null,
-  examples: [],
+  headers: {},
+  queryParams: {},
+  requestBody: null,
+  requestBodyType: 'json',
   timeoutSeconds: 30,
+  tags: [],
   creatorName: '',
   createdAt: '',
   updatedAt: ''
@@ -85,100 +84,242 @@ const defaultRequestParams = (): RequestParams => ({
 export function useApiData() {
   const apiData = reactive<ApiData>(defaultApiData())
   const requestParams = reactive<RequestParams>(defaultRequestParams())
-
+  const loading = ref(false)
   const saving = ref(false)
 
-  // 从 ProjectTreeNode 同步到 apiData
-  const syncFromNode = (node: ProjectTreeNode) => {
-    apiData.project = node.projectName || (node as any).project_name || '-'
-    apiData.projectId = node.projectId || (node as any).project_id
-    apiData.module = (node as any).moduleName || (node as any).module_name || '-'
-    apiData.moduleId = (node as any).moduleId || (node as any).module_id
-    apiData.apiCode = node.code || (node as any).apiCode || (node as any).api_code || ''
-    apiData.name = node.name || ''
-    apiData.path = node.path || node.url || ''
-    apiData.method = (node as any).method || node.httpMethod || 'GET'
-    apiData.baseUrl = (node as any).baseUrl || (node as any).base_url || ''
-    apiData.description = node.description || ''
-    apiData.precondition = (node as any).precondition || (node as any).pre_condition || ''
-    apiData.tags = Array.isArray(node.tags) ? node.tags : []
-    apiData.requestBodyType = (node as any).requestBodyType || (node as any).request_body_type || 'json'
-    apiData.responseBodyType = (node as any).responseBodyType || (node as any).response_body_type || ''
-    apiData.status = node.status || 'active'
-    apiData.version = (node as any).version || ''
-    apiData.authType = (node as any).authType || (node as any).auth_type || ''
-    apiData.authConfig = (node as any).authConfig || (node as any).auth_config
-    apiData.timeoutSeconds = (node as any).timeoutSeconds || (node as any).timeout_seconds || 30
-    apiData.creatorName = (node as any).creatorName || (node as any).creator_name || ''
-    apiData.createdAt = node.createdAt || (node as any).created_time || ''
-    apiData.updatedAt = node.updatedAt || (node as any).updated_time || ''
+  // 从后端 API 响应同步到 apiData
+  const syncFromDetail = (detail: ApiDetailVO) => {
+    apiData.id = detail.id
+    apiData.name = detail.name || ''
+    apiData.description = detail.description || ''
+    apiData.httpMethod = detail.httpMethod || detail.method || 'GET'
+    apiData.url = detail.url || detail.path || ''
+    apiData.requestType = detail.requestType || ''
+    apiData.status = detail.status || 'active'
+    apiData.version = (detail as any).version || ''
+
+    apiData.projectId = detail.projectId || null
+    apiData.projectName = detail.projectName || ''
+    apiData.moduleId = detail.moduleId || null
+    apiData.moduleName = detail.moduleName || ''
+
+    // 认证
+    apiData.authType = (detail as any).authType || (detail as any).auth_type || ''
+    apiData.authConfig = detail.authConfig || null
+
+    // 请求信息
+    apiData.requestBodyType = (detail as any).requestBodyType || (detail as any).request_body_type || 'json'
+
+    // 解析 headers
+    const headers = detail.headers
+    if (typeof headers === 'string') {
+      try {
+        apiData.headers = JSON.parse(headers)
+      } catch {
+        apiData.headers = {}
+      }
+    } else if (typeof headers === 'object') {
+      apiData.headers = headers || {}
+    } else {
+      apiData.headers = {}
+    }
+
+    // 解析 queryParams
+    const queryParams = detail.queryParams || (detail as any).queryParams
+    if (typeof queryParams === 'string') {
+      try {
+        apiData.queryParams = JSON.parse(queryParams)
+      } catch {
+        apiData.queryParams = {}
+      }
+    } else if (typeof queryParams === 'object') {
+      apiData.queryParams = queryParams || {}
+    } else {
+      apiData.queryParams = {}
+    }
+
+    // 解析 requestBody
+    const requestBody = detail.requestBody || (detail as any).requestBody
+    if (typeof requestBody === 'string') {
+      try {
+        apiData.requestBody = JSON.parse(requestBody)
+      } catch {
+        apiData.requestBody = requestBody
+      }
+    } else {
+      apiData.requestBody = requestBody
+    }
+
+    // 审计
+    apiData.creatorName = detail.creatorName || ''
+    apiData.createdAt = detail.createdAt || ''
+    apiData.updatedAt = detail.updatedAt || ''
 
     // 同步请求参数
-    syncRequestParams(node)
+    syncRequestParamsFromData()
   }
 
-  // 同步请求参数
-  const syncRequestParams = (node: ProjectTreeNode) => {
-    // Headers
-    const headers = (node as any).requestHeaders || (node as any).request_headers || (node as any).headers
-    if (Array.isArray(headers)) {
-      requestParams.headerParams = headers.map((h: any) => {
-        if (typeof h === 'object' && h.name !== undefined) {
-          return { name: h.name, value: h.value || '', description: h.description || '' }
-        }
-        return { name: String(h), value: '', description: '' }
-      })
+  // 从 apiData 同步到 requestParams
+  const syncRequestParamsFromData = () => {
+    // Headers - 兼容数组格式 [{name, value, description}] 和对象格式 {key: value}
+    if (apiData.headers) {
+      if (Array.isArray(apiData.headers)) {
+        requestParams.headerParams = apiData.headers.map(item => ({
+          name: item.name || '',
+          value: item.value || '',
+          description: item.description || ''
+        }))
+      } else if (typeof apiData.headers === 'object') {
+        requestParams.headerParams = Object.entries(apiData.headers).map(([name, value]) => ({
+          name,
+          value: String(value),
+          description: ''
+        }))
+      } else {
+        requestParams.headerParams = []
+      }
     } else {
       requestParams.headerParams = []
     }
 
-    // Query Params
-    const reqParams = (node as any).requestParameters || (node as any).queryParams
-    if (Array.isArray(reqParams)) {
-      requestParams.queryParams = reqParams.map((p: any) => {
-        if (typeof p === 'object' && p.name !== undefined) {
-          return { name: p.name, value: p.value || '', description: p.description || '' }
-        }
-        return { name: String(p), value: '', description: '' }
-      })
+    // Query Params - 兼容数组格式 [{name, value, description}] 和对象格式 {key: value}
+    if (apiData.queryParams) {
+      if (Array.isArray(apiData.queryParams)) {
+        requestParams.queryParams = apiData.queryParams.map(item => ({
+          name: item.name || '',
+          value: item.value || '',
+          description: item.description || ''
+        }))
+      } else if (typeof apiData.queryParams === 'object') {
+        requestParams.queryParams = Object.entries(apiData.queryParams).map(([name, value]) => ({
+          name,
+          value: String(value),
+          description: ''
+        }))
+      } else {
+        requestParams.queryParams = []
+      }
     } else {
       requestParams.queryParams = []
     }
 
     // Body
-    const reqBodyType = (node as any).requestBodyType || (node as any).request_body_type || 'json'
-    requestParams.bodyType = reqBodyType
-
-    const reqBody = (node as any).requestBody || (node as any).request_body
-    if (typeof reqBody === 'string') {
-      try {
-        const parsed = JSON.parse(reqBody)
-        if (Array.isArray(parsed)) {
-          requestParams.bodyParams = parsed.map((p: any) => {
-            if (typeof p === 'object' && p.name !== undefined) {
-              return { name: p.name, value: p.value || '', description: p.description || '' }
-            }
-            return { name: String(p), value: '', description: '' }
-          })
-        } else {
-          requestParams.rawBody = reqBody
-        }
-      } catch {
-        requestParams.rawBody = reqBody
+    if (apiData.requestBody) {
+      if (typeof apiData.requestBody === 'object') {
+        requestParams.bodyParams = Object.entries(apiData.requestBody).map(([name, value]) => ({
+          name,
+          value: String(value),
+          description: ''
+        }))
+        requestParams.rawBody = JSON.stringify(apiData.requestBody, null, 2)
+      } else {
+        requestParams.bodyParams = []
+        requestParams.rawBody = String(apiData.requestBody)
       }
-    } else if (Array.isArray(reqBody)) {
-      requestParams.bodyParams = reqBody.map((p: any) => {
-        if (typeof p === 'object' && p.name !== undefined) {
-          return { name: p.name, value: p.value || '', description: p.description || '' }
-        }
-        return { name: String(p), value: '', description: '' }
-      })
     } else {
       requestParams.bodyParams = []
       requestParams.rawBody = ''
     }
 
+    requestParams.bodyType = apiData.requestBodyType || 'json'
     requestParams.formDataParams = []
+  }
+
+  // 从 ProjectTreeNode 同步（用于树节点点击时）
+  const syncFromNode = (node: any) => {
+    apiData.id = node.id
+    apiData.name = node.name || ''
+    apiData.description = node.description || ''
+    apiData.httpMethod = node.httpMethod || node.method || 'GET'
+    apiData.url = node.path || node.url || ''
+    apiData.status = node.status || 'active'
+
+    apiData.projectId = node.projectId || null
+    apiData.projectName = node.projectName || ''
+    apiData.moduleId = node.moduleId || null
+    apiData.moduleName = node.moduleName || ''
+
+    apiData.requestBodyType = node.requestBodyType || node.request_body_type || 'json'
+    apiData.creatorName = node.creatorName || node.creator_name || ''
+    apiData.createdAt = node.createdAt || node.created_time || ''
+    apiData.updatedAt = node.updatedAt || node.updated_time || ''
+
+    // 从 node 同步 headers/queryParams/requestBody
+    const headers = node.headers || node.requestHeaders || node.request_headers
+    if (typeof headers === 'string') {
+      try {
+        apiData.headers = JSON.parse(headers)
+      } catch {
+        apiData.headers = {}
+      }
+    } else if (typeof headers === 'object') {
+      apiData.headers = headers || {}
+    } else {
+      apiData.headers = {}
+    }
+
+    const queryParams = node.queryParams || node.requestParams || node.request_parameters
+    if (typeof queryParams === 'string') {
+      try {
+        apiData.queryParams = JSON.parse(queryParams)
+      } catch {
+        apiData.queryParams = {}
+      }
+    } else if (typeof queryParams === 'object') {
+      apiData.queryParams = queryParams || {}
+    } else {
+      apiData.queryParams = {}
+    }
+
+    const requestBody = node.requestBody || node.request_body
+    if (typeof requestBody === 'string') {
+      try {
+        apiData.requestBody = JSON.parse(requestBody)
+      } catch {
+        apiData.requestBody = requestBody
+      }
+    } else {
+      apiData.requestBody = requestBody
+    }
+
+    syncRequestParamsFromData()
+  }
+
+  // 加载 API 详情
+  const loadApiDetail = async (apiId: number) => {
+    loading.value = true
+    try {
+      const detail = await apiApi.getDetail(apiId)
+      syncFromDetail(detail)
+    } catch (e) {
+      console.error('加载 API 详情失败', e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 保存 API
+  const saveApi = async () => {
+    if (!apiData.id) return
+
+    saving.value = true
+    try {
+      // 构建请求数据
+      const data: any = {
+        name: apiData.name,
+        description: apiData.description,
+        httpMethod: apiData.httpMethod,
+        url: apiData.url,
+        requestBody: typeof apiData.requestBody === 'object' ? JSON.stringify(apiData.requestBody) : apiData.requestBody,
+        headers: typeof apiData.headers === 'object' ? JSON.stringify(apiData.headers) : apiData.headers,
+        queryParams: typeof apiData.queryParams === 'object' ? JSON.stringify(apiData.queryParams) : apiData.queryParams
+      }
+
+      await apiApi.update(apiData.id, data)
+    } finally {
+      saving.value = false
+    }
   }
 
   // 重置
@@ -187,30 +328,16 @@ export function useApiData() {
     Object.assign(requestParams, defaultRequestParams())
   }
 
-  // 保存（需要外部传入API）
-  const save = async (updateApi: (id: number, data: any) => Promise<any>) => {
-    if (!apiData.projectId) return
-    saving.value = true
-    try {
-      await updateApi(apiData.projectId, {
-        name: apiData.name,
-        path: apiData.path,
-        method: apiData.method,
-        description: apiData.description,
-        // ... 其他字段
-      })
-    } finally {
-      saving.value = false
-    }
-  }
-
   return {
     apiData,
     requestParams,
+    loading,
     saving,
+    syncFromDetail,
     syncFromNode,
-    syncRequestParams,
-    reset,
-    save
+    syncRequestParamsFromData,
+    loadApiDetail,
+    saveApi,
+    reset
   }
 }

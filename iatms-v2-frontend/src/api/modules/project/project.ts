@@ -87,5 +87,9 @@ export const projectApi = {
 
   getModuleDetail(moduleId: number): Promise<ModuleDetailVO> {
     return client.get(`/v1/modules/${moduleId}`)
+  },
+
+  getModulesByProject(projectId: number): Promise<ModuleDetailVO[]> {
+    return client.get(`/v1/projects/${projectId}/modules`)
   }
 }

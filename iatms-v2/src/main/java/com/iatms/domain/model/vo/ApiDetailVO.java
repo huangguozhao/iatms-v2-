@@ -22,13 +22,12 @@ public class ApiDetailVO {
     private String queryParams;
     private String requestBody;
     private String authConfig;
-    private String preScript;
-    private String postScript;
-    private String assertions;
     private Long collectionId;
     private String collectionName;
     private Long projectId;
     private String projectName;
+    private Long moduleId;
+    private String moduleName;
     private Integer orderNum;
     private String status;
     private LocalDateTime createdAt;

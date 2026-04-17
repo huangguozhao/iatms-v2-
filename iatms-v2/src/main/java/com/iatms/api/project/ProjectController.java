@@ -2,12 +2,14 @@ package com.iatms.api.project;
 
 import com.iatms.api.common.ApiResponse;
 import com.iatms.common.annotation.RequirePermission;
+import com.iatms.application.project.ModuleQueryService;
 import com.iatms.application.project.ProjectCommandService;
 import com.iatms.application.project.ProjectQueryService;
 import com.iatms.application.project.dto.command.CreateProjectCmd;
 import com.iatms.application.project.dto.command.UpdateProjectCmd;
 import com.iatms.application.project.dto.query.ProjectQuery;
 import com.iatms.domain.model.enums.ProjectPermission;
+import com.iatms.domain.model.vo.ModuleDetailVO;
 import com.iatms.domain.model.vo.ProjectDetailVO;
 import com.iatms.domain.model.vo.ProjectSummaryVO;
 import jakarta.validation.Valid;
@@ -28,6 +30,7 @@ public class ProjectController {
 
     private final ProjectCommandService projectCommandService;
     private final ProjectQueryService projectQueryService;
+    private final ModuleQueryService moduleQueryService;
 
     /**
      * 创建项目
@@ -152,5 +155,14 @@ public class ProjectController {
 
         projectCommandService.updateMemberRole(projectId, userId, role, operatorId);
         return ApiResponse.success();
+    }
+
+    /**
+     * 获取项目下的所有模块
+     */
+    @GetMapping("/{projectId}/modules")
+    public ApiResponse<List<ModuleDetailVO>> getProjectModules(@PathVariable Long projectId) {
+        List<ModuleDetailVO> result = moduleQueryService.getModulesByProject(projectId);
+        return ApiResponse.success(result);
     }
 }

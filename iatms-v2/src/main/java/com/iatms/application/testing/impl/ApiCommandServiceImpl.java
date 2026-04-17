@@ -50,9 +50,6 @@ public class ApiCommandServiceImpl implements ApiCommandService {
         api.setQueryParams(cmd.getQueryParams());
         api.setRequestBody(cmd.getRequestBody());
         api.setAuthConfig(cmd.getAuthConfig());
-        api.setPreScript(cmd.getPreScript());
-        api.setPostScript(cmd.getPostScript());
-        api.setAssertions(cmd.getAssertions());
         api.setOrderNum(cmd.getOrderNum());
         api.setStatus(cmd.getStatus());
         api.setCreatedBy(userId);
@@ -84,9 +81,6 @@ public class ApiCommandServiceImpl implements ApiCommandService {
         if (cmd.getQueryParams() != null) api.setQueryParams(cmd.getQueryParams());
         if (cmd.getRequestBody() != null) api.setRequestBody(cmd.getRequestBody());
         if (cmd.getAuthConfig() != null) api.setAuthConfig(cmd.getAuthConfig());
-        if (cmd.getPreScript() != null) api.setPreScript(cmd.getPreScript());
-        if (cmd.getPostScript() != null) api.setPostScript(cmd.getPostScript());
-        if (cmd.getAssertions() != null) api.setAssertions(cmd.getAssertions());
         if (cmd.getOrderNum() != null) api.setOrderNum(cmd.getOrderNum());
         if (cmd.getStatus() != null) api.setStatus(cmd.getStatus());
 
@@ -134,9 +128,6 @@ public class ApiCommandServiceImpl implements ApiCommandService {
                 .queryParams(api.getQueryParams())
                 .requestBody(api.getRequestBody())
                 .authConfig(api.getAuthConfig())
-                .preScript(api.getPreScript())
-                .postScript(api.getPostScript())
-                .assertions(api.getAssertions())
                 .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
                 .collectionName(collection != null ? collection.getName() : null)
                 .projectId(collection != null && collection.getProjectId() != null ? collection.getProjectId().longValue() : null)

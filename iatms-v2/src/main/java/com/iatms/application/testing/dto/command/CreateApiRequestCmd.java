@@ -34,12 +34,6 @@ public class CreateApiRequestCmd {
 
     private String authConfig;
 
-    private String preScript;
-
-    private String postScript;
-
-    private String assertions;
-
     private Integer orderNum = 0;
 
     private String status = "DRAFT";

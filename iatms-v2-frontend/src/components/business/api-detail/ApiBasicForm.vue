@@ -20,7 +20,7 @@
         </el-select>
       </div>
 
-      <!-- 模块选择 -->
+      <!-- 所属模块 -->
       <div class="form-section">
         <div class="section-title">所属模块</div>
         <el-select
@@ -28,6 +28,7 @@
           placeholder="请选择模块"
           class="form-select"
           :loading="modulesLoading"
+          @change="onModuleChange"
         >
           <el-option
             v-for="module in availableModules"
@@ -47,21 +48,15 @@
       <!-- 接口路径 -->
       <div class="form-section">
         <div class="section-title">接口路径</div>
-        <el-input v-model="localApiData.path" placeholder="如：/api/user/login" />
+        <el-input v-model="localApiData.url" placeholder="如：/api/user/login" />
       </div>
 
       <!-- 请求方法 -->
       <div class="form-section">
         <div class="section-title">请求方法</div>
-        <el-radio-group v-model="localApiData.method">
+        <el-radio-group v-model="localApiData.httpMethod">
           <el-radio v-for="m in methods" :key="m" :label="m">{{ m }}</el-radio>
         </el-radio-group>
-      </div>
-
-      <!-- Base URL -->
-      <div class="form-section">
-        <div class="section-title">Base URL</div>
-        <el-input v-model="localApiData.baseUrl" placeholder="如：https://api.example.com" />
       </div>
 
       <!-- 接口描述 -->
@@ -140,7 +135,7 @@ const props = defineProps({
   modulesLoading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['project-change', 'save', 'test', 'delete'])
+const emit = defineEmits(['project-change', 'module-change', 'save', 'test', 'delete'])
 
 const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 
@@ -165,7 +160,16 @@ watch(
 )
 
 function onProjectChange(val: number) {
+  // 切换项目时，清空模块选择
+  localApiData.moduleId = null
+  localApiData.moduleName = ''
   emit('project-change', val)
+}
+
+function onModuleChange(val: number) {
+  const module = availableModules.find(m => m.id === val)
+  localApiData.moduleName = module?.name || ''
+  emit('module-change', val)
 }
 
 function addTag() {
@@ -208,6 +212,17 @@ function removeTag(index: number) {
 
 .form-select {
   width: 100%;
+}
+
+.readonly-field {
+  padding: 0 11px;
+  height: 32px;
+  line-height: 32px;
+  color: #606266;
+  font-size: 14px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  border: 1px solid #dcdfe6;
 }
 
 .form-actions {

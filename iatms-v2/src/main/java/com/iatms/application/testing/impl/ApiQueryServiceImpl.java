@@ -112,6 +112,12 @@ public class ApiQueryServiceImpl implements ApiQueryService {
         ApiCollection collection = collectionMapper.selectById(api.getCollectionId());
         User creator = userMapper.selectById(api.getCreatedBy());
 
+        // 获取模块信息
+        Module module = null;
+        if (api.getModuleId() != null) {
+            module = moduleMapper.selectById(api.getModuleId());
+        }
+
         return ApiDetailVO.builder()
                 .id(api.getId())
                 .name(api.getName())
@@ -123,13 +129,12 @@ public class ApiQueryServiceImpl implements ApiQueryService {
                 .queryParams(api.getQueryParams())
                 .requestBody(api.getRequestBody())
                 .authConfig(api.getAuthConfig())
-                .preScript(api.getPreScript())
-                .postScript(api.getPostScript())
-                .assertions(api.getAssertions())
                 .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
                 .collectionName(collection != null ? collection.getName() : null)
                 .projectId(collection != null && collection.getProjectId() != null ? collection.getProjectId().longValue() : null)
                 .projectName(null)
+                .moduleId(api.getModuleId() != null ? api.getModuleId().longValue() : null)
+                .moduleName(module != null ? module.getName() : null)
                 .orderNum(api.getOrderNum())
                 .status(api.getStatus())
                 .createdAt(api.getCreatedAt())
@@ -288,7 +293,6 @@ public class ApiQueryServiceImpl implements ApiQueryService {
                 .headers(api.getHeaders())
                 .queryParams(api.getQueryParams())
                 .requestBody(api.getRequestBody())
-                .assertions(api.getAssertions())
                 .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
                 .orderNum(api.getOrderNum())
                 .status(api.getStatus())

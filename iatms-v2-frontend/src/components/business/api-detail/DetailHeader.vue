@@ -3,9 +3,6 @@
     <div class="header-left">
       <h2 class="api-title">
         {{ apiData.name || '未知接口' }}
-        <el-tag v-if="apiData.apiCode" size="small" class="api-code-tag">
-          {{ apiData.apiCode }}
-        </el-tag>
       </h2>
 
       <div v-if="apiData.description" class="api-description">
@@ -24,8 +21,7 @@
       </div>
 
       <div class="api-info-line">
-        <span v-if="apiData.baseUrl" class="api-base-url">{{ apiData.baseUrl }}</span>
-        <code class="api-path">{{ apiData.path || '-' }}</code>
+        <code class="api-path">{{ apiData.url || '-' }}</code>
         <el-tooltip content="复制路径" placement="top">
           <button class="copy-path-btn" @click.stop="copyPath">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -34,8 +30,8 @@
             </svg>
           </button>
         </el-tooltip>
-        <span class="method-tag" :class="'method-' + (apiData.method || '').toLowerCase()">
-          {{ apiData.method || '-' }}
+        <span class="method-tag" :class="'method-' + (apiData.httpMethod || '').toLowerCase()">
+          {{ apiData.httpMethod || '-' }}
         </span>
         <el-tag :type="getApiStatusTagType(apiData.status)" size="small">
           {{ getApiStatusText(apiData.status) }}
@@ -48,10 +44,6 @@
           <span class="meta-label">认证方式：</span>
           <span class="meta-value">{{ getAuthTypeText(apiData.authType) }}</span>
         </span>
-        <span v-if="apiData.authConfig" class="meta-item">
-          <span class="meta-label">认证配置：</span>
-          <span class="meta-value">{{ formatAuthConfig(apiData.authConfig) }}</span>
-        </span>
         <span class="meta-item">
           <span class="meta-label">超时时间：</span>
           <span class="meta-value">{{ apiData.timeoutSeconds || 30 }}秒</span>
@@ -59,10 +51,6 @@
         <span class="meta-item">
           <span class="meta-label">请求体类型：</span>
           <span class="meta-value">{{ apiData.requestBodyType || '-' }}</span>
-        </span>
-        <span class="meta-item">
-          <span class="meta-label">响应体类型：</span>
-          <span class="meta-value">{{ apiData.responseBodyType || 'json' }}</span>
         </span>
       </div>
     </div>
@@ -108,7 +96,6 @@ import {
   getApiStatusTagType,
   getApiStatusText,
   getAuthTypeText,
-  formatAuthConfig,
   formatDateTime
 } from '@/utils/formatters'
 import type { ApiData } from '@/composables/useApiData'
@@ -127,9 +114,8 @@ defineProps({
 defineEmits(['save', 'execute', 'refresh'])
 
 async function copyPath() {
-  // TODO: 获取实际路径
   try {
-    await navigator.clipboard.writeText('')
+    await navigator.clipboard.writeText(apiData.url || '')
     ElMessage.success('路径已复制')
   } catch {
     ElMessage.error('复制失败')
@@ -161,11 +147,6 @@ async function copyPath() {
   gap: 8px;
 }
 
-.api-code-tag {
-  font-size: 12px;
-  font-weight: normal;
-}
-
 .api-description {
   color: #606266;
   font-size: 14px;
@@ -191,14 +172,6 @@ async function copyPath() {
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 12px;
-}
-
-.api-base-url {
-  background: #f5f7fa;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #606266;
 }
 
 .api-path {

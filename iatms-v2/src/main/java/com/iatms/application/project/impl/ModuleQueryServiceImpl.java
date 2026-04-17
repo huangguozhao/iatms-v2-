@@ -175,4 +175,37 @@ public class ModuleQueryServiceImpl implements ModuleQueryService {
                         .build())
                 .build();
     }
+
+    @Override
+    public List<ModuleDetailVO> getModulesByProject(Long projectId) {
+        List<Module> modules = moduleMapper.selectList(
+                new LambdaQueryWrapper<Module>()
+                        .eq(Module::getProjectId, projectId.intValue())
+                        .eq(Module::getIsDeleted, false)
+                        .orderByAsc(Module::getSortOrder)
+                        .orderByDesc(Module::getCreatedAt)
+        );
+        return modules.stream().map(module -> {
+            Project proj = projectMapper.selectById(module.getProjectId());
+            String parentName = null;
+            if (module.getParentModuleId() != null) {
+                Module parent = moduleMapper.selectById(module.getParentModuleId());
+                if (parent != null) parentName = parent.getName();
+            }
+            return ModuleDetailVO.builder()
+                    .id(module.getModuleId().longValue())
+                    .name(module.getName())
+                    .code(module.getModuleCode())
+                    .projectId(module.getProjectId() != null ? module.getProjectId().longValue() : null)
+                    .projectName(proj != null ? proj.getName() : null)
+                    .parentId(module.getParentModuleId() != null ? module.getParentModuleId().longValue() : null)
+                    .parentName(parentName)
+                    .description(module.getDescription())
+                    .status(module.getStatus())
+                    .ownerId(module.getOwnerId() != null ? module.getOwnerId().longValue() : null)
+                    .createdAt(module.getCreatedAt())
+                    .updatedAt(module.getUpdatedAt())
+                    .build();
+        }).collect(Collectors.toList());
+    }
 }
