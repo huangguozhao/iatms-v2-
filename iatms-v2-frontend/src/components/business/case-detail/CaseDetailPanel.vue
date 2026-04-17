@@ -25,8 +25,9 @@
         :display-history="displayHistory"
         :execution-history-loading="executionHistoryLoading"
         :execution-history-total="executionHistoryTotal"
+        :case-id="testCase?.id"
         @view-history-detail="$emit('view-history-detail', $event)"
-        @view-more-history="$emit('view-more-history')"
+        @view-more-history="$emit('view-more-history', $event)"
       />
     </div>
   </div>

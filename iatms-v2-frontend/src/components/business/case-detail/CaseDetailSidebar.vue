@@ -62,7 +62,7 @@
             size="small"
             text
             :icon="View"
-            @click="$emit('view-more-history')"
+            @click="$emit('view-more-history', props.caseId)"
             class="view-more-btn"
           >
             查看更多执行历史 (共{{ executionHistoryTotal }}条)
@@ -124,17 +124,19 @@ interface Props {
   displayHistory?: ExecutionHistory[]
   executionHistoryLoading?: boolean
   executionHistoryTotal?: number
+  caseId?: number | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   displayHistory: () => [],
   executionHistoryLoading: false,
-  executionHistoryTotal: 0
+  executionHistoryTotal: 0,
+  caseId: null
 })
 
 defineEmits<{
   'view-history-detail': [history: ExecutionHistory]
-  'view-more-history': []
+  'view-more-history': [caseId: number | null]
 }>()
 
 // 是否显示"查看更多"按钮

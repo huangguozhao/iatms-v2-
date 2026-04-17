@@ -189,6 +189,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search, Refresh, Link, Document, Folder, FolderOpened,
@@ -200,6 +201,8 @@ import { CaseDetailPanel, ExecuteConfigDialog, ExecutionResultDialog } from '@/c
 import { ApiDetailPanel } from '@/components/business/api-detail'
 import { ProjectModuleStats } from '@/components/business/project-detail'
 import type { ExecuteConfig, ExecutionResult } from '@/types/components'
+
+const router = useRouter()
 
 // 状态
 const sidebarCollapsed = ref(false)
@@ -364,7 +367,7 @@ async function handleNodeClick(data: ProjectTreeNode) {
       // 转换执行历史字段以匹配前端期望的格式
       // 注意：响应拦截器已直接返回 data 数组，不需要再访问 .data
       const rawHistory = Array.isArray(historyData) ? historyData : []
-      executionHistory.value = rawHistory.map((item: any) => ({
+      const allHistory = rawHistory.map((item: any) => ({
         status: item.status,
         executor: item.executedBy?.toString() || '未知',
         executorName: item.scopeName || '未知',
@@ -379,7 +382,9 @@ async function handleNodeClick(data: ProjectTreeNode) {
         durationSeconds: item.durationSeconds || item.duration || 0,
         duration: item.durationSeconds || item.duration || 0
       }))
-      executionHistoryTotal.value = executionHistory.value.length
+      // 侧边栏只显示最新3条
+      executionHistory.value = allHistory.slice(0, 3)
+      executionHistoryTotal.value = allHistory.length
     } catch (e: any) {
       ElMessage.error('加载用例详情失败: ' + (e.message || '未知错误'))
     } finally {
@@ -557,8 +562,10 @@ function handleViewHistoryDetail(history: any) {
 }
 
 // 查看更多执行历史
-function handleViewMoreHistory() {
-  ElMessage.info('查看更多执行历史功能开发中')
+function handleViewMoreHistory(caseId: number | null) {
+  if (caseId) {
+    router.push({ path: '/executions', query: { caseId: String(caseId) } })
+  }
 }
 
 // 从配置对话框执行
