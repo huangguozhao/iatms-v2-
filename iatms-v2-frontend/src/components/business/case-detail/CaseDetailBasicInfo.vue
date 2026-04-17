@@ -189,7 +189,33 @@ const displayTestData = computed(() => {
     (props.testCase as any)?.preConditions ||
     (props.testCase as any)?.pre_conditions
 
-  if (!data) return []
+  if (!data) {
+    // 尝试从 requestOverride 中解析测试数据
+    const requestOverride = (props.testCase as any)?.requestOverride
+    if (requestOverride) {
+      try {
+        const parsed = typeof requestOverride === 'string' ? JSON.parse(requestOverride) : requestOverride
+        const items: { label: string; value: string }[] = []
+        if (parsed.queryParams && Array.isArray(parsed.queryParams)) {
+          parsed.queryParams.forEach((p: any) => {
+            if (p.name) {
+              items.push({ label: `query.${p.name}`, value: p.value || '' })
+            }
+          })
+        }
+        if (parsed.headers && typeof parsed.headers === 'object') {
+          Object.entries(parsed.headers).forEach(([key, val]) => {
+            items.push({ label: `header.${key}`, value: String(val) })
+          })
+        }
+        if (parsed.body) {
+          items.push({ label: 'body', value: typeof parsed.body === 'object' ? JSON.stringify(parsed.body) : String(parsed.body) })
+        }
+        if (items.length > 0) return items
+      } catch {}
+    }
+    return []
+  }
 
   if (typeof data === 'object') {
     return Object.entries(data).map(([key, value]) => ({

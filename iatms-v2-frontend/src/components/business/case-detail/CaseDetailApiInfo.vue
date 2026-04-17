@@ -200,7 +200,8 @@ function getStatusCodeType(code: number | string | undefined): 'success' | 'warn
 // 格式化预期响应
 function formatExpectedResponse(): string {
   const response = (props.testCase as any)?.expectedResponse ||
-    (props.testCase as any)?.expected_response
+    (props.testCase as any)?.expected_response ||
+    (props.testCase as any)?.expectedResponseBody
 
   if (!response) return '{}'
 
