@@ -4,21 +4,46 @@
       <!-- 工具栏 -->
       <div class="cases-toolbar">
         <div class="toolbar-left">
-          <el-select v-model="filter.type" placeholder="测试类型" size="small" clearable>
-            <el-option v-for="t in testTypeOptions" :key="t.value" :label="t.label" :value="t.value" />
+          <el-select v-model="filter.type" placeholder="所有测试类型" size="small" style="width: 150px;" clearable>
+            <el-option
+              v-for="option in testTypeOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
           </el-select>
-          <el-select v-model="filter.priority" placeholder="优先级" size="small" clearable>
-            <el-option v-for="p in priorityOptions" :key="p.value" :label="p.label" :value="p.value" />
+          <el-select v-model="filter.priority" placeholder="所有优先级" size="small" style="width: 130px;" clearable>
+            <el-option
+              v-for="option in priorityOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
           </el-select>
-          <el-select v-model="filter.sortBy" size="small">
-            <el-option v-for="s in sortOptions" :key="s.value" :label="s.label" :value="s.value" />
+          <el-select v-model="filter.sortBy" placeholder="默认排序" size="small" style="width: 130px;">
+            <el-option
+              v-for="option in sortOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
           </el-select>
         </div>
         <div class="toolbar-right">
           <el-button type="primary" size="small" @click="showAddDialog">
             + 添加测试用例
           </el-button>
-          <el-input v-model="searchText" placeholder="搜索..." size="small" style="width: 180px" clearable />
+          <el-input
+            v-model="searchText"
+            placeholder="搜索测试用例..."
+            size="small"
+            style="width: 200px;"
+            clearable
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
         </div>
       </div>
 
@@ -95,7 +120,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
-import { Document } from '@element-plus/icons-vue'
+import { Document, Search, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { ProjectTreeNode } from '@/api/modules/testing/testCase'
 import { truncateText } from '@/utils/formatters'
@@ -119,7 +144,7 @@ const addDialogVisible = ref(false)
 const filter = reactive({
   type: '',
   priority: '',
-  sortBy: ''
+  sortBy: 'default'
 })
 
 const pagination = reactive({
@@ -127,38 +152,82 @@ const pagination = reactive({
   pageSize: 10
 })
 
-// 选项
+// 选项 - 与旧前端保持一致
 const testTypeOptions = [
+  { label: '所有测试类型', value: '' },
   { label: '功能测试', value: 'functional' },
-  { label: '性能测试', value: 'performance' },
+  { label: '边界测试', value: 'boundary' },
+  { label: '异常测试', value: 'exception' },
   { label: '安全测试', value: 'security' },
-  { label: '集成测试', value: 'integration' }
+  { label: '性能测试', value: 'performance' },
+  { label: '集成测试', value: 'integration' },
+  { label: '冒烟测试', value: 'smoke' },
+  { label: '回归测试', value: 'regression' }
 ]
 
 const priorityOptions = [
-  { label: 'P0', value: 'P0' },
-  { label: 'P1', value: 'P1' },
-  { label: 'P2', value: 'P2' },
-  { label: 'P3', value: 'P3' }
+  { label: '所有优先级', value: '' },
+  { label: 'P0（最高）', value: 'P0' },
+  { label: 'P1（高）', value: 'P1' },
+  { label: 'P2（中）', value: 'P2' },
+  { label: 'P3（低）', value: 'P3' }
 ]
 
 const sortOptions = [
-  { label: '默认排序', value: '' },
-  { label: '按名称', value: 'name' },
-  { label: '按优先级', value: 'priority' },
-  { label: '按创建时间', value: 'createdAt' }
+  { label: '默认排序', value: 'default' },
+  { label: '按名称升序', value: 'name_asc' },
+  { label: '按名称降序', value: 'name_desc' },
+  { label: '按创建时间降序', value: 'created_desc' },
+  { label: '按更新时间降序', value: 'updated_desc' }
 ]
 
 // 计算
 const filteredCases = computed(() => {
-  let cases = props.relatedCases || []
+  let cases = [...(props.relatedCases || [])]
 
+  // 类型筛选
+  if (filter.type) {
+    cases = cases.filter((c: any) => c.testType === filter.type)
+  }
+
+  // 优先级筛选
   if (filter.priority) {
     cases = cases.filter((c: any) => c.priority === filter.priority)
   }
+
+  // 搜索
   if (searchText.value) {
     const search = searchText.value.toLowerCase()
-    cases = cases.filter((c: any) => c.name?.toLowerCase().includes(search))
+    cases = cases.filter((c: any) =>
+      c.name?.toLowerCase().includes(search) ||
+      c.description?.toLowerCase().includes(search)
+    )
+  }
+
+  // 排序
+  const priorityOrder: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 }
+  switch (filter.sortBy) {
+    case 'name_asc':
+      cases.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      break
+    case 'name_desc':
+      cases.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
+      break
+    case 'created_desc':
+      cases.sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
+      break
+    case 'updated_desc':
+      // updatedAt 暂无，用 id 代替
+      cases.sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
+      break
+    default:
+      // 默认排序：优先级降序，然后按名称升序
+      cases.sort((a, b) => {
+        const aP = priorityOrder[a.priority ?? ''] ?? 999
+        const bP = priorityOrder[b.priority ?? ''] ?? 999
+        if (aP !== bP) return aP - bP
+        return (a.name || '').localeCompare(b.name || '')
+      })
   }
 
   return cases
@@ -169,27 +238,35 @@ const total = computed(() => filteredCases.value.length)
 // 方法
 function getTestTypeTagType(type?: string): string {
   const map: Record<string, string> = {
-    functional: '',
-    performance: 'warning',
-    security: 'danger',
-    integration: 'success'
+    functional: 'primary',
+    boundary: 'warning',
+    exception: 'danger',
+    security: 'success',
+    performance: 'info',
+    integration: 'primary',
+    smoke: 'success',
+    regression: 'warning'
   }
-  return map[type || ''] || 'info'
+  return map[type || ''] || ''
 }
 
 function getTestTypeText(type?: string): string {
   const map: Record<string, string> = {
     functional: '功能',
-    performance: '性能',
+    boundary: '边界',
+    exception: '异常',
     security: '安全',
-    integration: '集成'
+    performance: '性能',
+    integration: '集成',
+    smoke: '冒烟',
+    regression: '回归'
   }
   return map[type || ''] || type || '-'
 }
 
 function getPriorityTagType(priority?: string): string {
-  const map: Record<string, string> = { P0: 'danger', P1: 'danger', P2: 'warning', P3: 'info' }
-  return map[priority || ''] || 'warning'
+  const map: Record<string, string> = { P0: 'danger', P1: 'warning', P2: '', P3: 'info' }
+  return map[priority || ''] || ''
 }
 
 function formatTestData(row: any): string {
@@ -255,7 +332,7 @@ function toggleStatus(row: any) {
 .toolbar-left,
 .toolbar-right {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
