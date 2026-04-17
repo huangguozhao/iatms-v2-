@@ -93,10 +93,20 @@
           <span>测试数据</span>
         </div>
       </template>
-      <div v-if="displayTestData.length > 0" class="data-grid">
-        <div v-for="(item, index) in displayTestData" :key="index" class="data-item">
-          <span class="data-label">{{ item.label }}</span>
-          <span class="data-value">{{ item.value }}</span>
+      <div v-if="displayTestDataGroups.length > 0" class="data-groups">
+        <div v-for="(group, gIndex) in displayTestDataGroups" :key="gIndex" class="data-group">
+          <div class="group-title">{{ group.title }}</div>
+          <div v-if="group.items && group.items.length > 0" class="group-items">
+            <div v-for="(item, iIndex) in group.items" :key="iIndex" class="group-item">
+              <span class="item-key">{{ item.key }}</span>
+              <span class="item-sep">=</span>
+              <span class="item-value">{{ item.value }}</span>
+            </div>
+          </div>
+          <div v-else-if="group.content" class="group-content">
+            <pre>{{ group.content }}</pre>
+          </div>
+          <div v-else class="group-empty">无</div>
         </div>
       </div>
       <el-empty v-else description="暂无测试数据" :image-size="60" />
@@ -108,6 +118,12 @@
 import { computed } from 'vue'
 import { Document, PriceTag, List, Grid } from '@element-plus/icons-vue'
 import type { TestCaseDetailVO } from '@/types/api'
+
+interface TestDataGroup {
+  title: string
+  items?: { key: string; value: string }[]
+  content?: string
+}
 
 interface TestStep {
   operation?: string
@@ -182,80 +198,116 @@ const displaySteps = computed((): TestStep[] => {
   return []
 })
 
-// 显示测试数据
-const displayTestData = computed(() => {
+// 显示测试数据（按类型分组）
+const displayTestDataGroups = computed((): TestDataGroup[] => {
+  const groups: TestDataGroup[] = []
+
+  // 1. 尝试从 requestParams（JSON数组格式）解析查询参数
+  const requestParams = (props.testCase as any)?.requestParams
+  if (requestParams) {
+    try {
+      const parsed = typeof requestParams === 'string' ? JSON.parse(requestParams) : requestParams
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const items: { key: string; value: string }[] = []
+        parsed.forEach((p: any) => {
+          if (p.name) {
+            items.push({ key: p.name, value: p.value || '' })
+          }
+        })
+        if (items.length > 0) {
+          groups.push({ title: '查询参数', items })
+        }
+      }
+    } catch {}
+  }
+
+  // 2. 尝试从 requestOverride 中解析
+  const requestOverride = (props.testCase as any)?.requestOverride
+  if (requestOverride) {
+    try {
+      const parsed = typeof requestOverride === 'string' ? JSON.parse(requestOverride) : requestOverride
+
+      // queryParams
+      if (parsed.queryParams && Array.isArray(parsed.queryParams) && parsed.queryParams.length > 0) {
+        const items: { key: string; value: string }[] = []
+        parsed.queryParams.forEach((p: any) => {
+          if (p.name) {
+            items.push({ key: p.name, value: p.value || '' })
+          }
+        })
+        if (items.length > 0) {
+          groups.push({ title: '查询参数', items })
+        }
+      }
+
+      // headers
+      if (parsed.headers && typeof parsed.headers === 'object') {
+        const entries = Object.entries(parsed.headers)
+        if (entries.length > 0) {
+          const items: { key: string; value: string }[] = []
+          entries.forEach(([key, val]) => {
+            items.push({ key, value: String(val) })
+          })
+          groups.push({ title: '请求头', items })
+        }
+      }
+
+      // body
+      if (parsed.body) {
+        const content = typeof parsed.body === 'object' ? JSON.stringify(parsed.body, null, 2) : String(parsed.body)
+        groups.push({ title: '请求体', content })
+      }
+    } catch {}
+  }
+
+  // 3. 尝试从 requestBody 直接获取
+  const requestBody = (props.testCase as any)?.requestBody
+  if (requestBody && !groups.some(g => g.title === '请求体')) {
+    try {
+      const content = typeof requestBody === 'object' ? JSON.stringify(requestBody, null, 2) : requestBody
+      if (content && content.trim()) {
+        groups.push({ title: '请求体', content })
+      }
+    } catch {}
+  }
+
+  // 4. 尝试从 testData / pre_conditions 获取
   const data = (props.testCase as any)?.testData ||
     (props.testCase as any)?.test_data ||
     (props.testCase as any)?.preConditions ||
     (props.testCase as any)?.pre_conditions
-
-  if (!data) {
-    // 尝试从 requestParams（JSON数组格式）解析
-    const requestParams = (props.testCase as any)?.requestParams
-    if (requestParams) {
-      try {
-        const parsed = typeof requestParams === 'string' ? JSON.parse(requestParams) : requestParams
-        if (Array.isArray(parsed)) {
-          const items: { label: string; value: string }[] = []
-          parsed.forEach((p: any) => {
-            if (p.name) {
-              items.push({ label: `[查询参数] ${p.name}`, value: p.value || '' })
-            }
-          })
-          if (items.length > 0) return items
-        }
-      } catch {}
-    }
-
-    // 尝试从 requestOverride 中解析测试数据
-    const requestOverride = (props.testCase as any)?.requestOverride
-    if (requestOverride) {
-      try {
-        const parsed = typeof requestOverride === 'string' ? JSON.parse(requestOverride) : requestOverride
-        const items: { label: string; value: string }[] = []
-        if (parsed.queryParams && Array.isArray(parsed.queryParams)) {
-          parsed.queryParams.forEach((p: any) => {
-            if (p.name) {
-              items.push({ label: `[查询参数] ${p.name}`, value: p.value || '' })
-            }
-          })
-        }
-        if (parsed.headers && typeof parsed.headers === 'object') {
-          Object.entries(parsed.headers).forEach(([key, val]) => {
-            items.push({ label: `[请求头] ${key}`, value: String(val) })
-          })
-        }
-        if (parsed.body) {
-          items.push({ label: '[请求体]', value: typeof parsed.body === 'object' ? JSON.stringify(parsed.body) : String(parsed.body) })
-        }
-        if (items.length > 0) return items
-      } catch {}
-    }
-    return []
-  }
-
-  if (typeof data === 'object') {
-    return Object.entries(data).map(([key, value]) => ({
-      label: key,
-      value: typeof value === 'object' ? JSON.stringify(value) : String(value)
-    }))
-  }
-
-  if (typeof data === 'string') {
-    try {
-      const parsed = JSON.parse(data)
-      if (typeof parsed === 'object') {
-        return Object.entries(parsed).map(([key, value]) => ({
-          label: key,
-          value: typeof value === 'object' ? JSON.stringify(value) : String(value)
-        }))
+  if (data) {
+    if (typeof data === 'object') {
+      const entries = Object.entries(data)
+      if (entries.length > 0) {
+        groups.push({
+          title: '测试数据',
+          items: entries.map(([key, value]) => ({
+            key,
+            value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+          }))
+        })
       }
-    } catch {
-      return []
+    } else if (typeof data === 'string' && data.trim()) {
+      try {
+        const parsed = JSON.parse(data)
+        if (typeof parsed === 'object') {
+          const entries = Object.entries(parsed)
+          groups.push({
+            title: '测试数据',
+            items: entries.map(([key, value]) => ({
+              key,
+              value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+            }))
+          })
+        }
+      } catch {
+        groups.push({ title: '测试数据', content: data })
+      }
     }
   }
 
-  return []
+  return groups
 })
 
 // 格式化时间
@@ -459,35 +511,78 @@ $bg-lighter: #fafafa;
   color: #f56c6c;
 }
 
-.data-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+.data-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.data-item {
+.data-group {
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.group-title {
+  background: linear-gradient(135deg, #409eff 0%, #3b82f6 100%);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+}
+
+.group-items {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  background-color: $bg-lighter;
+}
+
+.group-item {
+  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px;
-  border: 1px solid $border-color;
-  border-radius: calc($card-radius - 6px);
-  background-color: $bg-lighter;
+  padding: 8px 14px;
+  border-bottom: 1px solid $border-color;
   font-size: 13px;
-  word-break: break-all;
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
-.data-label {
+.item-key {
   font-weight: 500;
-  color: $text-secondary;
+  color: $text-primary;
   flex-shrink: 0;
 }
 
-.data-value {
+.item-sep {
+  color: #c0c4cc;
+  flex-shrink: 0;
+}
+
+.item-value {
   color: $text-secondary;
-  font-size: 13px;
   word-break: break-all;
+}
+
+.group-content {
+  padding: 12px 14px;
+  background-color: $bg-lighter;
+  font-size: 13px;
+}
+
+.group-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: $text-secondary;
+}
+
+.group-empty {
+  padding: 8px 14px;
+  color: $text-placeholder;
+  font-size: 13px;
+  background-color: $bg-lighter;
 }
 
 @media (max-width: 768px) {
