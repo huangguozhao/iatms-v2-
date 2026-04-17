@@ -52,8 +52,7 @@ public abstract class BaseEntity {
     private Boolean deleted = false;
 
     /**
-     * 版本号（乐观锁）
+     * 版本号（用于记录版本，不用于乐观锁）
      */
-    @Version
     private Integer version;
 }
