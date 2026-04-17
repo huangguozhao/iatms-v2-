@@ -124,9 +124,10 @@ public class ApiQueryServiceImpl implements ApiQueryService {
                 .description(api.getDescription())
                 .requestType(api.getRequestType())
                 .httpMethod(api.getHttpMethod())
-                .url(api.getUrl())
-                .headers(api.getHeaders())
-                .queryParams(api.getQueryParams())
+                .url(buildUrl(api.getBaseUrl(), api.getPath()))
+                .baseUrl(api.getBaseUrl())
+                .headers(api.getRequestHeaders())
+                .queryParams(api.getRequestParameters())
                 .requestBody(api.getRequestBody())
                 .authConfig(api.getAuthConfig())
                 .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
@@ -137,6 +138,10 @@ public class ApiQueryServiceImpl implements ApiQueryService {
                 .moduleName(module != null ? module.getName() : null)
                 .orderNum(api.getOrderNum())
                 .status(api.getStatus())
+                .requestBodyType(api.getRequestBodyType())
+                .responseBodyType(api.getResponseBodyType())
+                .tags(api.getTags())
+                .timeoutSeconds(api.getTimeoutSeconds())
                 .createdAt(api.getCreatedAt())
                 .updatedAt(api.getUpdatedAt())
                 .createdBy(api.getCreatedBy())
@@ -289,16 +294,28 @@ public class ApiQueryServiceImpl implements ApiQueryService {
                 .description(api.getDescription())
                 .requestType(api.getRequestType())
                 .httpMethod(api.getHttpMethod())
-                .url(api.getUrl())
-                .headers(api.getHeaders())
-                .queryParams(api.getQueryParams())
+                .url(buildUrl(api.getBaseUrl(), api.getPath()))
+                .headers(api.getRequestHeaders())
+                .queryParams(api.getRequestParameters())
                 .requestBody(api.getRequestBody())
+                .authConfig(api.getAuthConfig())
                 .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
                 .orderNum(api.getOrderNum())
                 .status(api.getStatus())
+                .requestBodyType(api.getRequestBodyType())
+                .responseBodyType(api.getResponseBodyType())
+                .tags(api.getTags())
+                .timeoutSeconds(api.getTimeoutSeconds())
                 .createdAt(api.getCreatedAt())
                 .updatedAt(api.getUpdatedAt())
                 .build();
+    }
+
+    private String buildUrl(String baseUrl, String path) {
+        if (baseUrl == null && path == null) return "";
+        String base = baseUrl != null ? baseUrl : "";
+        String p = path != null ? path : "";
+        return base + p;
     }
 
     private List<?> buildApiTree(List<ApiCollection> collections, List<ApiRequest> apis) {

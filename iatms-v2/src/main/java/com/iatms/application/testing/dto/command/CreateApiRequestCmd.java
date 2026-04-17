@@ -26,7 +26,11 @@ public class CreateApiRequestCmd {
     @NotBlank(message = "请求URL不能为空")
     private String url;
 
-    private String headers;
+    private String path;
+
+    private String baseUrl;
+
+    private String requestHeaders;
 
     private String queryParams;
 
@@ -37,4 +41,14 @@ public class CreateApiRequestCmd {
     private Integer orderNum = 0;
 
     private String status = "DRAFT";
+
+    private Boolean isEnabled;
+
+    private String requestBodyType;
+
+    private String responseBodyType;
+
+    private String tags;
+
+    private Integer timeoutSeconds;
 }

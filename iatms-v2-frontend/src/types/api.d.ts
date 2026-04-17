@@ -82,6 +82,7 @@ export interface ApiDetailVO extends ApiSummaryVO {
   requestType?: string
   httpMethod?: string
   url?: string
+  baseUrl?: string
   headers?: Record<string, string> | string
   queryParams?: string
   requestBody?: string
@@ -92,6 +93,10 @@ export interface ApiDetailVO extends ApiSummaryVO {
   createdBy?: number
   creatorName?: string
   updatedAt?: string
+  requestBodyType?: string
+  responseBodyType?: string
+  tags?: string
+  timeoutSeconds?: number
 }
 
 export interface CreateApiDTO {
@@ -100,10 +105,17 @@ export interface CreateApiDTO {
   collectionId: number
   httpMethod: string
   url: string
+  path?: string
+  baseUrl?: string
   headers?: Record<string, string>
   queryParams?: string
   requestBody?: string
+  requestBodyType?: string
+  responseBodyType?: string
   authConfig?: string
+  tags?: string
+  timeoutSeconds?: number
+  status?: string
 }
 
 export interface ApiQuery {

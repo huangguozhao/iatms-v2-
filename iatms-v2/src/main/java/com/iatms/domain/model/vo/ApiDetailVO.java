@@ -18,6 +18,7 @@ public class ApiDetailVO {
     private String requestType;
     private String httpMethod;
     private String url;
+    private String baseUrl;
     private String headers;
     private String queryParams;
     private String requestBody;
@@ -30,6 +31,10 @@ public class ApiDetailVO {
     private String moduleName;
     private Integer orderNum;
     private String status;
+    private String requestBodyType;
+    private String responseBodyType;
+    private String tags;
+    private Integer timeoutSeconds;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Long createdBy;

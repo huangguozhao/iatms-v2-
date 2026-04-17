@@ -12,6 +12,7 @@ export interface ApiData {
   description: string
   httpMethod: string
   url: string
+  basePath: string
   requestType: string
   status: string
   version: string
@@ -52,6 +53,7 @@ const defaultApiData = (): ApiData => ({
   description: '',
   httpMethod: 'GET',
   url: '',
+  basePath: '',
   requestType: '',
   status: 'active',
   version: '',
@@ -94,14 +96,15 @@ export function useApiData() {
     apiData.description = detail.description || ''
     apiData.httpMethod = detail.httpMethod || detail.method || 'GET'
     apiData.url = detail.url || detail.path || ''
+    apiData.basePath = (detail as any).basePath || (detail as any).baseUrl || ''
     apiData.requestType = detail.requestType || ''
     apiData.status = detail.status || 'active'
     apiData.version = (detail as any).version || ''
 
     apiData.projectId = detail.projectId || null
     apiData.projectName = detail.projectName || ''
-    apiData.moduleId = detail.moduleId || null
-    apiData.moduleName = detail.moduleName || ''
+    apiData.moduleId = (detail as any).moduleId || (detail as any).collectionId || null
+    apiData.moduleName = (detail as any).moduleName || (detail as any).collectionName || ''
 
     // 认证
     apiData.authType = (detail as any).authType || (detail as any).auth_type || ''
@@ -154,6 +157,12 @@ export function useApiData() {
     apiData.creatorName = detail.creatorName || ''
     apiData.createdAt = detail.createdAt || ''
     apiData.updatedAt = detail.updatedAt || ''
+
+    // 新增字段
+    apiData.requestBodyType = (detail as any).requestBodyType || (detail as any).request_body_type || 'json'
+    apiData.timeoutSeconds = (detail as any).timeoutSeconds || 30
+    apiData.tags = (detail as any).tags ? String((detail as any).tags).split(',').filter(Boolean) : []
+    apiData.status = detail.status || 'active'
 
     // 同步请求参数
     syncRequestParamsFromData()
@@ -232,6 +241,7 @@ export function useApiData() {
     apiData.description = node.description || ''
     apiData.httpMethod = node.httpMethod || node.method || 'GET'
     apiData.url = node.path || node.url || ''
+    apiData.basePath = node.basePath || node.baseUrl || ''
     apiData.status = node.status || 'active'
 
     apiData.projectId = node.projectId || null
@@ -309,11 +319,18 @@ export function useApiData() {
       const data: any = {
         name: apiData.name,
         description: apiData.description,
+        collectionId: apiData.moduleId,
         httpMethod: apiData.httpMethod,
         url: apiData.url,
+        baseUrl: apiData.basePath,
         requestBody: typeof apiData.requestBody === 'object' ? JSON.stringify(apiData.requestBody) : apiData.requestBody,
         headers: typeof apiData.headers === 'object' ? JSON.stringify(apiData.headers) : apiData.headers,
-        queryParams: typeof apiData.queryParams === 'object' ? JSON.stringify(apiData.queryParams) : apiData.queryParams
+        queryParams: typeof apiData.queryParams === 'object' ? JSON.stringify(apiData.queryParams) : apiData.queryParams,
+        authConfig: typeof apiData.authConfig === 'object' ? JSON.stringify(apiData.authConfig) : apiData.authConfig,
+        requestBodyType: apiData.requestBodyType,
+        status: apiData.status,
+        tags: Array.isArray(apiData.tags) ? apiData.tags.join(',') : apiData.tags,
+        timeoutSeconds: apiData.timeoutSeconds
       }
 
       await apiApi.update(apiData.id, data)

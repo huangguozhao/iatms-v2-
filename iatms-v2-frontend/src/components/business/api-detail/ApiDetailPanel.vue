@@ -113,7 +113,7 @@ const emit = defineEmits<{
 }>()
 
 // Composables
-const { apiData, requestParams, loading, saving, syncFromNode, loadApiDetail, reset } = useApiData()
+const { apiData, requestParams, loading, saving, syncFromNode, loadApiDetail, reset, saveApi } = useApiData()
 const {
   availableProjects,
   projectsLoading,
@@ -218,8 +218,12 @@ function handleProjectChange(projectId: number) {
 
 // 保存
 async function handleSave() {
-  // TODO: 调用实际保存API
-  ElMessage.success('保存成功')
+  try {
+    await saveApi()
+    ElMessage.success('保存成功')
+  } catch (e) {
+    ElMessage.error('保存失败')
+  }
 }
 
 // 删除

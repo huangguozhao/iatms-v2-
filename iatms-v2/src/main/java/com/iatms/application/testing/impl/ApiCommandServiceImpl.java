@@ -45,13 +45,22 @@ public class ApiCommandServiceImpl implements ApiCommandService {
         api.setCollectionId(cmd.getCollectionId() != null ? cmd.getCollectionId().intValue() : null);
         api.setRequestType(cmd.getRequestType());
         api.setHttpMethod(cmd.getHttpMethod());
-        api.setUrl(cmd.getUrl());
-        api.setHeaders(cmd.getHeaders());
-        api.setQueryParams(cmd.getQueryParams());
-        api.setRequestBody(cmd.getRequestBody());
-        api.setAuthConfig(cmd.getAuthConfig());
-        api.setOrderNum(cmd.getOrderNum());
-        api.setStatus(cmd.getStatus());
+        // 拆分url为path和baseUrl
+        if (cmd.getUrl() != null) {
+            String[] parts = splitUrl(cmd.getUrl());
+            api.setBaseUrl(parts[0]);
+            api.setPath(parts[1]);
+        }
+        if (cmd.getRequestHeaders() != null) api.setRequestHeaders(cmd.getRequestHeaders());
+        if (cmd.getQueryParams() != null) api.setRequestParameters(cmd.getQueryParams());
+        if (cmd.getRequestBody() != null) api.setRequestBody(cmd.getRequestBody());
+        if (cmd.getAuthConfig() != null) api.setAuthConfig(cmd.getAuthConfig());
+        if (cmd.getOrderNum() != null) api.setOrderNum(cmd.getOrderNum());
+        if (cmd.getStatus() != null) api.setStatus(cmd.getStatus());
+        if (cmd.getRequestBodyType() != null) api.setRequestBodyType(cmd.getRequestBodyType());
+        if (cmd.getResponseBodyType() != null) api.setResponseBodyType(cmd.getResponseBodyType());
+        if (cmd.getTags() != null) api.setTags(cmd.getTags());
+        if (cmd.getTimeoutSeconds() != null) api.setTimeoutSeconds(cmd.getTimeoutSeconds());
         api.setCreatedBy(userId);
         api.setUpdatedBy(userId);
 
@@ -76,13 +85,24 @@ public class ApiCommandServiceImpl implements ApiCommandService {
         if (cmd.getCollectionId() != null) api.setCollectionId(cmd.getCollectionId().intValue());
         if (cmd.getRequestType() != null) api.setRequestType(cmd.getRequestType());
         if (cmd.getHttpMethod() != null) api.setHttpMethod(cmd.getHttpMethod());
-        if (cmd.getUrl() != null) api.setUrl(cmd.getUrl());
-        if (cmd.getHeaders() != null) api.setHeaders(cmd.getHeaders());
-        if (cmd.getQueryParams() != null) api.setQueryParams(cmd.getQueryParams());
+        // 拆分url为path和baseUrl
+        if (cmd.getUrl() != null) {
+            String[] parts = splitUrl(cmd.getUrl());
+            api.setBaseUrl(parts[0]);
+            api.setPath(parts[1]);
+        }
+        if (cmd.getPath() != null) api.setPath(cmd.getPath());
+        if (cmd.getBaseUrl() != null) api.setBaseUrl(cmd.getBaseUrl());
+        if (cmd.getRequestHeaders() != null) api.setRequestHeaders(cmd.getRequestHeaders());
+        if (cmd.getQueryParams() != null) api.setRequestParameters(cmd.getQueryParams());
         if (cmd.getRequestBody() != null) api.setRequestBody(cmd.getRequestBody());
         if (cmd.getAuthConfig() != null) api.setAuthConfig(cmd.getAuthConfig());
         if (cmd.getOrderNum() != null) api.setOrderNum(cmd.getOrderNum());
         if (cmd.getStatus() != null) api.setStatus(cmd.getStatus());
+        if (cmd.getRequestBodyType() != null) api.setRequestBodyType(cmd.getRequestBodyType());
+        if (cmd.getResponseBodyType() != null) api.setResponseBodyType(cmd.getResponseBodyType());
+        if (cmd.getTags() != null) api.setTags(cmd.getTags());
+        if (cmd.getTimeoutSeconds() != null) api.setTimeoutSeconds(cmd.getTimeoutSeconds());
 
         api.setUpdatedBy(userId);
         apiRequestMapper.updateById(api);
@@ -123,9 +143,10 @@ public class ApiCommandServiceImpl implements ApiCommandService {
                 .description(api.getDescription())
                 .requestType(api.getRequestType())
                 .httpMethod(api.getHttpMethod())
-                .url(api.getUrl())
-                .headers(api.getHeaders())
-                .queryParams(api.getQueryParams())
+                .url(buildUrl(api.getBaseUrl(), api.getPath()))
+                .baseUrl(api.getBaseUrl())
+                .headers(api.getRequestHeaders())
+                .queryParams(api.getRequestParameters())
                 .requestBody(api.getRequestBody())
                 .authConfig(api.getAuthConfig())
                 .collectionId(api.getCollectionId() != null ? api.getCollectionId().longValue() : null)
@@ -133,10 +154,44 @@ public class ApiCommandServiceImpl implements ApiCommandService {
                 .projectId(collection != null && collection.getProjectId() != null ? collection.getProjectId().longValue() : null)
                 .orderNum(api.getOrderNum())
                 .status(api.getStatus())
+                .requestBodyType(api.getRequestBodyType())
+                .responseBodyType(api.getResponseBodyType())
+                .tags(api.getTags())
+                .timeoutSeconds(api.getTimeoutSeconds())
                 .createdAt(api.getCreatedAt())
                 .updatedAt(api.getUpdatedAt())
                 .createdBy(api.getCreatedBy())
                 .creatorName(creator != null ? creator.getDisplayName() : null)
                 .build();
+    }
+
+    /**
+     * 将URL拆分为baseUrl和path
+     * 如果URL包含协议://host，则拆分为baseUrl和path
+     * 否则整个字符串作为path返回，baseUrl为空
+     */
+    private String[] splitUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return new String[]{"", ""};
+        }
+        // 查找协议://后的第一个/作为分割点
+        int protocolEnd = url.indexOf("://");
+        if (protocolEnd != -1) {
+            int pathStart = url.indexOf("/", protocolEnd + 3);
+            if (pathStart != -1) {
+                return new String[]{url.substring(0, pathStart), url.substring(pathStart)};
+            } else {
+                return new String[]{url, "/"};
+            }
+        }
+        // 没有协议，整个作为path
+        return new String[]{"", url};
+    }
+
+    private String buildUrl(String baseUrl, String path) {
+        if (baseUrl == null && path == null) return "";
+        String base = baseUrl != null ? baseUrl : "";
+        String p = path != null ? path : "";
+        return base + p;
     }
 }

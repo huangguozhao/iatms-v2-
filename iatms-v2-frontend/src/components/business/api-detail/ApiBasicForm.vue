@@ -45,6 +45,12 @@
         <el-input v-model="localApiData.name" placeholder="请输入接口名称" />
       </div>
 
+      <!-- Base Path -->
+      <div class="form-section">
+        <div class="section-title">Base URL</div>
+        <el-input v-model="localApiData.basePath" placeholder="如：https://api.example.com" />
+      </div>
+
       <!-- 接口路径 -->
       <div class="form-section">
         <div class="section-title">接口路径</div>
@@ -104,6 +110,29 @@
       <div class="form-section">
         <div class="section-title">超时时间（秒）</div>
         <el-input-number v-model="localApiData.timeoutSeconds" :min="1" :max="300" />
+      </div>
+
+      <!-- 请求体类型 -->
+      <div class="form-section">
+        <div class="section-title">请求体类型</div>
+        <el-select v-model="localApiData.requestBodyType" placeholder="请选择请求体类型" style="width: 100%">
+          <el-option label="JSON" value="json" />
+          <el-option label="Form Data" value="form-data" />
+          <el-option label="X-www-form-urlencoded" value="x-www-form-urlencoded" />
+          <el-option label="XML" value="xml" />
+          <el-option label="Raw" value="raw" />
+          <el-option label="None" value="none" />
+        </el-select>
+      </div>
+
+      <!-- 状态 -->
+      <div class="form-section">
+        <div class="section-title">状态</div>
+        <el-select v-model="localApiData.status" placeholder="请选择状态" style="width: 100%">
+          <el-option label="激活" value="active" />
+          <el-option label="未激活" value="inactive" />
+          <el-option label="已废弃" value="deprecated" />
+        </el-select>
       </div>
 
       <!-- 版本 -->
