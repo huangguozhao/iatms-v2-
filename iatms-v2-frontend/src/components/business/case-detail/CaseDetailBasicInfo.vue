@@ -201,74 +201,87 @@ const displaySteps = computed((): TestStep[] => {
 // 显示测试数据（按类型分组）
 const displayTestDataGroups = computed((): TestDataGroup[] => {
   const groups: TestDataGroup[] = []
+  const hasGroup = (title: string) => groups.some(g => g.title === title)
 
-  // 1. 尝试从 requestParams（JSON数组格式）解析查询参数
+  // 1. 收集请求参数（优先级：requestParams > requestOverride.queryParams）
+  let queryParamsData: any[] | null = null
   const requestParams = (props.testCase as any)?.requestParams
   if (requestParams) {
     try {
       const parsed = typeof requestParams === 'string' ? JSON.parse(requestParams) : requestParams
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const items: { key: string; value: string }[] = []
-        parsed.forEach((p: any) => {
-          if (p.name) {
-            items.push({ key: p.name, value: p.value || '' })
-          }
-        })
-        if (items.length > 0) {
-          groups.push({ title: '查询参数', items })
-        }
+        queryParamsData = parsed
       }
     } catch {}
   }
-
-  // 2. 尝试从 requestOverride 中解析
-  const requestOverride = (props.testCase as any)?.requestOverride
-  if (requestOverride) {
-    try {
-      const parsed = typeof requestOverride === 'string' ? JSON.parse(requestOverride) : requestOverride
-
-      // queryParams
-      if (parsed.queryParams && Array.isArray(parsed.queryParams) && parsed.queryParams.length > 0) {
-        const items: { key: string; value: string }[] = []
-        parsed.queryParams.forEach((p: any) => {
-          if (p.name) {
-            items.push({ key: p.name, value: p.value || '' })
-          }
-        })
-        if (items.length > 0) {
-          groups.push({ title: '查询参数', items })
+  // 如果 requestParams 为空，尝试从 requestOverride.queryParams 获取
+  if (!queryParamsData) {
+    const requestOverride = (props.testCase as any)?.requestOverride
+    if (requestOverride) {
+      try {
+        const parsed = typeof requestOverride === 'string' ? JSON.parse(requestOverride) : requestOverride
+        if (parsed.queryParams && Array.isArray(parsed.queryParams) && parsed.queryParams.length > 0) {
+          queryParamsData = parsed.queryParams
         }
+      } catch {}
+    }
+  }
+  if (queryParamsData && queryParamsData.length > 0) {
+    const items: { key: string; value: string }[] = []
+    queryParamsData.forEach((p: any) => {
+      if (p.name) {
+        items.push({ key: p.name, value: p.value || '' })
       }
-
-      // headers
-      if (parsed.headers && typeof parsed.headers === 'object') {
-        const entries = Object.entries(parsed.headers)
-        if (entries.length > 0) {
-          const items: { key: string; value: string }[] = []
-          entries.forEach(([key, val]) => {
-            items.push({ key, value: String(val) })
-          })
-          groups.push({ title: '请求头', items })
-        }
-      }
-
-      // body
-      if (parsed.body) {
-        const content = typeof parsed.body === 'object' ? JSON.stringify(parsed.body, null, 2) : String(parsed.body)
-        groups.push({ title: '请求体', content })
-      }
-    } catch {}
+    })
+    if (items.length > 0) {
+      groups.push({ title: '查询参数', items })
+    }
   }
 
-  // 3. 尝试从 requestBody 直接获取
+  // 2. 收集请求头（从 requestOverride.headers）
+  if (!hasGroup('请求头')) {
+    const requestOverride = (props.testCase as any)?.requestOverride
+    if (requestOverride) {
+      try {
+        const parsed = typeof requestOverride === 'string' ? JSON.parse(requestOverride) : requestOverride
+        if (parsed.headers && typeof parsed.headers === 'object') {
+          const entries = Object.entries(parsed.headers)
+          if (entries.length > 0) {
+            const items: { key: string; value: string }[] = []
+            entries.forEach(([key, val]) => {
+              items.push({ key, value: String(val) })
+            })
+            groups.push({ title: '请求头', items })
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // 3. 收集请求体（优先级：requestBody > requestOverride.body）
+  let requestBodyContent: string | null = null
   const requestBody = (props.testCase as any)?.requestBody
-  if (requestBody && !groups.some(g => g.title === '请求体')) {
+  if (requestBody) {
     try {
       const content = typeof requestBody === 'object' ? JSON.stringify(requestBody, null, 2) : requestBody
       if (content && content.trim()) {
-        groups.push({ title: '请求体', content })
+        requestBodyContent = content
       }
     } catch {}
+  }
+  if (!requestBodyContent && !hasGroup('请求体')) {
+    const requestOverride = (props.testCase as any)?.requestOverride
+    if (requestOverride) {
+      try {
+        const parsed = typeof requestOverride === 'string' ? JSON.parse(requestOverride) : requestOverride
+        if (parsed.body) {
+          requestBodyContent = typeof parsed.body === 'object' ? JSON.stringify(parsed.body, null, 2) : String(parsed.body)
+        }
+      } catch {}
+    }
+  }
+  if (requestBodyContent) {
+    groups.push({ title: '请求体', content: requestBodyContent })
   }
 
   // 4. 尝试从 testData / pre_conditions 获取
