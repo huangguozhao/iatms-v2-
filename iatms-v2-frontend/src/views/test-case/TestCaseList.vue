@@ -88,81 +88,15 @@
 
       <!-- 接口详情视图 -->
       <div v-else-if="selectedNode && selectedNode.type === 'api'" class="detail-panel">
-        <div class="panel-header">
-          <div class="header-title">
-            <el-icon :size="24" class="header-icon"><Link /></el-icon>
-            <h2>{{ selectedNode.name }}</h2>
-          </div>
-          <el-tag :type="getMethodTagType(selectedNode.httpMethod)" size="large" effect="dark">
-            {{ selectedNode.httpMethod }}
-          </el-tag>
-        </div>
-
-        <el-card class="info-card" shadow="hover">
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="路径">
-              <code class="path-code">{{ selectedNode.path }}</code>
-            </el-descriptions-item>
-            <el-descriptions-item label="状态">
-              <el-tag size="small" :type="selectedNode.status === 'ACTIVE' ? 'success' : 'info'">
-                {{ selectedNode.status }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="编码">{{ selectedNode.code || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="描述">{{ selectedNode.description || '-' }}</el-descriptions-item>
-          </el-descriptions>
-        </el-card>
-
-        <div class="case-list-section">
-          <div class="section-header">
-            <h3>
-              <el-icon><Document /></el-icon>
-              测试用例 ({{ selectedNode.testCases?.length || 0 }})
-            </h3>
-            <el-button type="primary" size="small" @click="handleCreateCase">
-              <el-icon><Plus /></el-icon>
-              新建用例
-            </el-button>
-          </div>
-
-          <el-table :data="selectedNode.testCases || []" stripe class="case-table">
-            <el-table-column prop="name" label="用例名称" min-width="180">
-              <template #default="{ row }">
-                <div class="case-name-cell">
-                  <el-icon class="case-icon"><Document /></el-icon>
-                  <span class="case-link" @click="handleSelectCase(row)">{{ row.name }}</span>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="priority" label="优先级" width="90" align="center">
-              <template #default="{ row }">
-                <el-tag :type="getPriorityType(row.priority)" size="small" effect="light">{{ row.priority }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="90" align="center">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small" effect="light">
-                  {{ row.status === 'ENABLED' ? '启用' : '禁用' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200" align="center">
-              <template #default="{ row }">
-                <el-button link type="primary" @click="handleEditCase(row)">
-                  <el-icon><Edit /></el-icon>
-                  编辑
-                </el-button>
-                <el-button link type="success" @click="handleExecuteCase(row)">
-                  <el-icon><VideoPlay /></el-icon>
-                  执行
-                </el-button>
-                <el-button link type="danger" @click="handleDeleteCase(row)">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
+        <ApiDetailPanel
+          :api="selectedNode"
+          @execute="handleExecuteApi"
+          @refresh="loadTree"
+          @select-case="handleSelectCase"
+          @create-case="handleCreateCaseForApi"
+          @edit-case="handleEditCase"
+          @execute-case="handleExecuteCase"
+        />
       </div>
 
       <!-- 用例详情视图 -->
@@ -262,6 +196,7 @@ import {
 import { testCaseApi, type ProjectTreeNode, type TestCaseDetailVO } from '@/api/modules/testing/testCase'
 import type { FormInstance, FormRules } from 'element-plus'
 import { CaseDetailPanel, ExecuteConfigDialog, ExecutionResultDialog } from '@/components/business/case-detail'
+import { ApiDetailPanel } from '@/components/business/api-detail'
 import { ProjectModuleStats } from '@/components/business/project-detail'
 import type { ExecuteConfig, ExecutionResult } from '@/types/components'
 
@@ -524,6 +459,32 @@ async function handleExecuteCase(tc: ProjectTreeNode) {
       ElMessage.error(error.message || '执行失败')
     }
   }
+}
+
+// 执行接口
+async function handleExecuteApi(api: ProjectTreeNode) {
+  executeConfig.targetType = 'api'
+  executeConfig.targetId = api.id
+  executeConfig.targetName = api.name
+  executeConfig.caseCount = api.testCases?.length || 0
+  executeConfig.projectId = null
+  executeDialogVisible.value = true
+}
+
+// 为接口创建用例
+function handleCreateCaseForApi(apiId: number) {
+  caseDialogTitle.value = '新建用例'
+  Object.assign(caseForm, {
+    id: null,
+    name: '',
+    apiId: apiId,
+    priority: 'P2',
+    headers: '',
+    requestBody: '',
+    assertions: '',
+    description: ''
+  })
+  caseDialogVisible.value = true
 }
 
 // 删除用例
