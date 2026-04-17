@@ -156,7 +156,19 @@ public class TestExecution extends BaseEntity {
     @TableField(exist = false)
     private Integer skippedCases;
 
-    // ========== BaseEntity 字段覆盖（数据库表中不存在 creator_id/updater_id/version）==========
+    // ========== BaseEntity 字段覆盖（数据库表中不存在 created_at/updater_id/creator_id/version）==========
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 created_at 列
+     */
+    @TableField(exist = false)
+    private LocalDateTime createdAt;
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 updated_at 列
+     */
+    @TableField(exist = false)
+    private LocalDateTime updatedAt;
 
     /**
      * 覆盖父类字段，避免查询不存在的 creator_id 列

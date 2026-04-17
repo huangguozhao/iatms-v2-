@@ -243,8 +243,8 @@ public class ApiController {
 
                 Map<String, Object> group = new HashMap<>();
                 group.put("recordId", tr.getId());
-                group.put("executor", tr.getExecutedBy());
-                group.put("executorInfo", Map.of("name", tr.getExecutedBy() != null ? "用户" + tr.getExecutedBy() : "未知"));
+                group.put("executor", null);
+                group.put("executorInfo", Map.of("name", "未知"));
                 group.put("executionType", tr.getTaskType() != null ? tr.getTaskType() : "test_case");
                 group.put("environment", tr.getEnvironment() != null ? tr.getEnvironment() : "testing");
                 group.put("startTime", tr.getStartTime());

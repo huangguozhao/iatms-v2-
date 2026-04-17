@@ -235,6 +235,32 @@ public class TestResult extends BaseEntity {
      */
     private Integer caseId;
 
+    // ========== BaseEntity 字段覆盖（数据库表中不存在 updater_id/creator_id/version）==========
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 updated_at 列
+     */
+    @TableField(exist = false)
+    private LocalDateTime updatedAt;
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 creator_id 列
+     */
+    @TableField(exist = false)
+    private Long createdBy;
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 updater_id 列
+     */
+    @TableField(exist = false)
+    private Long updatedBy;
+
+    /**
+     * 覆盖父类字段，避免查询不存在的 version 列
+     */
+    @TableField(exist = false)
+    private Integer version;
+
     // ========== 兼容性别名（用于旧代码）==========
 
     /**
