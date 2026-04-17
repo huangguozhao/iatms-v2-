@@ -97,9 +97,9 @@ interface Props {
   testCase: TestCaseDetailVO | null
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   execute: []
   edit: []
   copy: []
@@ -107,10 +107,7 @@ defineEmits<{
 }>()
 
 function handleMoreAction(command: string) {
-  // Emit the more-action event with the command
-  // The parent component will handle the action
-  const event = new CustomEvent('more-action', { detail: command })
-  window.dispatchEvent(event)
+  emit('moreAction', command)
 }
 </script>
 

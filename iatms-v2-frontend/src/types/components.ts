@@ -17,7 +17,7 @@ export interface ExecuteConfig {
   enabledOnly: boolean
   variables: Record<string, any>
   targetId: number | null
-  targetType: string
+  targetType: 'project' | 'module' | 'api' | 'case'
 }
 
 /**

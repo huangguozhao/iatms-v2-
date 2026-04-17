@@ -1,6 +1,5 @@
 import { client } from '@/api/client'
 import type {
-  ApiResponse,
   PageResult,
   TestCaseSummaryVO,
   TestCaseDetailVO
@@ -11,13 +10,18 @@ export type { PageResult, TestCaseSummaryVO, TestCaseDetailVO }
 
 export interface CreateTestCaseDTO {
   name: string
-  apiId: number
-  priority: string
-  headers?: Record<string, string>
+  projectId?: number
+  moduleId?: number
+  apiId?: number | null
+  priority?: string
+  testType?: string
+  headers?: string
+  requestParams?: string
   requestBody?: string
   assertions?: string
   extractors?: string
   description?: string
+  status?: string
   isEnabled?: boolean
 }
 

@@ -6,6 +6,7 @@
       @execute="handleExecute"
       @edit="$emit('edit', testCase)"
       @copy="$emit('copy', testCase)"
+      @more-action="$emit('more-action', $event)"
     />
 
     <!-- 主要内容区域 -->
@@ -73,6 +74,7 @@ defineEmits<{
   copy: [testCase: TestCaseDetailVO | null]
   'view-history-detail': [history: ExecutionHistory]
   'view-more-history': []
+  'more-action': [command: string]
 }>()
 
 // 处理执行测试

@@ -264,7 +264,7 @@ interface Environment {
 
 interface Props {
   modelValue: boolean
-  targetType?: 'project' | 'module' | 'case'
+  targetType?: 'project' | 'module' | 'api' | 'case'
   targetId?: number | null
   targetName?: string
   caseCount?: number
@@ -292,12 +292,14 @@ const visible = computed({
 const dialogTitle = computed(() => {
   if (props.targetType === 'project') return '执行项目测试'
   if (props.targetType === 'module') return '执行模块测试'
+  if (props.targetType === 'api') return '执行接口测试'
   return '执行测试'
 })
 
 const targetTypeLabel = computed(() => {
   if (props.targetType === 'project') return '项目级测试'
   if (props.targetType === 'module') return '模块级测试'
+  if (props.targetType === 'api') return '接口级测试'
   return '用例测试'
 })
 

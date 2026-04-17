@@ -111,6 +111,7 @@
           @copy="handleCopyCase"
           @view-history-detail="handleViewHistoryDetail"
           @view-more-history="handleViewMoreHistory"
+          @more-action="handleMoreAction"
         />
       </div>
 
@@ -187,13 +188,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, onMounted, computed, h } from 'vue'
+import { ref, reactive, watch, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Search, Refresh, Plus, Edit, Delete, Link, Document, Folder, FolderOpened,
-  ArrowLeft, ArrowRight, VideoPlay
+  Search, Refresh, Link, Document, Folder, FolderOpened,
+  ArrowLeft, ArrowRight
 } from '@element-plus/icons-vue'
-import { testCaseApi, type ProjectTreeNode, type TestCaseDetailVO } from '@/api/modules/testing/testCase'
+import { testCaseApi, type ProjectTreeNode, type TestCaseDetailVO, type CreateTestCaseDTO } from '@/api/modules/testing/testCase'
 import type { FormInstance, FormRules } from 'element-plus'
 import { CaseDetailPanel, ExecuteConfigDialog, ExecutionResultDialog } from '@/components/business/case-detail'
 import { ApiDetailPanel } from '@/components/business/api-detail'
@@ -219,7 +220,7 @@ const resultDialogVisible = ref(false)
 const executionResult = ref<ExecutionResult | null>(null)
 
 const executeConfig = reactive({
-  targetType: 'case' as 'project' | 'module' | 'case',
+  targetType: 'case' as 'project' | 'module' | 'api' | 'case',
   targetId: null as number | null,
   targetName: '',
   caseCount: 0,
@@ -244,7 +245,9 @@ const caseForm = reactive({
   headers: '',
   requestBody: '',
   assertions: '',
-  description: ''
+  description: '',
+  testType: 'FUNCTIONAL',
+  status: 'DRAFT'
 })
 const caseFormRules: FormRules = {
   name: [{ required: true, message: '请输入用例名称', trigger: 'blur' }],
@@ -323,9 +326,21 @@ function transformTreeData(nodes: ProjectTreeNode[]): ProjectTreeNode[] {
 }
 
 // 树节点过滤
-function filterNode(value: string, data: ProjectTreeNode) {
+function filterNode(value: string, data: ProjectTreeNode): boolean {
   if (!value) return true
   return data.name.toLowerCase().includes(value.toLowerCase())
+}
+
+// 获取方法标签类型
+function getMethodTagType(method?: string): string {
+  const map: Record<string, string> = {
+    GET: 'success',
+    POST: 'warning',
+    PUT: 'primary',
+    DELETE: 'danger',
+    PATCH: 'info'
+  }
+  return map[method?.toUpperCase() || ''] || 'info'
 }
 
 // 监听搜索
@@ -351,88 +366,20 @@ async function handleNodeClick(data: ProjectTreeNode) {
   }
 }
 
-// 获取方法标签类型
-function getMethodTagType(method?: string): string {
-  const map: Record<string, string> = {
-    GET: 'success',
-    POST: 'warning',
-    PUT: 'primary',
-    DELETE: 'danger',
-    PATCH: 'info'
-  }
-  return map[method?.toUpperCase() || ''] || 'info'
-}
-
-// 获取优先级类型
-function getPriorityType(priority?: string): string {
-  const map: Record<string, string> = {
-    P0: 'danger',
-    P1: 'warning',
-    P2: '',
-    P3: 'info'
-  }
-  return map[priority || ''] || ''
-}
-
-// 统计用例数量
-function countTestCases(node: ProjectTreeNode): number {
-  let count = 0
-  const countInNode = (n: ProjectTreeNode) => {
-    if (n.testCases) count += n.testCases.length
-    if (n.children) {
-      for (const child of n.children) {
-        countInNode(child)
-      }
-    }
-  }
-  countInNode(node)
-  return count
-}
-
-// 统计接口数量
-function countApis(node: ProjectTreeNode): number {
-  let count = 0
-  const countInNode = (n: ProjectTreeNode) => {
-    if (n.type === 'api') count++
-    if (n.children) {
-      for (const child of n.children) {
-        countInNode(child)
-      }
-    }
-  }
-  countInNode(node)
-  return count
-}
-
 // 选择用例
 function handleSelectCase(tc: ProjectTreeNode) {
   selectedNode.value = tc
   handleNodeClick(tc)
 }
 
-// 创建用例
-function handleCreateCase() {
-  caseDialogTitle.value = '新建用例'
-  Object.assign(caseForm, {
-    id: null,
-    name: '',
-    apiId: selectedNode.value?.type === 'api' ? selectedNode.value.id : null,
-    priority: 'P2',
-    headers: '',
-    requestBody: '',
-    assertions: '',
-    description: ''
-  })
-  caseDialogVisible.value = true
-}
-
 // 编辑用例
-async function handleEditCase(tc: ProjectTreeNode) {
+async function handleEditCase(tc: TestCaseDetailVO | ProjectTreeNode | null) {
+  if (!tc) return
   caseDialogTitle.value = '编辑用例'
   try {
     const detail = await testCaseApi.getDetail(tc.id)
     Object.assign(caseForm, {
-      id: tc.id,
+      id: detail.id,
       name: detail.name,
       apiId: detail.apiId,
       priority: detail.priority,
@@ -487,34 +434,27 @@ function handleCreateCaseForApi(apiId: number) {
   caseDialogVisible.value = true
 }
 
-// 删除用例
-async function handleDeleteCase(tc: ProjectTreeNode) {
-  try {
-    await ElMessageBox.confirm(`确定删除用例 "${tc.name}" 吗?`, '提示', { type: 'warning' })
-    await testCaseApi.delete(tc.id)
-    ElMessage.success('删除成功')
-    loadTree()
-    if (selectedNode.value?.id === tc.id) {
-      selectedNode.value = null
-    }
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.message || '删除失败')
-    }
-  }
-}
-
 // 提交用例表单
 async function handleCaseSubmit() {
   const valid = await caseFormRef.value?.validate().catch(() => false)
   if (!valid) return
 
+  const submitData: CreateTestCaseDTO = {
+    name: caseForm.name,
+    apiId: caseForm.apiId,
+    priority: caseForm.priority,
+    headers: caseForm.headers || undefined,
+    requestBody: caseForm.requestBody || undefined,
+    assertions: caseForm.assertions || undefined,
+    description: caseForm.description || undefined
+  }
+
   try {
     if (caseDialogTitle.value === '新建用例') {
-      await testCaseApi.create(caseForm as any)
+      await testCaseApi.create(submitData)
       ElMessage.success('创建成功')
     } else {
-      await testCaseApi.update(caseForm.id!, caseForm as any)
+      await testCaseApi.update(caseForm.id!, submitData)
       ElMessage.success('更新成功')
     }
     caseDialogVisible.value = false
@@ -529,11 +469,56 @@ async function handleCopyCase(tc: TestCaseDetailVO | null) {
   if (!tc) return
   try {
     await ElMessageBox.confirm(`确定复制用例 "${tc.name}" 吗?`, '提示', { type: 'info' })
-    // TODO: 调用复制API
-    ElMessage.success('复制功能开发中')
+    ElMessage.info('复制功能开发中')
   } catch (error: any) {
     if (error !== 'cancel') {
       ElMessage.error(error.message || '复制失败')
+    }
+  }
+}
+
+// 处理更多操作
+function handleMoreAction(command: string) {
+  switch (command) {
+    case 'export':
+      ElMessage.info('导出功能开发中')
+      break
+    case 'history':
+      ElMessage.info('查看历史功能开发中')
+      break
+    case 'share':
+      ElMessage.info('分享功能开发中')
+      break
+    case 'disable':
+      ElMessage.info('禁用功能开发中')
+      break
+    case 'enable':
+      ElMessage.info('启用功能开发中')
+      break
+    case 'delete':
+      if (caseDetail.value) {
+        handleDeleteCase(caseDetail.value)
+      }
+      break
+    default:
+      ElMessage.info(`未知操作: ${command}`)
+  }
+}
+
+// 删除用例
+async function handleDeleteCase(tc: TestCaseDetailVO | null) {
+  if (!tc) return
+  try {
+    await ElMessageBox.confirm(`确定删除用例 "${tc.name}" 吗?`, '提示', { type: 'warning' })
+    await testCaseApi.delete(tc.id)
+    ElMessage.success('删除成功')
+    loadTree()
+    if (selectedNode.value?.id === tc.id) {
+      selectedNode.value = null
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '删除失败')
     }
   }
 }
@@ -550,7 +535,7 @@ function handleViewMoreHistory() {
 }
 
 // 从配置对话框执行
-async function handleExecuteFromConfig(config: ExecuteConfig) {
+async function handleExecuteFromConfig(_config: ExecuteConfig) {
   executeDialogVisible.value = false
 
   try {
@@ -582,20 +567,15 @@ function handleRetryExecution() {
   executeDialogVisible.value = true
 }
 
-// 占位方法
-function handleCreateUnderNode() {
-  ElMessage.info('创建子模块功能开发中')
-}
-
 // 处理编辑节点
 function handleEditNode() {
   ElMessage.info('编辑功能开发中')
 }
 
 // 处理删除节点
-async function handleDeleteNode(node: any) {
+async function handleDeleteNode(_node: any) {
   try {
-    await ElMessageBox.confirm(`确定删除 "${node.name}" 吗?`, '提示', { type: 'warning' })
+    await ElMessageBox.confirm(`确定删除吗?`, '提示', { type: 'warning' })
     ElMessage.success('删除功能开发中')
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -605,19 +585,19 @@ async function handleDeleteNode(node: any) {
 }
 
 // 处理添加子节点
-function handleAddChildNode(node: any) {
+function handleAddChildNode(_node: any) {
   ElMessage.info('添加子节点功能开发中')
 }
 
 // 处理编辑子节点
-function handleEditChildNode(child: any) {
+function handleEditChildNode(_child: any) {
   ElMessage.info('编辑子节点功能开发中')
 }
 
 // 处理删除子节点
-async function handleDeleteChildNode(child: any) {
+async function handleDeleteChildNode(_child: any) {
   try {
-    await ElMessageBox.confirm(`确定删除 "${child.name}" 吗?`, '提示', { type: 'warning' })
+    await ElMessageBox.confirm(`确定删除吗?`, '提示', { type: 'warning' })
     ElMessage.success('删除功能开发中')
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -644,24 +624,14 @@ function handleSelectChildNode(child: any) {
 }
 
 // 处理环境配置
-function handleConfigEnvironment(node: any) {
+function handleConfigEnvironment(_node: any) {
   ElMessage.info('环境配置功能开发中')
 }
 
 // 从项目/模块执行测试
-function handleExecuteFromProjectModule(config: any) {
+function handleExecuteFromProjectModule(_config: any) {
   executeDialogVisible.value = false
   ElMessage.success('执行已提交')
-  // TODO: 调用执行API
-}
-
-// 格式化 JSON
-function formatJson(val: any): string {
-  if (!val) return '-'
-  if (typeof val === 'string') {
-    try { return JSON.stringify(JSON.parse(val), null, 2) } catch { return val }
-  }
-  return JSON.stringify(val, null, 2)
 }
 
 onMounted(() => {

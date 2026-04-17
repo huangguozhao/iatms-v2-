@@ -2,6 +2,7 @@ package com.iatms.application.testing.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.iatms.application.testing.TestCaseCommandService;
+import com.iatms.application.testing.TestCaseQueryService;
 import com.iatms.application.testing.dto.command.CreateTestCaseCmd;
 import com.iatms.domain.model.entity.TestCase;
 import com.iatms.domain.model.vo.TestCaseDetailVO;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class TestCaseCommandServiceImpl implements TestCaseCommandService {
 
     private final TestCaseMapper testCaseMapper;
+    private final TestCaseQueryService testCaseQueryService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -113,35 +115,6 @@ public class TestCaseCommandServiceImpl implements TestCaseCommandService {
     }
 
     private TestCaseDetailVO getTestCaseDetail(Long caseId) {
-        TestCase testCase = testCaseMapper.selectById(caseId);
-        if (testCase == null) {
-            throw new ResourceNotFoundException(ErrorCode.TEST_CASE_NOT_FOUND.getCode(),
-                    ErrorCode.TEST_CASE_NOT_FOUND.getMessage());
-        }
-
-        return TestCaseDetailVO.builder()
-                .id(testCase.getId())
-                .caseCode(testCase.getCaseCode())
-                .name(testCase.getName())
-                .description(testCase.getDescription())
-                .projectId(testCase.getProjectId())
-                .moduleId(testCase.getModuleId())
-                .apiId(testCase.getApiId() != null ? testCase.getApiId().longValue() : null)
-                .testType(testCase.getTestType())
-                .priority(testCase.getPriority())
-                .status(testCase.getStatus())
-                .preconditions(testCase.getPreconditions())
-                .testSteps(testCase.getTestSteps())
-                .testData(testCase.getTestData())
-                .headers(testCase.getHeaders())
-                .requestParams(testCase.getRequestParams())
-                .requestBody(testCase.getRequestBody())
-                .assertions(testCase.getAssertions())
-                .expectedResponse(testCase.getExpectedResponse())
-                .extractors(testCase.getExtractors())
-                .createdAt(testCase.getCreatedAt())
-                .updatedAt(testCase.getUpdatedAt())
-                .createdBy(testCase.getCreatedBy())
-                .build();
+        return testCaseQueryService.getTestCaseDetail(caseId);
     }
 }

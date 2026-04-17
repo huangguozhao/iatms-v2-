@@ -19,6 +19,7 @@ import com.iatms.infrastructure.persistence.mapper.ProjectMapper;
 import com.iatms.infrastructure.persistence.mapper.TestCaseMapper;
 import com.iatms.infrastructure.persistence.mapper.TestExecutionMapper;
 import com.iatms.domain.model.enums.ErrorCode;
+import com.iatms.common.exception.BusinessException;
 import com.iatms.common.exception.ResourceNotFoundException;
 import com.iatms.api.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -116,6 +117,11 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
         if (testCase == null || testCase.getDeleted()) {
             throw new ResourceNotFoundException(ErrorCode.TEST_CASE_NOT_FOUND.getCode(),
                     ErrorCode.TEST_CASE_NOT_FOUND.getMessage());
+        }
+
+        // 校验用户是否有权限执行该用例所属的项目
+        if (testCase.getProjectId() != null && !permissionService.canAccessProject(userId, testCase.getProjectId().longValue())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN.getCode(), "无权限执行该用例");
         }
 
         // 创建执行记录
