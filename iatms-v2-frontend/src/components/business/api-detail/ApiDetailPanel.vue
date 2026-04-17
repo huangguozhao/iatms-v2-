@@ -67,6 +67,8 @@
       <ApiRelatedCases
         v-show="activeTab === 'cases'"
         :api="api"
+        :project-id="apiData.projectId"
+        :module-id="apiData.moduleId"
         :related-cases="testCases"
         @select-case="$emit('select-case', $event)"
         @created="handleCaseCreated"

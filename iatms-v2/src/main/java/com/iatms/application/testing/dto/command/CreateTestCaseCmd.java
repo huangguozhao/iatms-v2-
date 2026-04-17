@@ -47,4 +47,12 @@ public class CreateTestCaseCmd {
     private String status = "DRAFT";
 
     private Boolean isEnabled;
+
+    private Integer expectedHttpStatus;
+
+    private String requestOverride;
+
+    private String expectedResponseSchema;
+
+    private String expectedResponseBody;
 }

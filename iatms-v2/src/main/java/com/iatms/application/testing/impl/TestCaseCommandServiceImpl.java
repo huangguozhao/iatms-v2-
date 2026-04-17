@@ -52,6 +52,10 @@ public class TestCaseCommandServiceImpl implements TestCaseCommandService {
         testCase.setAssertions(cmd.getAssertions());
         testCase.setExpectedResponse(cmd.getExpectedResponse());
         testCase.setExtractors(cmd.getExtractors());
+        testCase.setExpectedHttpStatus(cmd.getExpectedHttpStatus());
+        testCase.setRequestOverride(cmd.getRequestOverride());
+        testCase.setExpectedResponseSchema(cmd.getExpectedResponseSchema());
+        testCase.setExpectedResponseBody(cmd.getExpectedResponseBody());
         testCase.setStatus(cmd.getStatus());
         testCase.setCreatedBy(userId);
         testCase.setUpdatedBy(userId);

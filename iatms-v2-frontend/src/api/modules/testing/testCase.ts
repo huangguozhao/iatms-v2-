@@ -10,11 +10,15 @@ export type { PageResult, TestCaseSummaryVO, TestCaseDetailVO }
 
 export interface CreateTestCaseDTO {
   name: string
-  projectId?: number
+  caseCode?: string
+  projectId: number
   moduleId?: number
   apiId?: number | null
-  priority?: string
   testType?: string
+  priority?: string
+  preconditions?: string
+  testSteps?: string
+  testData?: string
   headers?: string
   requestParams?: string
   requestBody?: string
@@ -23,6 +27,9 @@ export interface CreateTestCaseDTO {
   description?: string
   status?: string
   isEnabled?: boolean
+  expectedHttpStatus?: number
+  expectedResponseSchema?: string
+  expectedResponseBody?: string
 }
 
 export interface TestCaseQuery {

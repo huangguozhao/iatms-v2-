@@ -28,6 +28,12 @@
             </el-select>
           </el-form-item>
 
+          <el-form-item label="测试类型">
+            <el-select v-model="formData.testType" style="width: 100%">
+              <el-option v-for="t in testTypeOptions" :key="t.value" :label="t.label" :value="t.value" />
+            </el-select>
+          </el-form-item>
+
           <el-form-item label="严重程度" prop="severity">
             <el-select v-model="formData.severity" style="width: 100%">
               <el-option v-for="s in severityOptions" :key="s.value" :label="s.label" :value="s.value" />
@@ -217,10 +223,13 @@ import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { InfoFilled } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { testCaseApi } from '@/api/modules/testing/testCase'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
-  apiId: { type: Number, default: null }
+  apiId: { type: Number, default: null },
+  projectId: { type: Number, default: null },
+  moduleId: { type: Number, default: null }
 })
 
 const emit = defineEmits<{
@@ -250,11 +259,23 @@ const severityOptions = [
   { label: '低', value: 'low' }
 ]
 
+const testTypeOptions = [
+  { label: '功能测试', value: 'functional' },
+  { label: '边界测试', value: 'boundary' },
+  { label: '异常测试', value: 'exception' },
+  { label: '安全测试', value: 'security' },
+  { label: '性能测试', value: 'performance' },
+  { label: '集成测试', value: 'integration' },
+  { label: '冒烟测试', value: 'smoke' },
+  { label: '回归测试', value: 'regression' }
+]
+
 const formData = reactive({
   name: '',
   caseCode: '',
   description: '',
   priority: 'P2',
+  testType: 'functional',
   severity: 'medium',
   isEnabled: true,
   testSteps: [] as any[],
@@ -280,6 +301,7 @@ function resetForm() {
     caseCode: '',
     description: '',
     priority: 'P2',
+    testType: 'functional',
     severity: 'medium',
     isEnabled: true,
     testSteps: [],
@@ -323,9 +345,44 @@ async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
+  if (!props.projectId) {
+    ElMessage.error('缺少项目信息，请从API详情页添加用例')
+    return
+  }
+
   saving.value = true
   try {
-    // TODO: 调用创建用例API
+    // 构建请求数据
+    const data: any = {
+      name: formData.name,
+      caseCode: formData.caseCode || undefined,
+      projectId: props.projectId,
+      moduleId: props.moduleId || undefined,
+      apiId: props.apiId || undefined,
+      testType: formData.testType,
+      priority: formData.priority,
+      description: formData.description || undefined,
+      preconditions: formData.preConditionsStr || undefined,
+      testSteps: formData.testSteps.length > 0 ? JSON.stringify(formData.testSteps) : undefined,
+      headers: formData.overrideHeaders.length > 0 ? JSON.stringify(formData.overrideHeaders.reduce((acc: Record<string, string>, item: any) => {
+        if (item.name) acc[item.name] = item.value
+        return acc
+      }, {})) : undefined,
+      requestParams: formData.overrideQueryParams.length > 0 ? JSON.stringify(formData.overrideQueryParams.reduce((acc: Record<string, string>, item: any) => {
+        if (item.name) acc[item.name] = item.value
+        return acc
+      }, {})) : undefined,
+      requestBody: formData.overrideBody || undefined,
+      assertions: formData.assertions.length > 0 ? JSON.stringify(formData.assertions) : undefined,
+      extractors: formData.extractors.length > 0 ? JSON.stringify(formData.extractors) : undefined,
+      expectedHttpStatus: formData.expectedHttpStatus || undefined,
+      expectedResponseSchema: formData.expectedResponseSchemaStr || undefined,
+      expectedResponseBody: formData.expectedResponseBody || undefined,
+      status: 'DRAFT',
+      isEnabled: formData.isEnabled
+    }
+
+    await testCaseApi.create(data)
     ElMessage.success('用例创建成功')
     visible.value = false
     resetForm()

@@ -114,7 +114,13 @@
     </div>
 
     <!-- 添加用例对话框 -->
-    <TestCaseFormDialog v-model="addDialogVisible" @success="handleCaseCreated" />
+    <TestCaseFormDialog
+      v-model="addDialogVisible"
+      :api-id="addDialogApiId"
+      :project-id="addDialogProjectId"
+      :module-id="addDialogModuleId"
+      @success="handleCaseCreated"
+    />
 
     <!-- 执行配置对话框 -->
     <ExecuteConfigDialog
@@ -142,8 +148,37 @@ import TestCaseFormDialog from './TestCaseFormDialog.vue'
 const props = defineProps({
   visible: { type: Boolean, default: true },
   api: { type: Object as () => ProjectTreeNode | null, default: null },
-  relatedCases: { type: Array as () => ProjectTreeNode[], default: () => [] }
+  relatedCases: { type: Array as () => ProjectTreeNode[], default: () => [] },
+  projectId: { type: Number as () => number | null, default: null },
+  moduleId: { type: Number as () => number | null, default: null }
 })
+
+// 计算属性确保 projectId 和 moduleId 正确传递
+const effectiveApiId = computed(() => props.api?.id ?? null)
+const effectiveProjectId = computed(() => {
+  // 优先使用 props.projectId（从 apiData 获取）
+  if (props.projectId) return props.projectId
+  // 其次从 api prop 获取
+  if (props.api?.projectId) return props.api.projectId
+  // 如果没有，尝试从 relatedCases 中第一个用例获取
+  if (props.relatedCases?.length > 0) {
+    return props.relatedCases[0].projectId ?? null
+  }
+  return null
+})
+const effectiveModuleId = computed(() => {
+  if (props.moduleId) return props.moduleId
+  if (props.api?.moduleId) return props.api.moduleId
+  return null
+})
+
+// 实际用于对话框的 ID（立即获取，不依赖异步数据）
+function getEffectiveProjectId() {
+  return props.projectId || props.api?.projectId || (props.relatedCases?.length > 0 ? props.relatedCases[0].projectId : null)
+}
+function getEffectiveModuleId() {
+  return props.moduleId || props.api?.moduleId || null
+}
 
 const emit = defineEmits<{
   'select-case': [tc: ProjectTreeNode]
@@ -153,6 +188,9 @@ const emit = defineEmits<{
 // 状态
 const searchText = ref('')
 const addDialogVisible = ref(false)
+const addDialogApiId = ref<number | null>(null)
+const addDialogProjectId = ref<number | null>(null)
+const addDialogModuleId = ref<number | null>(null)
 const executeDialogVisible = ref(false)
 const executeConfig = reactive({
   targetType: 'case' as 'project' | 'module' | 'api' | 'case',
@@ -319,6 +357,10 @@ function handleRowClick(row: any) {
 }
 
 function showAddDialog() {
+  // 立即捕获当前数据，避免依赖异步加载的 apiData
+  addDialogApiId.value = props.api?.id ?? null
+  addDialogProjectId.value = props.projectId || props.api?.projectId || (props.relatedCases?.length > 0 ? props.relatedCases[0].projectId : null)
+  addDialogModuleId.value = props.moduleId || props.api?.moduleId || null
   addDialogVisible.value = true
 }
 
