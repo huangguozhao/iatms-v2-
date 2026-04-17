@@ -43,6 +43,8 @@ public class TestCaseCommandServiceImpl implements TestCaseCommandService {
         testCase.setApiId(cmd.getApiId() != null ? cmd.getApiId().intValue() : null);
         testCase.setTestType(cmd.getTestType());
         testCase.setPriority(cmd.getPriority());
+        testCase.setSeverity(cmd.getSeverity());
+        testCase.setTags(cmd.getTags());
         testCase.setPreconditions(cmd.getPreconditions());
         testCase.setTestSteps(cmd.getTestSteps());
         testCase.setTestData(cmd.getTestData());

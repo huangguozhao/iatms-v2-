@@ -85,26 +85,92 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
                     ErrorCode.TEST_CASE_NOT_FOUND.getMessage());
         }
 
+        // Look up related data: project, module, api
+        Long projectId = null;
+        Long moduleId = null;
+        String projectName = null;
+        String moduleName = null;
+        ApiRequest api = null;
+
+        if (testCase.getApiId() != null) {
+            api = apiRequestMapper.selectById(testCase.getApiId().longValue());
+            if (api != null) {
+                moduleId = api.getModuleId() != null ? api.getModuleId().longValue() : null;
+                if (moduleId != null) {
+                    Module module = moduleMapper.selectById(moduleId.intValue());
+                    if (module != null) {
+                        projectId = module.getProjectId() != null ? module.getProjectId().longValue() : null;
+                        moduleName = module.getName();
+                        if (projectId != null) {
+                            Project project = projectMapper.selectById(projectId.intValue());
+                            if (project != null) {
+                                projectName = project.getName();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Parse request_override JSON to extract headers, requestParams, requestBody
+        String headers = null;
+        String requestParams = null;
+        String requestBody = null;
+        String requestOverrideStr = testCase.getRequestOverride();
+        if (requestOverrideStr != null && !requestOverrideStr.isEmpty()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode overrideNode =
+                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(requestOverrideStr);
+                if (overrideNode.has("headers")) {
+                    headers = overrideNode.get("headers").toString();
+                }
+                if (overrideNode.has("queryParams")) {
+                    requestParams = overrideNode.get("queryParams").toString();
+                }
+                if (overrideNode.has("body")) {
+                    requestBody = overrideNode.get("body").asText();
+                }
+            } catch (Exception e) {
+                // If JSON parsing fails, keep original values
+                log.warn("Failed to parse request_override JSON for case {}", caseId, e);
+            }
+        }
+
         return TestCaseDetailVO.builder()
                 .id(testCase.getId())
                 .caseCode(testCase.getCaseCode())
                 .name(testCase.getName())
                 .description(testCase.getDescription())
-                .projectId(testCase.getProjectId())
-                .moduleId(testCase.getModuleId())
+                .projectId(projectId)
+                .projectName(projectName)
+                .moduleId(moduleId)
+                .moduleName(moduleName)
                 .apiId(testCase.getApiId() != null ? testCase.getApiId().longValue() : null)
+                .api(api != null ? com.iatms.domain.model.vo.ApiSummaryVO.builder()
+                        .id(api.getId())
+                        .name(api.getName())
+                        .path(api.getPath())
+                        .method(api.getMethod())
+                        .build() : null)
                 .testType(testCase.getTestType())
                 .priority(testCase.getPriority())
+                .severity(testCase.getSeverity())
+                .tags(testCase.getTags())
                 .status(testCase.getStatus())
                 .preconditions(testCase.getPreconditions())
                 .testSteps(testCase.getTestSteps())
                 .testData(testCase.getTestData())
-                .headers(testCase.getHeaders())
-                .requestParams(testCase.getRequestParams())
-                .requestBody(testCase.getRequestBody())
+                .headers(headers)
+                .requestParams(requestParams)
+                .requestBody(requestBody)
                 .assertions(testCase.getAssertions())
                 .expectedResponse(testCase.getExpectedResponse())
                 .extractors(testCase.getExtractors())
+                .expectedHttpStatus(testCase.getExpectedHttpStatus())
+                .expectedResponseSchema(testCase.getExpectedResponseSchema())
+                .expectedResponseBody(testCase.getExpectedResponseBody())
+                .requestOverride(testCase.getRequestOverride())
+                .isEnabled(testCase.getIsEnabled())
                 .createdAt(testCase.getCreatedAt())
                 .updatedAt(testCase.getUpdatedAt())
                 .createdBy(testCase.getCreatedBy())

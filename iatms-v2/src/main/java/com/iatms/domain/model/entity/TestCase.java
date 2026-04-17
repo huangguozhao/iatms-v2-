@@ -141,32 +141,27 @@ public class TestCase extends BaseEntity {
     /**
      * 覆盖父类字段，避免查询不存在的 created_at 列
      */
-    @TableField(exist = false)
+    @TableField("created_at")
     private LocalDateTime createdAt;
 
     /**
      * 覆盖父类字段，避免查询不存在的 updated_at 列
      */
-    @TableField(exist = false)
+    @TableField("updated_at")
     private LocalDateTime updatedAt;
 
     /**
      * 覆盖父类字段，避免查询不存在的 creator_id 列
      */
-    @TableField(exist = false)
+    @TableField("created_by")
     private Long createdBy;
 
     /**
      * 覆盖父类字段，避免查询不存在的 updater_id 列
      */
-    @TableField(exist = false)
+    @TableField("updated_by")
     private Long updatedBy;
 
-    /**
-     * 覆盖父类字段，避免查询不存在的 version 列
-     */
-    @TableField(exist = false)
-    private Integer version;
 
     // ========== 兼容字段（数据库中不存在，但代码需要使用）==========
 

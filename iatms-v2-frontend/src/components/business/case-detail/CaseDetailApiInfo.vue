@@ -137,7 +137,8 @@ const displayResponseTime = computed(() => {
 // 显示验证规则
 const displayValidationRules = computed((): string[] => {
   const rules = (props.testCase as any)?.validationRules ||
-    (props.testCase as any)?.validation_rules
+    (props.testCase as any)?.validation_rules ||
+    (props.testCase as any)?.validators
 
   if (!rules) return []
 

@@ -44,6 +44,10 @@ public class CreateTestCaseCmd {
 
     private String extractors;
 
+    private String severity;
+
+    private String tags;
+
     private String status = "DRAFT";
 
     private Boolean isEnabled;

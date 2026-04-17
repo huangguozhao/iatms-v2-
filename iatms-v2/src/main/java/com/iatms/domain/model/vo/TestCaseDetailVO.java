@@ -25,6 +25,8 @@ public class TestCaseDetailVO {
     private ApiSummaryVO api;
     private String testType;
     private String priority;
+    private String severity;
+    private String tags;
     private String status;
     private String preconditions;
     private String testSteps;
@@ -35,6 +37,11 @@ public class TestCaseDetailVO {
     private String assertions;
     private String expectedResponse;
     private String extractors;
+    private Integer expectedHttpStatus;
+    private String expectedResponseSchema;
+    private String expectedResponseBody;
+    private String requestOverride;
+    private Boolean isEnabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Long createdBy;

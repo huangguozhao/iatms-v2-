@@ -147,6 +147,8 @@ export interface TestCaseDetailVO extends TestCaseSummaryVO {
   caseCode?: string
   description?: string
   testType?: string
+  severity?: string
+  tags?: string
   preconditions?: string
   testSteps?: string
   testData?: string
@@ -156,6 +158,11 @@ export interface TestCaseDetailVO extends TestCaseSummaryVO {
   assertions?: string
   expectedResponse?: string
   extractors?: string
+  expectedHttpStatus?: number
+  expectedResponseSchema?: string
+  expectedResponseBody?: string
+  requestOverride?: string
+  isEnabled?: boolean
   updatedAt?: string
   creatorName?: string
   creator?: { name?: string }
