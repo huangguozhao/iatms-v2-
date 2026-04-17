@@ -90,6 +90,7 @@
 import { ref, reactive, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { ProjectTreeNode } from '@/api/modules/testing/testCase'
+import { apiApi } from '@/api/modules/testing/api'
 import { useApiData, useProjectModules } from '@/composables'
 import ApiBasicForm from './ApiBasicForm.vue'
 import ApiParamsEditor from './ApiParamsEditor.vue'
@@ -167,12 +168,39 @@ watch(
       if (apiData.projectId) {
         loadModules(apiData.projectId)
       }
+      // 加载最新执行结果
+      loadLatestExecution()
     } else {
       reset()
+      executionResult.value = null
     }
   },
   { immediate: true }
 )
+
+// 加载最新执行结果
+async function loadLatestExecution() {
+  if (!props.api?.id) return
+  try {
+    const result = await apiApi.getLatestExecution(props.api.id)
+    if (result.hasResult) {
+      executionResult.value = {
+        status: result.status,
+        responseTime: result.duration,
+        testTime: result.startTime,
+        statusCode: result.statusCode || '-',
+        body: result.body,
+        assertions: result.assertions || [],
+        headers: result.headers || []
+      }
+    } else {
+      executionResult.value = null
+    }
+  } catch (e) {
+    console.error('加载最新执行结果失败', e)
+    executionResult.value = null
+  }
+}
 
 // 监听测试用例数量变化，更新标签页
 watch(testCases, (cases) => {

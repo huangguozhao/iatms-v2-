@@ -54,7 +54,11 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="响应时间" width="100" align="center" prop="responseTime" />
+        <el-table-column label="响应时间" width="100" align="center">
+          <template #default="{ row }">
+            {{ row.duration ? row.duration + 'ms' : '-' }}
+          </template>
+        </el-table-column>
 
         <el-table-column label="结果" width="90" align="center">
           <template #default="{ row }">
@@ -139,12 +143,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { Download } from '@element-plus/icons-vue'
 import { CircleCheckFilled, CircleCloseFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { formatDateTime } from '@/utils/formatters'
 import type { ProjectTreeNode } from '@/api/modules/testing/testCase'
+import { apiApi } from '@/api/modules/testing/api'
 
 const props = defineProps({
   visible: { type: Boolean, default: true },
@@ -167,8 +172,35 @@ const pagination = reactive({
   pageSize: 10
 })
 
-// TODO: 从API获取真实数据
 const records = ref<any[]>([])
+
+// 加载测试历史
+async function loadTestHistory() {
+  if (!props.api?.id) {
+    records.value = []
+    return
+  }
+
+  loading.value = true
+  try {
+    const data = await apiApi.getTestHistory(props.api.id, filter.period)
+    records.value = data
+  } catch (e) {
+    console.error('加载测试历史失败', e)
+    records.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+// 监听 API 变化和筛选条件变化
+watch(() => props.api?.id, () => {
+  loadTestHistory()
+}, { immediate: true })
+
+watch(() => filter.period, () => {
+  loadTestHistory()
+})
 
 const filteredRecords = computed(() => {
   let result = records.value
@@ -179,7 +211,7 @@ const filteredRecords = computed(() => {
   if (searchText.value) {
     const search = searchText.value.toLowerCase()
     result = result.filter(r =>
-      r.recordId?.toLowerCase().includes(search) ||
+      r.recordId?.toString().toLowerCase().includes(search) ||
       r.executor?.toLowerCase().includes(search)
     )
   }

@@ -20,6 +20,48 @@ export const apiApi = {
     return client.get(`/v1/apis/${id}`)
   },
 
+  getLatestExecution: (apiId: number): Promise<{
+    hasResult: boolean
+    message?: string
+    caseId?: number
+    caseName?: string
+    status?: string
+    duration?: number
+    startTime?: string
+    endTime?: string
+    failureMessage?: string
+    failureType?: string
+    environment?: string
+    retryCount?: number
+    statusCode?: number
+    body?: any
+    headers?: any[]
+    assertions?: any[]
+    requestBody?: any
+  }> => {
+    return client.get(`/v1/apis/${apiId}/latest-execution`)
+  },
+
+  getTestHistory: (apiId: number, period = '7days'): Promise<Array<{
+    recordId: number
+    executor: string
+    executorInfo: { name: string }
+    executionType: string
+    environment: string
+    startTime: string
+    endTime: string
+    totalCases: number
+    passedCases: number
+    failedCases: number
+    successRate: number
+    testTime: string
+    status: string
+    caseName: string
+    duration: number
+  }>> => {
+    return client.get(`/v1/apis/${apiId}/test-history`, { params: { period } })
+  },
+
   create: (data: CreateApiDTO): Promise<void> => {
     return client.post('/v1/apis', data)
   },
