@@ -1,6 +1,7 @@
 package com.iatms.application.testing;
 
 import com.iatms.api.common.ApiResponse;
+import com.iatms.domain.model.entity.TestExecution;
 import com.iatms.domain.model.vo.ProjectTreeVO;
 import com.iatms.domain.model.vo.TestCaseDetailVO;
 import com.iatms.domain.model.vo.TestCaseSummaryVO;
@@ -34,4 +35,12 @@ public interface TestCaseQueryService {
      * @param userId 当前用户ID，用于权限过滤
      */
     List<ProjectTreeVO> getProjectTree(Long projectId, Long userId);
+
+    /**
+     * 获取测试用例的执行历史
+     * @param caseId 用例ID
+     * @param limit 返回记录数限制
+     * @return 执行历史记录列表
+     */
+    List<TestExecution> getTestCaseExecutionHistory(Long caseId, Integer limit);
 }

@@ -104,5 +104,12 @@ export const testCaseApi = {
   getTree: (projectId?: number) => {
     const params = projectId ? { projectId } : {}
     return client.get<any, ProjectTreeNode[]>('/v1/test-cases/tree', { params })
+  },
+
+  /**
+   * 获取测试用例的执行历史
+   */
+  getExecutionHistory: (caseId: number, limit: number = 10) => {
+    return client.get<any, any[]>(`/v1/test-cases/${caseId}/executions`, { params: { limit } })
   }
 }

@@ -354,15 +354,25 @@ async function handleNodeClick(data: ProjectTreeNode) {
 
   if (data.type === 'testcase') {
     caseDetailLoading.value = true
+    executionHistoryLoading.value = true
     try {
-      caseDetail.value = await testCaseApi.getDetail(data.id)
+      const [detail, historyData] = await Promise.all([
+        testCaseApi.getDetail(data.id),
+        testCaseApi.getExecutionHistory(data.id, 10)
+      ])
+      caseDetail.value = detail
+      executionHistory.value = historyData.data || []
+      executionHistoryTotal.value = (historyData.data || []).length
     } catch {
       ElMessage.error('加载用例详情失败')
     } finally {
       caseDetailLoading.value = false
+      executionHistoryLoading.value = false
     }
   } else {
     caseDetail.value = null
+    executionHistory.value = []
+    executionHistoryTotal.value = 0
   }
 }
 

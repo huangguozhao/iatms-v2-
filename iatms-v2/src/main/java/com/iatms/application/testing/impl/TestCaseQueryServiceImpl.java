@@ -423,4 +423,13 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
                 .createdBy(testCase.getCreatedBy())
                 .build();
     }
+
+    @Override
+    public List<TestExecution> getTestCaseExecutionHistory(Long caseId, Integer limit) {
+        List<TestExecution> records = executionMapper.selectByScopeAndRefId("test_case", caseId.intValue());
+        if (records != null && limit != null && records.size() > limit) {
+            return records.subList(0, limit);
+        }
+        return records != null ? records : List.of();
+    }
 }

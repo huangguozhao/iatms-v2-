@@ -105,4 +105,18 @@ public class TestCaseController {
         String executionId = testCaseQueryService.executeTestCase(caseId, userId);
         return ApiResponse.success(executionId);
     }
+
+    @GetMapping("/{caseId}/executions")
+    @RequirePermission(ProjectPermission.CASE_VIEW)
+    public ApiResponse<List<Object>> getTestCaseExecutions(
+            @PathVariable Long caseId,
+            @RequestParam(defaultValue = "10") Integer limit) {
+
+        log.info("获取测试用例执行历史: caseId={}, limit={}", caseId, limit);
+        List<Object> history = testCaseQueryService.getTestCaseExecutionHistory(caseId, limit)
+                .stream()
+                .map(exec -> (Object) exec)
+                .toList();
+        return ApiResponse.success(history);
+    }
 }
