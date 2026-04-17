@@ -315,6 +315,31 @@ export function useApiData() {
 
     saving.value = true
     try {
+      // 将 requestParams 中的参数转换为 JSON 格式
+      // headers: 数组 [{name, value, description}] -> JSON字符串
+      const headersObj = requestParams.headerParams.reduce((acc: Record<string, string>, item: any) => {
+        if (item.name) acc[item.name] = item.value
+        return acc
+      }, {})
+
+      // queryParams: 数组 [{name, value, description}] -> JSON字符串
+      const queryParamsObj = requestParams.queryParams.reduce((acc: Record<string, string>, item: any) => {
+        if (item.name) acc[item.name] = item.value
+        return acc
+      }, {})
+
+      // requestBody: 根据 bodyType 处理
+      let requestBody = ''
+      if (requestParams.bodyType === 'json' || requestParams.bodyType === 'form-data') {
+        const bodyObj = requestParams.bodyParams.reduce((acc: Record<string, string>, item: any) => {
+          if (item.name) acc[item.name] = item.value
+          return acc
+        }, {})
+        requestBody = JSON.stringify(bodyObj)
+      } else {
+        requestBody = requestParams.rawBody
+      }
+
       // 构建请求数据
       const data: any = {
         name: apiData.name,
@@ -323,11 +348,11 @@ export function useApiData() {
         httpMethod: apiData.httpMethod,
         url: apiData.url,
         baseUrl: apiData.basePath,
-        requestBody: typeof apiData.requestBody === 'object' ? JSON.stringify(apiData.requestBody) : apiData.requestBody,
-        headers: typeof apiData.headers === 'object' ? JSON.stringify(apiData.headers) : apiData.headers,
-        queryParams: typeof apiData.queryParams === 'object' ? JSON.stringify(apiData.queryParams) : apiData.queryParams,
+        requestBody: requestBody,
+        requestHeaders: JSON.stringify(headersObj),
+        queryParams: JSON.stringify(queryParamsObj),
         authConfig: typeof apiData.authConfig === 'object' ? JSON.stringify(apiData.authConfig) : apiData.authConfig,
-        requestBodyType: apiData.requestBodyType,
+        requestBodyType: requestParams.bodyType,
         status: apiData.status,
         tags: Array.isArray(apiData.tags) ? apiData.tags.join(',') : apiData.tags,
         timeoutSeconds: apiData.timeoutSeconds
