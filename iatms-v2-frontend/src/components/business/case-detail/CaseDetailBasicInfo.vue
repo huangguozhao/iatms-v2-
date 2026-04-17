@@ -190,6 +190,23 @@ const displayTestData = computed(() => {
     (props.testCase as any)?.pre_conditions
 
   if (!data) {
+    // 尝试从 requestParams（JSON数组格式）解析
+    const requestParams = (props.testCase as any)?.requestParams
+    if (requestParams) {
+      try {
+        const parsed = typeof requestParams === 'string' ? JSON.parse(requestParams) : requestParams
+        if (Array.isArray(parsed)) {
+          const items: { label: string; value: string }[] = []
+          parsed.forEach((p: any) => {
+            if (p.name) {
+              items.push({ label: `[查询参数] ${p.name}`, value: p.value || '' })
+            }
+          })
+          if (items.length > 0) return items
+        }
+      } catch {}
+    }
+
     // 尝试从 requestOverride 中解析测试数据
     const requestOverride = (props.testCase as any)?.requestOverride
     if (requestOverride) {
