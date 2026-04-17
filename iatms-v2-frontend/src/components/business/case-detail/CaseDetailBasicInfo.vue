@@ -467,18 +467,21 @@ $bg-lighter: #fafafa;
 
 .data-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   padding: 12px;
   border: 1px solid $border-color;
   border-radius: calc($card-radius - 6px);
   background-color: $bg-lighter;
+  font-size: 13px;
+  word-break: break-all;
 }
 
 .data-label {
   font-weight: 500;
-  color: $text-primary;
-  font-size: 14px;
+  color: $text-secondary;
+  flex-shrink: 0;
 }
 
 .data-value {
