@@ -361,7 +361,22 @@ async function handleNodeClick(data: ProjectTreeNode) {
         testCaseApi.getExecutionHistory(data.id, 10)
       ])
       caseDetail.value = detail
-      executionHistory.value = historyData.data || []
+      // 转换执行历史字段以匹配前端期望的格式
+      executionHistory.value = (historyData.data || []).map((item: any) => ({
+        status: item.status,
+        executor: item.executedBy?.toString() || '未知',
+        executorName: item.scopeName || '未知',
+        type: item.executionType || item.triggerType,
+        action: item.executionType || item.triggerType,
+        environment: item.environment,
+        note: item.errorMessage || '',
+        remark: item.errorMessage || '',
+        executedAt: item.startTime || item.startedAt,
+        executed_time: item.startTime || item.startedAt,
+        createTime: item.startTime || item.startedAt,
+        durationSeconds: item.durationSeconds || item.duration || 0,
+        duration: item.durationSeconds || item.duration || 0
+      }))
       executionHistoryTotal.value = (historyData.data || []).length
     } catch {
       ElMessage.error('加载用例详情失败')
