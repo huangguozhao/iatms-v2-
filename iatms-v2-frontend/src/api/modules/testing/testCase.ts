@@ -18,6 +18,7 @@ export interface CreateTestCaseDTO {
   assertions?: string
   extractors?: string
   description?: string
+  isEnabled?: boolean
 }
 
 export interface TestCaseQuery {

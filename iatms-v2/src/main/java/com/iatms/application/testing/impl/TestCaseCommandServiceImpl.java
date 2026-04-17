@@ -83,6 +83,7 @@ public class TestCaseCommandServiceImpl implements TestCaseCommandService {
         if (cmd.getExpectedResponse() != null) testCase.setExpectedResponse(cmd.getExpectedResponse());
         if (cmd.getExtractors() != null) testCase.setExtractors(cmd.getExtractors());
         if (cmd.getStatus() != null) testCase.setStatus(cmd.getStatus());
+        if (cmd.getIsEnabled() != null) testCase.setIsEnabled(cmd.getIsEnabled());
 
         testCase.setUpdatedBy(userId);
         testCaseMapper.updateById(testCase);

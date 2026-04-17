@@ -45,4 +45,6 @@ public class CreateTestCaseCmd {
     private String extractors;
 
     private String status = "DRAFT";
+
+    private Boolean isEnabled;
 }

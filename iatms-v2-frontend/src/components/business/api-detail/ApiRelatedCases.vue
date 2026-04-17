@@ -48,7 +48,7 @@
       </div>
 
       <!-- 用例表格 -->
-      <el-table :data="filteredCases" @row-click="handleRowClick">
+      <el-table :data="filteredCases" @row-click="handleRowClick" class="cases-table">
         <el-table-column label="用例名称" min-width="180">
           <template #default="{ row }">
             <div class="case-name-cell">
@@ -94,7 +94,7 @@
           <template #default="{ row }">
             <el-button size="small" text type="primary" @click.stop="handleRun(row)">运行</el-button>
             <el-button size="small" text type="primary" @click.stop="$emit('select-case', row)">查看</el-button>
-            <el-button size="small" text :type="row.isEnabled ? 'warning' : 'success'" @click.stop="toggleStatus(row)">
+            <el-button size="small" text :type="row.isEnabled ? 'warning' : 'success'" @click.stop="handleToggleStatus(row)">
               {{ row.isEnabled ? '禁用' : '启用' }}
             </el-button>
           </template>
@@ -115,15 +115,28 @@
 
     <!-- 添加用例对话框 -->
     <TestCaseFormDialog v-model="addDialogVisible" @success="handleCaseCreated" />
+
+    <!-- 执行配置对话框 -->
+    <ExecuteConfigDialog
+      v-model="executeDialogVisible"
+      :target-type="executeConfig.targetType"
+      :target-id="executeConfig.targetId"
+      :target-name="executeConfig.targetName"
+      :case-count="executeConfig.caseCount"
+      :project-id="executeConfig.projectId"
+      @execute="handleExecuteFromConfig"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { Document, Search, Plus } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import type { ProjectTreeNode } from '@/api/modules/testing/testCase'
+import { testCaseApi } from '@/api/modules/testing/testCase'
 import { truncateText } from '@/utils/formatters'
+import { ExecuteConfigDialog } from '@/components/business/case-detail'
 import TestCaseFormDialog from './TestCaseFormDialog.vue'
 
 const props = defineProps({
@@ -140,6 +153,14 @@ const emit = defineEmits<{
 // 状态
 const searchText = ref('')
 const addDialogVisible = ref(false)
+const executeDialogVisible = ref(false)
+const executeConfig = reactive({
+  targetType: 'case' as 'project' | 'module' | 'api' | 'case',
+  targetId: null as number | null,
+  targetName: '',
+  caseCount: 0,
+  projectId: null as number | null
+})
 
 const filter = reactive({
   type: '',
@@ -294,7 +315,7 @@ function formatExpectedResultFull(row: any): string {
 }
 
 function handleRowClick(row: any) {
-  // 可以选中行
+  // 选中行
 }
 
 function showAddDialog() {
@@ -305,41 +326,112 @@ function handleCaseCreated() {
   emit('created')
 }
 
-function handleRun(row: any) {
-  ElMessage.info('执行功能开发中')
+function handleRun(row: ProjectTreeNode) {
+  executeConfig.targetType = 'case'
+  executeConfig.targetId = row.id
+  executeConfig.targetName = row.name || '用例'
+  executeConfig.caseCount = 1
+  executeConfig.projectId = row.projectId ?? null
+  executeDialogVisible.value = true
 }
 
-function toggleStatus(row: any) {
-  ElMessage.info('切换状态功能开发中')
+async function handleToggleStatus(row: ProjectTreeNode) {
+  const action = row.isEnabled ? '禁用' : '启用'
+  try {
+    await ElMessageBox.confirm(
+      `确定要${action}测试用例"${row.name}"吗？`,
+      `${action}测试用例`,
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+    )
+    await testCaseApi.update(row.id, { isEnabled: !row.isEnabled })
+    ElMessage.success(`测试用例${action}成功`)
+    emit('created')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(`${action}失败`)
+    }
+  }
+}
+
+function handleExecuteFromConfig() {
+  executeDialogVisible.value = false
+  ElMessage.success('执行已提交')
 }
 </script>
 
 <style scoped lang="scss">
-.cases-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.06);
-}
-
+/* 相关用例工具栏 */
 .cases-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  padding: 16px 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #e4e7ed;
+  margin: -20px -20px 16px -20px;
+  border-radius: 12px 12px 0 0;
 }
 
-.toolbar-left,
-.toolbar-right {
+.cases-toolbar .toolbar-left {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+}
+
+.cases-toolbar .toolbar-right {
+  display: flex;
+  gap: 12px;
   align-items: center;
 }
 
+/* 工具栏按钮微交互 */
+.cases-toolbar .el-button {
+  border-radius: 8px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.cases-toolbar .el-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+/* 卡片样式 */
+.cases-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 8px 28px rgba(16,24,40,0.04);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 44px rgba(16,24,40,0.08);
+  }
+}
+
+/* 表格行悬停效果 */
+:deep(.cases-table .el-table__row) {
+  transition: background-color 0.12s ease, transform 0.12s ease;
+}
+:deep(.cases-table .el-table__row:nth-child(odd)) {
+  background: linear-gradient(90deg, rgba(248,250,252,0.6), rgba(255,255,255,0));
+}
+:deep(.cases-table .el-table__row:hover) {
+  background: linear-gradient(90deg, rgba(240,249,255,0.9), rgba(246,253,255,0.6));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+}
+
+/* 用例名称单元格 */
 .case-name-cell {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background-color 0.12s ease, transform 0.12s ease;
+  cursor: pointer;
+  &:hover {
+    background: rgba(64,158,255,0.06);
+    transform: translateX(4px);
+  }
 }
 
 .case-icon {
@@ -349,10 +441,29 @@ function toggleStatus(row: any) {
 .case-link {
   color: #409eff;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
 
   &:hover {
     text-decoration: underline;
   }
+}
+
+/* 标签紧凑样式 */
+:deep(.cases-table .el-tag) {
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* 表格操作按钮微交互 */
+:deep(.cases-table .el-button) {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+:deep(.cases-table .el-button:hover) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
 }
 
 .data-preview {
