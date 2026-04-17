@@ -199,17 +199,17 @@ const displayTestData = computed(() => {
         if (parsed.queryParams && Array.isArray(parsed.queryParams)) {
           parsed.queryParams.forEach((p: any) => {
             if (p.name) {
-              items.push({ label: `query.${p.name}`, value: p.value || '' })
+              items.push({ label: `[查询参数] ${p.name}`, value: p.value || '' })
             }
           })
         }
         if (parsed.headers && typeof parsed.headers === 'object') {
           Object.entries(parsed.headers).forEach(([key, val]) => {
-            items.push({ label: `header.${key}`, value: String(val) })
+            items.push({ label: `[请求头] ${key}`, value: String(val) })
           })
         }
         if (parsed.body) {
-          items.push({ label: 'body', value: typeof parsed.body === 'object' ? JSON.stringify(parsed.body) : String(parsed.body) })
+          items.push({ label: '[请求体]', value: typeof parsed.body === 'object' ? JSON.stringify(parsed.body) : String(parsed.body) })
         }
         if (items.length > 0) return items
       } catch {}
