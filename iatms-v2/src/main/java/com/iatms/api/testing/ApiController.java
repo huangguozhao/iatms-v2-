@@ -204,7 +204,7 @@ public class ApiController {
 
         // 收集用例ID
         List<Integer> caseIds = testCases.stream()
-                .map(TestCase::getId)
+                .map(tc -> tc.getId().intValue())
                 .collect(Collectors.toList());
 
         // 计算时间范围
