@@ -49,6 +49,12 @@ public class ScheduledTaskCommandServiceImpl implements ScheduledTaskCommandServ
         } else if ("api".equals(cmd.getTaskType())) {
             task.setTargetId(cmd.getTargetId() != null ? cmd.getTargetId().intValue() : null);
             task.setTargetName("API_REQUEST");
+        } else if ("test_case".equals(cmd.getTaskType())) {
+            task.setTargetId(cmd.getTargetId() != null ? cmd.getTargetId().intValue() : null);
+            task.setTargetName("TEST_CASE");
+        } else {
+            task.setTargetId(cmd.getTargetId() != null ? cmd.getTargetId().intValue() : null);
+            task.setTargetName(cmd.getTaskType() != null ? cmd.getTaskType().toUpperCase() : null);
         }
 
         task.setExecutionEnvironment(cmd.getEnvironmentId() != null ? "test" : "test");

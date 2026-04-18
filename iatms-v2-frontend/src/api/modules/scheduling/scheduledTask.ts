@@ -1,5 +1,5 @@
 import { client } from '@/api/client'
-import type { ApiResponse, PageResult, ScheduledTaskSummaryVO, ScheduledTaskDetailVO } from '@/types/api'
+import type { PageResult, ScheduledTaskSummaryVO, ScheduledTaskDetailVO, ScheduledTaskQuery } from '@/types/api'
 
 export type { ScheduledTaskSummaryVO, ScheduledTaskDetailVO }
 
@@ -11,46 +11,54 @@ export interface CreateScheduledTaskDTO {
   strategy: string
   notifyOn: string[]
   description?: string
+  triggerType?: string
+  cronExpression?: string
+  dailyHour?: number
+  dailyMinute?: number
+  weeklyDays?: string
+  monthlyDay?: number
+  simpleRepeatInterval?: number
+  simpleRepeatCount?: number
+  timeoutSeconds?: number
+  retryEnabled?: boolean
+  maxRetryAttempts?: number
+  notifyOnSuccess?: boolean
+  notifyOnFailure?: boolean
+  caseIds?: number[]
 }
 
-export interface ScheduledTaskQuery {
-  keyword?: string
-  type?: string
-  status?: string
-  pageNum: number
-  pageSize: number
-}
+export { type ScheduledTaskQuery }
 
 export const scheduledTaskApi = {
   query: (query: ScheduledTaskQuery) => {
-    return client.get<any, ApiResponse<PageResult<ScheduledTaskSummaryVO>>>('/v1/scheduled-tasks', { params: query })
+    return client.get<PageResult<ScheduledTaskSummaryVO>, PageResult<ScheduledTaskSummaryVO>>('/v1/scheduled-tasks', { params: query })
   },
 
   getDetail: (id: number) => {
-    return client.get<any, ApiResponse<ScheduledTaskDetailVO>>(`/v1/scheduled-tasks/${id}`)
+    return client.get<ScheduledTaskDetailVO, ScheduledTaskDetailVO>(`/v1/scheduled-tasks/${id}`)
   },
 
   create: (data: CreateScheduledTaskDTO) => {
-    return client.post<any, ApiResponse<void>>('/v1/scheduled-tasks', data)
+    return client.post<any, any>('/v1/scheduled-tasks', data)
   },
 
   update: (id: number, data: CreateScheduledTaskDTO) => {
-    return client.put<any, ApiResponse<void>>(`/v1/scheduled-tasks/${id}`, data)
+    return client.put<any, any>(`/v1/scheduled-tasks/${id}`, data)
   },
 
   delete: (id: number) => {
-    return client.delete<any, ApiResponse<void>>(`/v1/scheduled-tasks/${id}`)
+    return client.delete<any, any>(`/v1/scheduled-tasks/${id}`)
   },
 
-  enable: (id: number) => {
-    return client.post<any, ApiResponse<void>>(`/v1/scheduled-tasks/${id}/enable`)
+  pause: (id: number) => {
+    return client.post<any, any>(`/v1/scheduled-tasks/${id}/pause`)
   },
 
-  disable: (id: number) => {
-    return client.post<any, ApiResponse<void>>(`/v1/scheduled-tasks/${id}/disable`)
+  resume: (id: number) => {
+    return client.post<any, any>(`/v1/scheduled-tasks/${id}/resume`)
   },
 
   execute: (id: number) => {
-    return client.post<any, ApiResponse<void>>(`/v1/scheduled-tasks/${id}/run`)
+    return client.post<any, any>(`/v1/scheduled-tasks/${id}/run`)
   }
 }

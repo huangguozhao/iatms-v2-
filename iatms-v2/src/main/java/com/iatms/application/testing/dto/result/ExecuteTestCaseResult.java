@@ -57,4 +57,41 @@ public class ExecuteTestCaseResult {
      * 错误信息
      */
     private String errorMessage;
+
+    // ========== AI 诊断所需字段 ==========
+
+    /**
+     * 用例名称
+     */
+    private String caseName;
+
+    /**
+     * API 路径
+     */
+    private String apiPath;
+
+    /**
+     * 请求方法
+     */
+    private String method;
+
+    /**
+     * 预期响应（从断言中提取）
+     */
+    private String expected;
+
+    /**
+     * 实际响应体
+     */
+    private String actual;
+
+    /**
+     * 响应体
+     */
+    private String responseBody;
+
+    /**
+     * 详细步骤JSON（包含请求/响应详情）
+     */
+    private String stepsJson;
 }

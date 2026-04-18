@@ -57,11 +57,12 @@ public class TestCaseController {
     public ApiResponse<ApiResponse.PageResult<TestCaseSummaryVO>> queryTestCases(
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) Long moduleId,
+            @RequestParam(required = false) Long apiId,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
 
-        var result = testCaseQueryService.queryTestCases(projectId, moduleId, keyword, pageNum, pageSize);
+        var result = testCaseQueryService.queryTestCases(projectId, moduleId, apiId, keyword, pageNum, pageSize);
         return ApiResponse.pageSuccess(result);
     }
 

@@ -67,7 +67,7 @@ public class ScheduledTaskController {
     }
 
     @GetMapping
-    @RequirePermission(ProjectPermission.TASK_VIEW)
+    @RequirePermission(value = ProjectPermission.TASK_VIEW, requireProjectId = false)
     public ApiResponse<ApiResponse.PageResult<ScheduledTaskSummaryVO>> queryTasks(
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) String status,

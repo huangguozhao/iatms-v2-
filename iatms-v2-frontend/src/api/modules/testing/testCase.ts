@@ -36,6 +36,7 @@ export interface TestCaseQuery {
   keyword?: string
   priority?: string
   apiId?: number
+  moduleId?: number
   projectId?: number
   pageNum: number
   pageSize: number

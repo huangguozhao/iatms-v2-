@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/test-suites")
+@RequestMapping("/v1/test-suites")
 @RequiredArgsConstructor
 public class TestSuiteController {
 

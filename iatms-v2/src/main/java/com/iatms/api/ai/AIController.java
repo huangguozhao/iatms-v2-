@@ -91,6 +91,29 @@ public class AIController {
 
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
+        // 用于存储订阅对象，以便在完成/超时/错误时取消
+        final reactor.core.Disposable[] subscriptionHolder = new reactor.core.Disposable[1];
+
+        // 设置超时回调 - 取消订阅
+        emitter.onTimeout(() -> {
+            log.warn("AI诊断SSE超时: executionId={}", executionId);
+            if (subscriptionHolder[0] != null && !subscriptionHolder[0].isDisposed()) {
+                subscriptionHolder[0].dispose();
+                log.info("超时后订阅已取消");
+            }
+            SecurityContextHolder.clearContext();
+        });
+
+        // 设置完成回调 - 取消订阅
+        emitter.onCompletion(() -> {
+            log.info("AI诊断SSE完成: executionId={}", executionId);
+            if (subscriptionHolder[0] != null && !subscriptionHolder[0].isDisposed()) {
+                subscriptionHolder[0].dispose();
+                log.info("完成后订阅已取消");
+            }
+            SecurityContextHolder.clearContext();
+        });
+
         // 捕获当前安全上下文
         final SecurityContext securityContext = SecurityContextHolder.getContext();
 
@@ -130,7 +153,9 @@ public class AIController {
                 // 5. 流式调用AI
                 StringBuilder fullResponse = new StringBuilder();
                 log.info("开始调用AI流式接口...");
-                aiProviderService.callAIStream(config, prompt)
+
+                // 保存订阅对象到共享数组
+                subscriptionHolder[0] = aiProviderService.callAIStream(config, prompt)
                         .subscribe(new Consumer<String>() {
                             @Override
                             public void accept(String chunk) {
@@ -185,16 +210,6 @@ public class AIController {
         // 使用单线程池执行
         Executor executor = Executors.newSingleThreadExecutor();
         executor.execute(wrappedTask);
-
-        // 设置超时回调
-        emitter.onTimeout(() -> {
-            log.warn("AI诊断SSE超时: executionId={}", executionId);
-            SecurityContextHolder.clearContext();
-        });
-        emitter.onCompletion(() -> {
-            log.info("AI诊断SSE完成: executionId={}", executionId);
-            SecurityContextHolder.clearContext();
-        });
 
         return emitter;
     }

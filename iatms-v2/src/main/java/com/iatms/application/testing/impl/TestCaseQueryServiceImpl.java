@@ -9,11 +9,8 @@ import com.iatms.application.testing.TestCaseQueryService;
 import com.iatms.application.testing.TestExecutionCommandService;
 import com.iatms.application.testing.dto.command.StartExecutionCmd;
 import com.iatms.application.testing.dto.result.ExecuteTestCaseResult;
-import com.iatms.domain.model.entity.ApiRequest;
+import com.iatms.domain.model.entity.*;
 import com.iatms.domain.model.entity.Module;
-import com.iatms.domain.model.entity.Project;
-import com.iatms.domain.model.entity.TestCase;
-import com.iatms.domain.model.entity.TestExecution;
 import com.iatms.domain.model.vo.ExecutionProgressVO;
 import com.iatms.domain.model.vo.ProjectTreeVO;
 import com.iatms.domain.model.vo.TestCaseDetailVO;
@@ -23,6 +20,7 @@ import com.iatms.infrastructure.persistence.mapper.ModuleMapper;
 import com.iatms.infrastructure.persistence.mapper.ProjectMapper;
 import com.iatms.infrastructure.persistence.mapper.TestCaseMapper;
 import com.iatms.infrastructure.persistence.mapper.TestExecutionMapper;
+import com.iatms.infrastructure.persistence.mapper.TestResultMapper;
 import com.iatms.domain.model.enums.ErrorCode;
 import com.iatms.common.exception.BusinessException;
 import com.iatms.common.exception.ResourceNotFoundException;
@@ -30,6 +28,9 @@ import com.iatms.api.common.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -48,20 +49,93 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
     private final ModuleMapper moduleMapper;
     private final ApiRequestMapper apiRequestMapper;
     private final PermissionService permissionService;
+    private final TestResultMapper testResultMapper;
     private final TestExecutionCommandService executionCommandService;
 
     @Override
     public ApiResponse.PageResult<TestCaseSummaryVO> queryTestCases(
-            Long projectId, Long moduleId, String keyword, Integer pageNum, Integer pageSize) {
+            Long projectId, Long moduleId, Long apiId, String keyword, Integer pageNum, Integer pageSize) {
+
+        Set<Long> targetApiIds = null;
+
+        // 直接指定了 apiId
+        if (apiId != null) {
+            targetApiIds = new HashSet<>();
+            targetApiIds.add(apiId);
+        }
+
+        // projectId → modules → apis → apiIds
+        if (projectId != null) {
+            LambdaQueryWrapper<Module> modWrapper = new LambdaQueryWrapper<>();
+            modWrapper.eq(Module::getProjectId, projectId.intValue());
+            modWrapper.eq(Module::getIsDeleted, false);
+            List<Module> modules = moduleMapper.selectList(modWrapper);
+
+            if (modules.isEmpty()) {
+                return ApiResponse.PageResult.of(List.of(), 0L, pageNum, pageSize);
+            }
+
+            List<Long> moduleIds = modules.stream()
+                    .filter(m -> m.getModuleId() != null)
+                    .map(m -> m.getModuleId().longValue())
+                    .collect(Collectors.toList());
+
+            LambdaQueryWrapper<ApiRequest> apiWrapper = new LambdaQueryWrapper<>();
+            apiWrapper.in(ApiRequest::getModuleId, moduleIds.stream().map(Long::intValue).collect(Collectors.toList()));
+            apiWrapper.eq(ApiRequest::getDeleted, false);
+            List<ApiRequest> apis = apiRequestMapper.selectList(apiWrapper);
+
+            if (apis.isEmpty()) {
+                return ApiResponse.PageResult.of(List.of(), 0L, pageNum, pageSize);
+            }
+
+            Set<Long> projectApiIds = apis.stream()
+                    .filter(a -> a.getId() != null)
+                    .map(ApiRequest::getId)
+                    .collect(Collectors.toSet());
+
+            if (targetApiIds != null) {
+                targetApiIds.retainAll(projectApiIds);
+            } else {
+                targetApiIds = projectApiIds;
+            }
+
+            if (targetApiIds.isEmpty()) {
+                return ApiResponse.PageResult.of(List.of(), 0L, pageNum, pageSize);
+            }
+        }
+
+        // moduleId → apis → apiIds
+        if (moduleId != null) {
+            LambdaQueryWrapper<ApiRequest> apiWrapper = new LambdaQueryWrapper<>();
+            apiWrapper.eq(ApiRequest::getModuleId, moduleId.intValue());
+            apiWrapper.eq(ApiRequest::getDeleted, false);
+            List<ApiRequest> apis = apiRequestMapper.selectList(apiWrapper);
+
+            if (apis.isEmpty()) {
+                return ApiResponse.PageResult.of(List.of(), 0L, pageNum, pageSize);
+            }
+
+            Set<Long> moduleApiIds = apis.stream()
+                    .filter(a -> a.getId() != null)
+                    .map(ApiRequest::getId)
+                    .collect(Collectors.toSet());
+
+            if (targetApiIds != null) {
+                targetApiIds.retainAll(moduleApiIds);
+            } else {
+                targetApiIds = moduleApiIds;
+            }
+
+            if (targetApiIds.isEmpty()) {
+                return ApiResponse.PageResult.of(List.of(), 0L, pageNum, pageSize);
+            }
+        }
 
         LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
 
-        if (projectId != null) {
-            wrapper.eq(TestCase::getProjectId, projectId);
-        }
-
-        if (moduleId != null) {
-            wrapper.eq(TestCase::getModuleId, moduleId);
+        if (targetApiIds != null && !targetApiIds.isEmpty()) {
+            wrapper.in(TestCase::getApiId, targetApiIds.stream().map(Long::intValue).collect(Collectors.toList()));
         }
 
         if (keyword != null && !keyword.isEmpty()) {
@@ -259,6 +333,48 @@ public class TestCaseQueryServiceImpl implements TestCaseQueryService {
         result.setEndTime(progress != null && progress.getStartedAt() != null ? java.time.LocalDateTime.now().toString() : null);
         result.setExecutor("当前用户");
         result.setErrorMessage(progress != null ? progress.getErrorMessage() : null);
+
+        // 填充 AI 诊断所需字段
+        result.setCaseName(testCase.getName());
+
+        // 从 testcaseresults 查询详细信息
+        List<TestResult> testResults = testResultMapper.selectByExecutionId(executionId);
+        if (testResults != null && !testResults.isEmpty()) {
+            TestResult testResult = testResults.get(0);
+            result.setErrorMessage(testResult.getFailureMessage());
+
+            // 解析 stepsJson 获取详细信息
+            String stepsJson = testResult.getStepsJson();
+            if (stepsJson != null && !stepsJson.isEmpty()) {
+                result.setStepsJson(stepsJson);
+                try {
+                    JSONObject steps = JSON.parseObject(stepsJson);
+
+                    // 解析 request 信息
+                    JSONObject request = steps.getJSONObject("request");
+                    if (request != null) {
+                        result.setMethod(request.getString("method"));
+                        result.setApiPath(request.getString("url"));
+                    }
+
+                    // 解析 response 信息
+                    JSONObject response = steps.getJSONObject("response");
+                    if (response != null) {
+                        result.setResponseStatus(response.getInteger("statusCode"));
+                        result.setResponseBody(response.getString("body"));
+                        result.setActual(response.getString("body"));
+                    }
+
+                    // 解析 assertion 信息
+                    JSONObject assertion = steps.getJSONObject("assertion");
+                    if (assertion != null) {
+                        result.setExpected(assertion.getString("message"));
+                    }
+                } catch (Exception e) {
+                    log.warn("解析 stepsJson 失败: {}", e.getMessage());
+                }
+            }
+        }
 
         return result;
     }

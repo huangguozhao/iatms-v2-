@@ -1,11 +1,8 @@
 import client from '../../client'
-import type { PageResult, ProjectSummaryVO, ProjectDetailVO } from '@/types/api'
+import type { PageResult, ProjectSummaryVO, ProjectDetailVO, ProjectMemberVO } from '@/types/api'
 
-export type { ProjectSummaryVO, ProjectDetailVO }
+export type { ProjectSummaryVO, ProjectDetailVO, ProjectMemberVO }
 
-/**
- * 模块详情 VO
- */
 export interface ModuleDetailVO {
   id: number
   name: string
@@ -58,15 +55,15 @@ export const projectApi = {
   },
 
   update(id: number, data: Partial<CreateProjectDTO>): Promise<ProjectDetailVO> {
-    return client.put(`/v1/projects/${id}`, data)
+    return client.put('/v1/projects/' + id, data)
   },
 
   delete(id: number): Promise<void> {
-    return client.delete(`/v1/projects/${id}`)
+    return client.delete('/v1/projects/' + id)
   },
 
   getDetail(id: number): Promise<ProjectDetailVO> {
-    return client.get(`/v1/projects/${id}`)
+    return client.get('/v1/projects/' + id)
   },
 
   query(params: ProjectQuery): Promise<PageResult<ProjectSummaryVO>> {
@@ -78,18 +75,22 @@ export const projectApi = {
   },
 
   addMember(projectId: number, userId: number, role = 'MEMBER'): Promise<void> {
-    return client.post(`/v1/projects/${projectId}/members`, null, { params: { userId, role } })
+    return client.post('/v1/projects/' + projectId + '/members', null, { params: { userId, role } })
   },
 
   removeMember(projectId: number, userId: number): Promise<void> {
-    return client.delete(`/v1/projects/${projectId}/members/${userId}`)
+    return client.delete('/v1/projects/' + projectId + '/members/' + userId)
+  },
+
+  updateMemberRole(projectId: number, userId: number, role: string): Promise<void> {
+    return client.put('/v1/projects/' + projectId + '/members/' + userId, null, { params: { role } })
   },
 
   getModuleDetail(moduleId: number): Promise<ModuleDetailVO> {
-    return client.get(`/v1/modules/${moduleId}`)
+    return client.get('/v1/modules/' + moduleId)
   },
 
   getModulesByProject(projectId: number): Promise<ModuleDetailVO[]> {
-    return client.get(`/v1/projects/${projectId}/modules`)
+    return client.get('/v1/projects/' + projectId + '/modules')
   }
 }

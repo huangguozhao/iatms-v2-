@@ -191,12 +191,12 @@ async function handleEdit(row: any) {
     const detail = await testSuiteApi.getDetail(row.id)
     Object.assign(form, {
       id: row.id,
-      name: detail.data?.name || row.name,
-      projectId: detail.data?.projectId || row.projectId,
-      caseIds: detail.data?.caseIds || [],
-      executionStrategy: detail.data?.executionStrategy || 'SEQUENTIAL',
-      failStrategy: detail.data?.failStrategy || 'CONTINUE',
-      description: detail.data?.description || ''
+      name: detail?.name || row.name,
+      projectId: detail?.projectId || row.projectId,
+      caseIds: detail?.caseIds || [],
+      executionStrategy: detail?.executionStrategy || 'SEQUENTIAL',
+      failStrategy: detail?.failStrategy || 'CONTINUE',
+      description: detail?.description || ''
     })
   } catch (error) {
     ElMessage.error('获取套件详情失败')

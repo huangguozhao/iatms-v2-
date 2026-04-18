@@ -33,8 +33,8 @@ export const useNotificationStore = defineStore('notification', () => {
         type: params?.type,
         read: params?.read
       })
-      notifications.value = result.data?.records || []
-      pagination.value.total = result.data?.total || 0
+      notifications.value = result?.records || []
+      pagination.value.total = result?.total || 0
       return result
     } finally {
       loading.value = false
@@ -44,8 +44,8 @@ export const useNotificationStore = defineStore('notification', () => {
   async function fetchUnreadCount() {
     try {
       const result = await notificationApi.getUnreadCount()
-      unreadCount.value = result.data || 0
-      return result.data
+      unreadCount.value = result || 0
+      return result
     } catch (error) {
       console.error('获取未读数量失败:', error)
       return 0

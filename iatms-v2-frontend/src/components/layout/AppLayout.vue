@@ -95,7 +95,8 @@ import {
   Calendar,
   DataAnalysis,
   MagicStick,
-  Setting
+  Setting,
+  UserFilled
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
@@ -120,6 +121,7 @@ const menuItems = computed(() => {
     { index: 'scheduled-tasks', label: '定时任务', icon: Calendar, path: '/scheduled-tasks' },
     { index: 'reports', label: '测试报告', icon: DataAnalysis, path: '/reports' },
     { index: 'ai-diagnosis', label: 'AI 诊断', icon: MagicStick, path: '/ai-diagnosis' },
+    { index: 'personnel', label: '人员管理', icon: UserFilled, path: '/personnel' },
     { index: 'settings', label: '系统设置', icon: Setting, path: '/settings' }
   ]
   return items

@@ -3,6 +3,7 @@ package com.iatms.application.scheduling.dto.command;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
  * 创建定时任务命令
  */
 @Data
+@Getter
 public class CreateScheduledTaskCmd {
 
     @NotBlank(message = "任务名称不能为空")
@@ -19,6 +21,8 @@ public class CreateScheduledTaskCmd {
 
     @NotBlank(message = "任务类型不能为空")
     private String taskType;
+
+    public void setTaskType(String taskType) { this.taskType = taskType != null ? taskType.toLowerCase() : null; }
 
     @NotBlank(message = "触发类型不能为空")
     private String triggerType;

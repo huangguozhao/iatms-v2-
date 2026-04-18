@@ -68,6 +68,24 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '定时任务' }
       },
       {
+        path: 'scheduled-tasks/create',
+        name: 'ScheduledTaskCreate',
+        component: () => import('@/views/scheduled-task/ScheduledTaskCreate.vue'),
+        meta: { title: '创建定时任务' }
+      },
+      {
+        path: 'scheduled-tasks/:id',
+        name: 'ScheduledTaskDetail',
+        component: () => import('@/views/scheduled-task/ScheduledTaskDetail.vue'),
+        meta: { title: '任务详情' }
+      },
+      {
+        path: 'scheduled-tasks/:id/edit',
+        name: 'ScheduledTaskEdit',
+        component: () => import('@/views/scheduled-task/ScheduledTaskCreate.vue'),
+        meta: { title: '编辑定时任务' }
+      },
+      {
         path: 'reports',
         name: 'Reports',
         component: () => import('@/views/report/ReportList.vue'),
@@ -90,6 +108,12 @@ const routes: RouteRecordRaw[] = [
         name: 'AIDiagnosis',
         component: () => import('@/views/ai/Diagnosis.vue'),
         meta: { title: 'AI 诊断' }
+      },
+      {
+        path: 'personnel',
+        name: 'Personnel',
+        component: () => import('@/views/personnel/PersonnelManagement.vue'),
+        meta: { title: '人员管理' }
       }
     ]
   }

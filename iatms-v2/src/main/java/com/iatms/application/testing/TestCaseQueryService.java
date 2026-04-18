@@ -17,7 +17,7 @@ public interface TestCaseQueryService {
      * 分页查询测试用例
      */
     ApiResponse.PageResult<TestCaseSummaryVO> queryTestCases(
-            Long projectId, Long moduleId, String keyword, Integer pageNum, Integer pageSize);
+            Long projectId, Long moduleId, Long apiId, String keyword, Integer pageNum, Integer pageSize);
 
     /**
      * 获取测试用例详情

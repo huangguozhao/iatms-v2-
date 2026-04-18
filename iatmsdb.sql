@@ -11,7 +11,7 @@
  Target Server Version : 80042 (8.0.42)
  File Encoding         : 65001
 
- Date: 15/04/2026 23:55:42
+ Date: 18/04/2026 10:02:57
 */
 
 SET NAMES utf8mb4;
@@ -336,9 +336,9 @@ CREATE TABLE `notifications`  (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
-  INDEX `idx_user_read`(`user_id` ASC, `is_read` ASC) USING BTREE,
-  INDEX `idx_created_at`(`created_at` DESC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '系统通知表' ROW_FORMAT = DYNAMIC;
+  INDEX `idx_created_at`(`created_at` DESC) USING BTREE,
+  INDEX `idx_user_read`(`user_id` ASC, `is_read` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '系统通知表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Table structure for projectmembers
@@ -396,10 +396,10 @@ CREATE TABLE `projects`  (
   PRIMARY KEY (`project_id`) USING BTREE,
   UNIQUE INDEX `project_code`(`project_code` ASC) USING BTREE,
   INDEX `idx_project_code`(`project_code` ASC) USING BTREE,
-  INDEX `idx_created_by`(`created_by` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
-  INDEX `idx_is_deleted`(`is_deleted` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 31 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目信息表' ROW_FORMAT = Dynamic;
+  INDEX `idx_is_deleted`(`is_deleted` ASC) USING BTREE,
+  INDEX `idx_created_by`(`created_by` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 34 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目信息表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for qrtz_blob_triggers
@@ -677,6 +677,12 @@ CREATE TABLE `scheduledtesttasks`  (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   `deleted_by` int NULL DEFAULT NULL COMMENT '删除人ID',
   `deleted_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',
+  `total_executions` int NULL DEFAULT 0 COMMENT '总执行次数',
+  `successful_executions` int NULL DEFAULT 0 COMMENT '成功次数',
+  `failed_executions` int NULL DEFAULT 0 COMMENT '失败次数',
+  `skipped_executions` int NULL DEFAULT 0 COMMENT '跳过次数',
+  `last_execution_status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '最后执行状态',
+  `version` int NULL DEFAULT 0 COMMENT '乐观锁版本号',
   PRIMARY KEY (`task_id`) USING BTREE,
   UNIQUE INDEX `uk_task_name`(`task_name` ASC, `is_deleted` ASC) USING BTREE,
   INDEX `idx_task_type`(`task_type` ASC) USING BTREE,
@@ -839,6 +845,7 @@ CREATE TABLE `testcaseresults`  (
   `execution_record_id` bigint NOT NULL COMMENT '测试执行记录ID，关联TestExecutionRecords表',
   `report_id` bigint NULL DEFAULT NULL COMMENT '外键，关联TestReportSummaries表',
   `execution_id` bigint NULL DEFAULT NULL COMMENT '执行记录ID，关联TaskExecutionHistory表',
+  `execution_id_str` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '执行ID字符串',
   `task_type` enum('test_suite','test_case','project','module','api_monitor') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'test_suite' COMMENT '任务类型',
   `ref_id` int NOT NULL COMMENT '根据task_type关联对应表的ID',
   `full_name` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'Allure中的完整名称（包含路径）',
@@ -891,8 +898,9 @@ CREATE TABLE `testcaseresults`  (
   INDEX `idx_browser`(`browser` ASC) USING BTREE,
   INDEX `ids_is_deletd`(`is_deleted` ASC) USING BTREE,
   INDEX `idx_execution_record_id`(`execution_record_id` ASC) USING BTREE,
-  INDEX `idx_test_layer`(`test_layer` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1788 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '测试用例结果表' ROW_FORMAT = Dynamic;
+  INDEX `idx_test_layer`(`test_layer` ASC) USING BTREE,
+  INDEX `idx_execution_id_str`(`execution_id_str` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1796 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '测试用例结果表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for testcases
@@ -945,6 +953,7 @@ CREATE TABLE `testcases`  (
 DROP TABLE IF EXISTS `testexecutionrecords`;
 CREATE TABLE `testexecutionrecords`  (
   `record_id` bigint NOT NULL AUTO_INCREMENT COMMENT '记录ID，自增主键',
+  `execution_id` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '执行ID字符串，用于外部引用',
   `execution_scope` enum('api','module','project','test_suite','test_case') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '执行范围类型',
   `ref_id` int NOT NULL COMMENT '根据execution_scope关联对应表的ID',
   `scope_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '执行范围的名称',
@@ -977,8 +986,9 @@ CREATE TABLE `testexecutionrecords`  (
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_environment`(`environment` ASC) USING BTREE,
   INDEX `idx_triggered_task_id`(`triggered_task_id` ASC) USING BTREE,
-  INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 665 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '测试执行记录表，记录手动或自动的测试执行历史' ROW_FORMAT = Dynamic;
+  INDEX `idx_created_at`(`created_at` ASC) USING BTREE,
+  INDEX `idx_execution_id`(`execution_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 679 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '测试执行记录表，记录手动或自动的测试执行历史' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for testreportconfigs

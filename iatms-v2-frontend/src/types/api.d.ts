@@ -1,3 +1,37 @@
+// User types
+export interface UserSummaryVO {
+  userId: number
+  name: string
+  email: string
+  avatarUrl?: string
+  phone?: string
+  position?: string
+  departmentId?: number
+  departmentName?: string
+  employeeId?: string
+  status: 'active' | 'inactive' | 'pending'
+  role: string
+  createdAt: string
+  lastLoginTime?: string
+}
+
+export interface UserDetailVO extends UserSummaryVO {
+  description?: string
+}
+
+export interface DepartmentVO {
+  departmentId: number
+  departmentCode: string
+  departmentName: string
+  parentId?: number
+  managerId?: number
+  managerName?: string
+  description?: string
+  level?: number
+  status?: string
+  children?: DepartmentVO[]
+}
+
 export interface ApiResponse<T = any> {
   code: number
   message: string
@@ -55,12 +89,12 @@ export interface ProjectDetailVO extends ProjectSummaryVO {
 }
 
 export interface ProjectMemberVO {
-  id: number
   userId: number
-  username: string
-  displayName: string
-  avatarUrl?: string
+  userName?: string
+  displayName?: string
+  avatar?: string
   role: string
+  joinedAt?: string
 }
 
 // API types
@@ -255,19 +289,107 @@ export interface ExecutionProgressVO {
 export interface ScheduledTaskSummaryVO {
   id: number
   name: string
-  type: string
-  targetId: number
-  targetName: string
-  cron: string
+  taskType: string
+  triggerType: string
   status: string
   nextRunTime: string
   lastRunTime: string | null
   createdAt: string
+  // 后端返回字段别名
+  type?: string
+  targetId?: number
+  targetName?: string
+  cron?: string
+  // 扩展字段（来自后端实体）
+  description?: string
+  executionEnvironment?: string
+  totalRuns?: number
+  successRuns?: number
+  failedRuns?: number
+  totalExecutions?: number
+  successfulExecutions?: number
+  failedExecutions?: number
+  successRate?: number
+  lastExecutionStatus?: string
 }
 
 export interface ScheduledTaskDetailVO extends ScheduledTaskSummaryVO {
   notifyOn: string[]
   description: string
+  // 执行计划
+  cronExpression?: string
+  simpleRepeatInterval?: number
+  simpleRepeatCount?: number
+  dailyHour?: number
+  dailyMinute?: number
+  weeklyDays?: string
+  monthlyDay?: number
+  // 高级设置
+  timeoutSeconds?: number
+  retryEnabled?: boolean
+  maxRetryAttempts?: number
+  notifyOnSuccess?: boolean
+  notifyOnFailure?: boolean
+  // 用例关联
+  caseIds?: number[]
+  caseCount?: number
+  // 统计
+  skippedExecutions?: number
+}
+
+export interface CreateScheduledTaskDTO {
+  name: string
+  type: string
+  targetId: number
+  cron: string
+  strategy: string
+  notifyOn: string[]
+  description?: string
+  // 执行计划
+  triggerType?: string
+  cronExpression?: string
+  dailyHour?: number
+  dailyMinute?: number
+  weeklyDays?: string
+  monthlyDay?: number
+  simpleRepeatInterval?: number
+  simpleRepeatCount?: number
+  // 高级设置
+  timeoutSeconds?: number
+  retryEnabled?: boolean
+  maxRetryAttempts?: number
+  notifyOnSuccess?: boolean
+  notifyOnFailure?: boolean
+  // 用例关联
+  caseIds?: number[]
+}
+
+export interface ScheduledTaskQuery {
+  keyword?: string
+  type?: string
+  status?: string
+  projectId?: number
+  pageNum: number
+  pageSize: number
+}
+
+// 定时任务执行记录
+export interface ScheduledTaskExecutionVO {
+  executionId: number
+  taskId: number
+  status: string
+  scheduledTime: string
+  actualStartTime: string | null
+  actualEndTime: string | null
+  durationSeconds: number | null
+  totalCases: number
+  passedCases: number
+  failedCases: number
+  skippedCases: number
+  successRate: number
+  errorMessage: string | null
+  retryCount: number
+  isRetry: boolean
 }
 
 // Report types
