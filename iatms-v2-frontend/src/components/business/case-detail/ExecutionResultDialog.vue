@@ -197,71 +197,12 @@
                 </el-tag>
               </div>
 
-              <!-- 根本原因 -->
-              <div class="diagnosis-root-cause" v-if="aiDiagnosisResult.rootCause">
-                <div class="diagnosis-card root-cause-card">
-                  <div class="diagnosis-card-header">
-                    <el-icon :size="18"><Warning /></el-icon>
-                    <span>根本原因</span>
-                  </div>
-                  <div class="diagnosis-card-content">{{ aiDiagnosisResult.rootCause }}</div>
-                </div>
-              </div>
-
-              <!-- 发现的问题 -->
-              <div class="diagnosis-issues" v-if="aiDiagnosisResult.issues && aiDiagnosisResult.issues.length > 0">
-                <div class="diagnosis-card">
-                  <div class="diagnosis-card-header">
-                    <el-icon :size="18"><QuestionFilled /></el-icon>
-                    <span>发现问题 ({{ aiDiagnosisResult.issues.length }})</span>
-                  </div>
-                  <div class="issues-list">
-                    <div
-                      class="issue-item"
-                      v-for="(issue, index) in aiDiagnosisResult.issues"
-                      :key="index"
-                      :class="'issue-' + issue.severity"
-                    >
-                      <el-tag :type="issue.severity === 'high' ? 'danger' : 'warning'" size="small" effect="plain">
-                        {{ issue.severity === 'high' ? '高' : '中' }}
-                      </el-tag>
-                      <div class="issue-content">
-                        <div class="issue-title">{{ issue.title }}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 修复建议 -->
-              <div class="diagnosis-suggestions" v-if="aiDiagnosisResult.suggestions && aiDiagnosisResult.suggestions.length > 0">
-                <div class="diagnosis-card">
-                  <div class="diagnosis-card-header">
-                    <el-icon :size="18"><Operation /></el-icon>
-                    <span>修复建议 ({{ aiDiagnosisResult.suggestions.length }})</span>
-                  </div>
-                  <div class="suggestions-list">
-                    <div
-                      class="suggestion-item"
-                      v-for="(suggestion, index) in aiDiagnosisResult.suggestions"
-                      :key="index"
-                    >
-                      <div class="suggestion-number">{{ index + 1 }}</div>
-                      <div class="suggestion-content">
-                        <div class="suggestion-title">{{ suggestion.title }}</div>
-                        <div class="suggestion-desc" v-if="suggestion.content">{{ suggestion.content }}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 完整分析报告 -->
+              <!-- 完整分析报告（主要展示区域） -->
               <div class="diagnosis-analysis-section" v-if="aiDiagnosisResult.analysis">
                 <div class="diagnosis-card analysis-card">
                   <div class="diagnosis-card-header">
                     <el-icon :size="18"><Document /></el-icon>
-                    <span>完整分析报告</span>
+                    <span>AI 诊断分析报告</span>
                   </div>
                   <div class="diagnosis-card-content">
                     <pre class="analysis-pre">{{ aiDiagnosisResult.analysis }}</pre>
@@ -1464,9 +1405,11 @@ onUnmounted(() => {
   border: 1px solid #e5e7eb;
 
   .diagnosis-card-header {
-    color: #059669;
-    background: #ecfdf5;
-    border-bottom: 1px solid #a7f3d0;
+    color: #2563eb;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-bottom: 1px solid #bfdbfe;
+    font-size: 14px;
+    font-weight: 600;
   }
 
   .diagnosis-card-content {
@@ -1476,10 +1419,10 @@ onUnmounted(() => {
 }
 
 .analysis-pre {
-  padding: 14px 16px;
+  padding: 16px 20px;
   margin: 0;
-  font-size: 13px;
-  line-height: 1.8;
+  font-size: 14px;
+  line-height: 1.9;
   color: #374151;
   white-space: pre-wrap;
   word-break: break-word;
