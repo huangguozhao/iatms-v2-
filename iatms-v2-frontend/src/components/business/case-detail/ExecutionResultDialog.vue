@@ -333,8 +333,7 @@ import {
   MagicStick,
   ChatDotRound,
   QuestionFilled,
-  Operation,
-  CircleClose
+  Operation
 } from '@element-plus/icons-vue'
 import type { ExecutionResult } from '@/types/components'
 import { aiApi, type DiagnosisResult } from '@/api/modules/ai/ai'
