@@ -355,80 +355,110 @@ public class AIController {
         java.util.List<Map<String, String>> issues = new java.util.ArrayList<>();
         if (diagnosis == null) return issues;
 
+        // 查找包含"问题"关键字的段落
         String[] lines = diagnosis.split("\n");
+        StringBuilder currentBlock = new StringBuilder();
+        boolean inIssueSection = false;
+
         for (String line : lines) {
             String trimmed = line.trim();
 
-            // 跳过空行
+            // 跳过空行和标题行
             if (trimmed.isEmpty()) continue;
-            // 跳过表格行
-            if (trimmed.startsWith("|")) continue;
-            // 跳过Markdown标题行
             if (trimmed.startsWith("#")) continue;
-            // 跳过分隔线
-            if (trimmed.matches("[-*_]{3,}")) continue;
-            // 跳过纯列表标记行（如 "- " 或 "* " 开头）
-            if (trimmed.matches("^[-*]\\s+$") || trimmed.matches("^\\d+\\.\\s*$")) continue;
 
-            // 提取包含问题描述的内容
-            String cleaned = trimmed.replaceAll("^[*\\-\\d.\\s]+", "").replaceAll("\\*\\*", "").trim();
+            // 检测是否进入问题章节
+            if (trimmed.contains("问题") && (trimmed.contains("分析") || trimmed.contains("识别") || trimmed.contains("发现") || trimmed.contains("共性"))) {
+                inIssueSection = true;
+            }
 
-            // 只保留有意义的内容（长度大于10且小于200）
-            if (cleaned.length() > 10 && cleaned.length() < 300 &&
-                (cleaned.contains("问题") || cleaned.contains("错误") || cleaned.contains("原因") ||
-                 cleaned.contains("失败") || cleaned.contains("缺陷") || cleaned.contains("风险"))) {
+            // 如果在问题章节中
+            if (inIssueSection) {
+                // 跳过纯分隔线
+                if (trimmed.matches("[-*_]{3,}")) continue;
+                // 跳过表格行
+                if (trimmed.startsWith("|")) continue;
 
-                String severity = "medium";
-                if (cleaned.contains("高") || cleaned.contains("严重") || cleaned.contains("关键") ||
-                    cleaned.contains("阻塞") || cleaned.contains("致命")) {
-                    severity = "high";
+                // 清理Markdown格式
+                String cleaned = trimmed.replaceAll("^[*\\-\\d.\\s]+", "").replaceAll("\\*\\*", "").trim();
+
+                if (!cleaned.isEmpty()) {
+                    currentBlock.append(cleaned).append("\n");
                 }
 
-                // 截断过长内容
-                String displayText = cleaned.length() > 150 ? cleaned.substring(0, 150) + "..." : cleaned;
-
-                issues.add(java.util.Map.of(
-                        "title", displayText,
-                        "severity", severity
-                ));
+                // 如果遇到"建议"或"修复"等关键词，说明问题章节结束
+                if ((trimmed.contains("建议") || trimmed.contains("修复") || trimmed.contains("解决") || trimmed.contains("方案")) && currentBlock.length() > 50) {
+                    break;
+                }
             }
         }
 
-        // 去重：基于title去重
-        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
-        java.util.List<Map<String, String>> uniqueIssues = new java.util.ArrayList<>();
-        for (Map<String, String> issue : issues) {
-            String title = issue.get("title");
-            if (seen.add(title)) {
-                uniqueIssues.add(issue);
+        // 如果找到了问题内容
+        if (currentBlock.length() > 20) {
+            String severity = "medium";
+            if (currentBlock.toString().contains("高") || currentBlock.toString().contains("严重") || currentBlock.toString().contains("关键")) {
+                severity = "high";
             }
+            issues.add(java.util.Map.of(
+                    "title", currentBlock.toString().trim(),
+                    "severity", severity
+            ));
         }
 
-        // 限制最多返回5条
-        if (uniqueIssues.size() > 5) {
-            return uniqueIssues.subList(0, 5);
-        }
-
-        return uniqueIssues;
+        return issues;
     }
 
     private java.util.List<Map<String, String>> extractSuggestions(String diagnosis) {
         java.util.List<Map<String, String>> suggestions = new java.util.ArrayList<>();
         if (diagnosis == null) return suggestions;
 
+        // 查找包含"建议"关键字的段落
         String[] lines = diagnosis.split("\n");
+        StringBuilder currentBlock = new StringBuilder();
+        boolean inSuggestionSection = false;
+
         for (String line : lines) {
-            if (line.contains("建议") || line.contains("修复") || line.contains("解决方案") ||
-                    line.contains("suggestion") || line.contains("fix") || line.contains("solution")) {
-                suggestions.add(java.util.Map.of(
-                        "title", "修复建议",
-                        "content", line.replaceAll("^[#*\\s]+", "").trim(),
-                        "priority", "medium"
-                ));
+            String trimmed = line.trim();
+
+            // 跳过空行和标题行
+            if (trimmed.isEmpty()) continue;
+            if (trimmed.startsWith("#")) continue;
+
+            // 检测是否进入建议章节
+            if (trimmed.contains("建议") || trimmed.contains("修复") || trimmed.contains("解决") || trimmed.contains("方案")) {
+                inSuggestionSection = true;
+            }
+
+            // 如果在建议章节中
+            if (inSuggestionSection) {
+                // 跳过纯分隔线
+                if (trimmed.matches("[-*_]{3,}")) continue;
+                // 跳过表格行
+                if (trimmed.startsWith("|")) continue;
+
+                // 清理Markdown格式
+                String cleaned = trimmed.replaceAll("^[*\\-\\d.\\s]+", "").replaceAll("\\*\\*", "").trim();
+
+                if (!cleaned.isEmpty()) {
+                    currentBlock.append(cleaned).append("\n");
+                }
+
+                // 如果内容足够多，就结束
+                if (currentBlock.length() > 100) {
+                    break;
+                }
             }
         }
 
-        if (suggestions.isEmpty()) {
+        // 如果找到了建议内容
+        if (currentBlock.length() > 10) {
+            suggestions.add(java.util.Map.of(
+                    "title", "修复建议",
+                    "content", currentBlock.toString().trim(),
+                    "priority", "medium"
+            ));
+        } else {
+            // 如果没有找到建议，返回通用建议
             suggestions.add(java.util.Map.of(
                     "title", "通用建议",
                     "content", "请检查API配置、请求参数和服务器响应，确保所有必需字段正确传递。",

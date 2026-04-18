@@ -209,6 +209,32 @@
                   </div>
                 </div>
               </div>
+
+              <!-- 发现的问题（合并成连贯文本） -->
+              <div class="diagnosis-issues-section" v-if="aiDiagnosisResult.issues && aiDiagnosisResult.issues.length > 0">
+                <div class="diagnosis-card issues-card">
+                  <div class="diagnosis-card-header">
+                    <el-icon :size="18"><QuestionFilled /></el-icon>
+                    <span>发现问题</span>
+                  </div>
+                  <div class="diagnosis-card-content">
+                    <pre class="issues-pre">{{ aiDiagnosisResult.issues.map(i => i.title).filter(t => t).join('\n') }}</pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 修复建议（合并成连贯文本） -->
+              <div class="diagnosis-suggestions-section" v-if="aiDiagnosisResult.suggestions && aiDiagnosisResult.suggestions.length > 0">
+                <div class="diagnosis-card suggestions-card">
+                  <div class="diagnosis-card-header">
+                    <el-icon :size="18"><Operation /></el-icon>
+                    <span>修复建议</span>
+                  </div>
+                  <div class="diagnosis-card-content">
+                    <pre class="suggestions-pre">{{ aiDiagnosisResult.suggestions.map(s => s.title + (s.content ? ': ' + s.content : '')).filter(t => t).join('\n') }}</pre>
+                  </div>
+                </div>
+              </div>
             </template>
 
             <!-- 诊断失败 -->
@@ -1428,6 +1454,78 @@ onUnmounted(() => {
   word-break: break-word;
   background: #fff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+// 发现问题区域
+.diagnosis-issues-section {
+  margin-top: 12px;
+}
+
+.issues-card {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+
+  .diagnosis-card-header {
+    color: #dc2626;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-bottom: 1px solid #fecaca;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .diagnosis-card-content {
+    background: #fff;
+    padding: 0;
+  }
+}
+
+.issues-pre {
+  padding: 14px 16px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fff;
+  font-family: inherit;
+}
+
+// 修复建议区域
+.diagnosis-suggestions-section {
+  margin-top: 12px;
+}
+
+.suggestions-card {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+
+  .diagnosis-card-header {
+    color: #059669;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-bottom: 1px solid #a7f3d0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .diagnosis-card-content {
+    background: #fff;
+    padding: 0;
+  }
+}
+
+.suggestions-pre {
+  padding: 14px 16px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fff;
+  font-family: inherit;
 }
 
 .ai-diagnosis-error {
