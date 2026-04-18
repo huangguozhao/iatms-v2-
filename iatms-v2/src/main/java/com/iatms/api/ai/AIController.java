@@ -63,7 +63,7 @@ public class AIController {
      * 诊断测试失败原因
      */
     @PostMapping("/diagnose-failure")
-    @RequirePermission(ProjectPermission.AI_DIAGNOSE)
+    @RequirePermission(value = ProjectPermission.AI_DIAGNOSE, requireProjectId = false)
     public ApiResponse<Map<String, Object>> diagnoseFailure(@RequestBody Map<String, Object> params) {
         log.info("AI诊断测试失败: params={}", params);
 
