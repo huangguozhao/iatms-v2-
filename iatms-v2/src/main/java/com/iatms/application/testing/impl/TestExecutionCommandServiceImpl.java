@@ -754,6 +754,14 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                     java.math.BigDecimal rate = java.math.BigDecimal.valueOf((double) passedCases / totalCases * 100);
                     execution.setSuccessRate(rate);
                 }
+                // 计算执行耗时
+                if (execution.getStartTime() != null) {
+                    LocalDateTime endTime = LocalDateTime.now();
+                    execution.setEndTime(endTime);
+                    long durationMs = java.time.Duration.between(execution.getStartTime(), endTime).toMillis();
+                    execution.setDurationSeconds((int) (durationMs / 1000));
+                    log.info("更新执行耗时: executionId={}, durationSeconds={}", executionId, (int) (durationMs / 1000));
+                }
                 testExecutionMapper.updateById(execution);
             }
         } catch (Exception e) {
