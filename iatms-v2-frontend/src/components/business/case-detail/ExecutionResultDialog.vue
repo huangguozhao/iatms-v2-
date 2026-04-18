@@ -197,41 +197,8 @@
                 </el-tag>
               </div>
 
-              <!-- 摘要 -->
-              <div class="diagnosis-summary" v-if="aiDiagnosisResult.summary">
-                <div class="diagnosis-card summary-card">
-                  <div class="diagnosis-card-header">
-                    <el-icon :size="18"><ChatDotRound /></el-icon>
-                    <span>问题概述</span>
-                  </div>
-                  <div class="diagnosis-card-content">{{ aiDiagnosisResult.summary }}</div>
-                </div>
-              </div>
-
-              <!-- 关键发现 -->
-              <div class="diagnosis-key-findings" v-if="aiDiagnosisResult.keyFindings && aiDiagnosisResult.keyFindings.length > 0">
-                <div class="diagnosis-card">
-                  <div class="diagnosis-card-header">
-                    <el-icon :size="18"><QuestionFilled /></el-icon>
-                    <span>关键发现</span>
-                  </div>
-                  <div class="key-findings-list">
-                    <div
-                      class="key-finding-item"
-                      v-for="(finding, index) in aiDiagnosisResult.keyFindings"
-                      :key="index"
-                    >
-                      <el-tag :type="finding.severity === 'high' ? 'danger' : 'warning'" size="small" effect="plain" class="finding-tag">
-                        {{ finding.severity === 'high' ? '高风险' : '中风险' }}
-                      </el-tag>
-                      <span class="finding-text">{{ finding.title }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <!-- 根本原因 -->
-              <div class="diagnosis-root-cause" v-if="aiDiagnosisResult.rootCause && aiDiagnosisResult.rootCause !== aiDiagnosisResult.summary">
+              <div class="diagnosis-root-cause" v-if="aiDiagnosisResult.rootCause">
                 <div class="diagnosis-card root-cause-card">
                   <div class="diagnosis-card-header">
                     <el-icon :size="18"><Warning /></el-icon>
@@ -241,12 +208,37 @@
                 </div>
               </div>
 
+              <!-- 发现的问题 -->
+              <div class="diagnosis-issues" v-if="aiDiagnosisResult.issues && aiDiagnosisResult.issues.length > 0">
+                <div class="diagnosis-card">
+                  <div class="diagnosis-card-header">
+                    <el-icon :size="18"><QuestionFilled /></el-icon>
+                    <span>发现问题 ({{ aiDiagnosisResult.issues.length }})</span>
+                  </div>
+                  <div class="issues-list">
+                    <div
+                      class="issue-item"
+                      v-for="(issue, index) in aiDiagnosisResult.issues"
+                      :key="index"
+                    >
+                      <el-tag :type="issue.severity === 'high' ? 'danger' : 'warning'" size="small" effect="plain">
+                        {{ issue.severity === 'high' ? '高' : '中' }}
+                      </el-tag>
+                      <div class="issue-content">
+                        <div class="issue-title">{{ issue.title }}</div>
+                        <div class="issue-desc">{{ issue.description }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- 修复建议 -->
               <div class="diagnosis-suggestions" v-if="aiDiagnosisResult.suggestions && aiDiagnosisResult.suggestions.length > 0">
                 <div class="diagnosis-card">
                   <div class="diagnosis-card-header">
                     <el-icon :size="18"><Operation /></el-icon>
-                    <span>修复建议</span>
+                    <span>修复建议 ({{ aiDiagnosisResult.suggestions.length }})</span>
                   </div>
                   <div class="suggestions-list">
                     <div
@@ -264,14 +256,18 @@
                 </div>
               </div>
 
-              <!-- 详细分析（可折叠） -->
-              <el-collapse v-if="aiDiagnosisResult.analysis" class="diagnosis-collapse">
-                <el-collapse-item title="详细分析报告" name="detail">
-                  <div class="diagnosis-analysis">
+              <!-- 完整分析报告 -->
+              <div class="diagnosis-analysis-section" v-if="aiDiagnosisResult.analysis">
+                <div class="diagnosis-card analysis-card">
+                  <div class="diagnosis-card-header">
+                    <el-icon :size="18"><Document /></el-icon>
+                    <span>完整分析报告</span>
+                  </div>
+                  <div class="diagnosis-card-content">
                     <pre class="analysis-pre">{{ aiDiagnosisResult.analysis }}</pre>
                   </div>
-                </el-collapse-item>
-              </el-collapse>
+                </div>
+              </div>
             </template>
 
             <!-- 诊断失败 -->
@@ -1265,7 +1261,7 @@ onUnmounted(() => {
   }
 }
 
-.issues-grid {
+.issues-list {
   padding: 10px 16px;
   display: flex;
   flex-direction: column;
@@ -1275,9 +1271,11 @@ onUnmounted(() => {
 .issue-item {
   display: flex;
   gap: 10px;
+  align-items: flex-start;
   padding: 10px 12px;
   border-radius: 8px;
   background: #f9fafb;
+  border: 1px solid #e5e7eb;
 
   &.issue-high {
     border-left: 3px solid #ef4444;
@@ -1287,12 +1285,14 @@ onUnmounted(() => {
     border-left: 3px solid #f59e0b;
   }
 
-  .issue-severity {
+  .el-tag {
     flex-shrink: 0;
+    margin-top: 2px;
   }
 
   .issue-content {
     flex: 1;
+    min-width: 0;
   }
 
   .issue-title {
@@ -1453,40 +1453,38 @@ onUnmounted(() => {
   }
 }
 
-// 折叠面板样式
-.diagnosis-collapse {
+// 完整分析报告区域
+.diagnosis-analysis-section {
   margin-top: 12px;
+}
+
+.analysis-card {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
 
-  .el-collapse-item__header {
-    background: #f9fafb;
-    padding: 10px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #6b7280;
+  .diagnosis-card-header {
+    color: #059669;
+    background: #ecfdf5;
+    border-bottom: 1px solid #a7f3d0;
   }
 
-  .el-collapse-item__content {
+  .diagnosis-card-content {
+    background: #fff;
     padding: 0;
-  }
-
-  .el-collapse-item__wrap {
-    border-top: none;
   }
 }
 
 .analysis-pre {
-  padding: 12px 16px;
+  padding: 14px 16px;
   margin: 0;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.8;
   color: #374151;
   white-space: pre-wrap;
   word-break: break-word;
   background: #fff;
-  font-family: inherit;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .ai-diagnosis-error {
