@@ -323,9 +323,92 @@ public class AIController {
         result.put("rootCause", extractRootCause(diagnosis));
         result.put("issues", extractIssues(diagnosis));
         result.put("suggestions", extractSuggestions(diagnosis));
-        result.put("analysis", diagnosis);
+
+        // 提取摘要 - 从Markdown中提取第一段主要内容作为摘要
+        result.put("summary", extractSummary(diagnosis));
+
+        // 提取关键发现 - 从Markdown表格中提取关键信息
+        result.put("keyFindings", extractKeyFindings(diagnosis));
+
+        // 保留原始分析文本（清理后的Markdown）
+        result.put("analysis", cleanMarkdown(diagnosis));
 
         return result;
+    }
+
+    /**
+     * 清理Markdown文本，移除表格等难以阅读的部分
+     */
+    private String cleanMarkdown(String markdown) {
+        if (markdown == null) return "";
+        // 移除表格行（| ... | 格式）
+        String cleaned = markdown.replaceAll("(?m)^\\|.*\\|$", "");
+        // 移除Markdown标题符号，保留标题文字
+        cleaned = cleaned.replaceAll("(?m)^#+\\s*", "");
+        // 移除加粗标记
+        cleaned = cleaned.replaceAll("\\*\\*", "");
+        // 移除多余的空行
+        cleaned = cleaned.replaceAll("\n{3,}", "\n\n");
+        return cleaned.trim();
+    }
+
+    /**
+     * 从诊断文本中提取摘要
+     */
+    private String extractSummary(String diagnosis) {
+        if (diagnosis == null) return "";
+        String[] lines = diagnosis.split("\n");
+        StringBuilder summary = new StringBuilder();
+        int count = 0;
+        for (String line : lines) {
+            // 跳过空行、表格行、标题行
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("|") || line.startsWith("#") || line.startsWith("**")) {
+                continue;
+            }
+            // 移除 Markdown 格式符号
+            line = line.replaceAll("^[*\\-\\d.\\s]+", "").trim();
+            if (!line.isEmpty() && count < 3) {
+                summary.append(line).append("；");
+                count++;
+            }
+        }
+        String result = summary.toString();
+        if (result.endsWith("；")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result.isEmpty() ? "AI正在分析中..." : result;
+    }
+
+    /**
+     * 从诊断文本中提取关键发现
+     */
+    private java.util.List<Map<String, String>> extractKeyFindings(String diagnosis) {
+        java.util.List<Map<String, String>> findings = new java.util.ArrayList<>();
+        if (diagnosis == null) return findings;
+
+        String[] lines = diagnosis.split("\n");
+        for (String line : lines) {
+            line = line.trim();
+            // 提取包含关键信息的行
+            if ((line.contains("原因") || line.contains("问题") || line.contains("错误") || line.contains("风险"))
+                && !line.startsWith("|") && !line.startsWith("#") && line.length() < 200) {
+                // 清理Markdown符号
+                String cleaned = line.replaceAll("^[*\\-\\d.\\s]+", "").replaceAll("\\*\\*", "").trim();
+                if (!cleaned.isEmpty()) {
+                    String severity = "medium";
+                    if (cleaned.contains("高") || cleaned.contains("严重") || cleaned.contains("关键")) {
+                        severity = "high";
+                    }
+                    findings.add(java.util.Map.of(
+                            "title", cleaned.length() > 50 ? cleaned.substring(0, 50) + "..." : cleaned,
+                            "severity", severity
+                    ));
+                }
+            }
+            if (findings.size() >= 5) break;  // 最多5条关键发现
+        }
+        return findings;
     }
 
     private String analyzeSeverity(String diagnosis) {
