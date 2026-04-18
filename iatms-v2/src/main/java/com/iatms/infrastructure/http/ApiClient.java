@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -43,6 +44,8 @@ public class ApiClient {
             HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase());
             MediaType mediaType = MediaType.APPLICATION_JSON;
 
+            final int[] statusCode = new int[1];  // 用于捕获响应状态码
+
             Mono<String> responseMono = webClient.method(httpMethod)
                     .uri(url)
                     .headers(h -> {
@@ -53,26 +56,38 @@ public class ApiClient {
                     })
                     .bodyValue(body != null ? body : "")
                     .retrieve()
-                    .bodyToMono(String.class)
+                    .toEntity(String.class)
                     .timeout(Duration.ofSeconds(DEFAULT_TIMEOUT))
                     .subscribeOn(Schedulers.boundedElastic())
-                    .onErrorResume(e -> {
-                        log.error("HTTP请求失败: method={}, url={}, error={}", method, url, e.getMessage());
+                    .map(entity -> {
+                        statusCode[0] = entity.getStatusCode().value();
+                        return entity.getBody();
+                    })
+                    .onErrorResume(WebClientResponseException.class, e -> {
+                        // HTTP 4xx/5xx 错误 - 捕获状态码和响应体
+                        log.error("HTTP请求失败: method={}, url={}, statusCode={}, error={}",
+                                method, url, e.getStatusCode().value(), e.getMessage());
+                        statusCode[0] = e.getStatusCode().value();
+                        return Mono.just(e.getResponseBodyAsString());
+                    })
+                    .onErrorResume(Exception.class, e -> {
+                        // 其他异常
+                        log.error("HTTP请求异常: method={}, url={}, error={}", method, url, e.getMessage());
+                        statusCode[0] = 500;
                         return Mono.just("{\"error\": \"" + e.getMessage() + "\"}");
                     });
 
             String responseBody = responseMono.block();
-            int statusCode = 200; // 如果没有异常，默认成功
 
             ApiResponse response = new ApiResponse();
-            response.setStatusCode(statusCode);
+            response.setStatusCode(statusCode[0]);
             response.setBody(responseBody);
             response.setResponseTime((int) (System.currentTimeMillis() - startTime));
             response.setHeaders(headers);
             response.setUrl(url);
 
             log.info("HTTP请求完成: method={}, url={}, statusCode={}, duration={}ms",
-                    method, url, statusCode, response.getResponseTime());
+                    method, url, statusCode[0], response.getResponseTime());
 
             return response;
 

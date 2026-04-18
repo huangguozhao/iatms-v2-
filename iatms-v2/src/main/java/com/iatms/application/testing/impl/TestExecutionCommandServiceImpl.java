@@ -72,14 +72,17 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
 
         // 根据执行类型执行
         try {
+            log.info("startExecution 开始执行: executionId={}, executionType={}", executionId, cmd.getExecutionType());
             switch (cmd.getExecutionType()) {
                 case "TEST_CASE" -> executeSingleCase(context);
                 case "TEST_SUITE" -> executeTestSuite(context);
                 case "PROJECT" -> executeProject(context);
                 default -> throw new IllegalArgumentException("不支持的执行类型: " + cmd.getExecutionType());
             }
+            log.info("startExecution 执行完成: executionId={}", executionId);
         } catch (Exception e) {
-            log.error("执行失败: executionId={}", executionId, e);
+            log.error("startExecution 捕获异常: executionId={}, error={}, stackTrace={}",
+                    executionId, e.getMessage(), e.getStackTrace());
             updateExecutionStatus(executionId, ExecutionStatus.FAILED.name(), e.getMessage());
         }
 
@@ -91,25 +94,24 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     }
 
     @Override
-    @Async("testExecutionExecutor")
     public CompletableFuture<String> startExecutionAsync(StartExecutionCmd cmd, Long userId) {
         String executionId = generateExecutionId();
 
         log.info("开始异步执行: executionId={}, type={}, targetId={}, userId={}",
                 executionId, cmd.getExecutionType(), cmd.getTargetId(), userId);
 
-        // 创建执行记录
-        TestExecution execution = createExecutionRecord(executionId, cmd, userId);
-        testExecutionMapper.insert(execution);
-
-        // 初始化上下文
-        ExecutionContext context = new ExecutionContext(executionId, cmd, execution.getId());
-        executionContexts.put(executionId, context);
-        cacheExecutionContext(executionId, context);
-
-        // 异步执行
         CompletableFuture.runAsync(() -> {
             try {
+                // 创建执行记录
+                TestExecution execution = createExecutionRecord(executionId, cmd, userId);
+                testExecutionMapper.insert(execution);
+
+                // 初始化上下文
+                ExecutionContext context = new ExecutionContext(executionId, cmd, execution.getId());
+                executionContexts.put(executionId, context);
+                cacheExecutionContext(executionId, context);
+
+                // 执行
                 switch (cmd.getExecutionType()) {
                     case "TEST_CASE" -> executeSingleCase(context);
                     case "TEST_SUITE" -> executeTestSuite(context);
@@ -117,7 +119,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                     default -> throw new IllegalArgumentException("不支持的执行类型: " + cmd.getExecutionType());
                 }
             } catch (Exception e) {
-                log.error("异步执行失败: executionId={}", executionId, e);
+                log.error("异步执行失败: executionId={}, error={}", executionId, e.getMessage(), e);
                 updateExecutionStatus(executionId, ExecutionStatus.FAILED.name(), e.getMessage());
             } finally {
                 executionContexts.remove(executionId);
@@ -125,7 +127,6 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
             }
         }, testExecutionExecutor);
 
-        // 立即返回executionId
         return CompletableFuture.completedFuture(executionId);
     }
 
@@ -309,27 +310,42 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     }
 
     private void executeSingleCase(ExecutionContext context) {
+        log.info("executeSingleCase 开始执行: executionId={}, targetId={}", context.getExecutionId(), context.getCmd().getTargetId());
+
         context.setStatus(ExecutionStatus.RUNNING.name());
         updateExecutionStatus(context.getExecutionId(), ExecutionStatus.RUNNING.name(), null);
 
         TestCase testCase = testCaseMapper.selectById(context.getCmd().getTargetId());
+        log.info("executeSingleCase 查询用例: executionId={}, caseId={}, testCase={}",
+                context.getExecutionId(), context.getCmd().getTargetId(), testCase);
+
         if (testCase == null) {
+            log.error("executeSingleCase 测试用例不存在: caseId={}", context.getCmd().getTargetId());
             throw new RuntimeException("测试用例不存在: " + context.getCmd().getTargetId());
         }
 
         context.setTotalCases(1);
         context.setCurrentCaseName(testCase.getName());
 
+        log.info("executeSingleCase 开始调用 executeTestCase: caseId={}, caseName={}, apiId={}",
+                testCase.getId(), testCase.getName(), testCase.getApiId());
+
         TestResult result = executeTestCase(testCase, context);
+
+        log.info("executeSingleCase executeTestCase 返回: caseId={}, resultStatus={}, errorMsg={}",
+                testCase.getId(), result.getStatus(), result.getErrorMessage());
 
         context.setCompletedCases(1);
         int passedCases = 0;
         if ("passed".equalsIgnoreCase(result.getStatus())) {
             passedCases = 1;
             context.setPassedCases(passedCases);
+            log.info("executeSingleCase 测试通过: caseId={}, 更新状态为 COMPLETED", testCase.getId());
             updateExecutionStatus(context.getExecutionId(), ExecutionStatus.COMPLETED.name(), null);
         } else {
             context.setFailedCases(1);
+            log.info("executeSingleCase 测试失败: caseId={}, 更新状态为 FAILED, errorMsg={}",
+                    testCase.getId(), result.getErrorMessage());
             updateExecutionStatus(context.getExecutionId(), ExecutionStatus.FAILED.name(), result.getErrorMessage());
         }
 
@@ -337,7 +353,10 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         updateExecutionStats(context.getExecutionId(), 1, passedCases, context.getFailedCases());
 
         context.setProgress(100);
-        context.setStatus(ExecutionStatus.COMPLETED.name());
+        // 设置最终状态（与 updateExecutionStatus 保持一致）
+        context.setStatus("passed".equalsIgnoreCase(result.getStatus()) ? ExecutionStatus.COMPLETED.name() : ExecutionStatus.FAILED.name());
+
+        log.info("executeSingleCase 执行完成: executionId={}, finalStatus={}", context.getExecutionId(), context.getStatus());
     }
 
     private void executeTestSuite(ExecutionContext context) {
@@ -482,6 +501,10 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         result.setExecutionIdStr(context.getExecutionId());  // 存储字符串执行ID
         result.setStartTime(LocalDateTime.now());
 
+        log.info("executeTestCase 开始: caseId={}, caseName={}, apiId={}, assertions={}, extractors={}",
+                testCase.getId(), testCase.getName(), testCase.getApiId(),
+                testCase.getAssertions(), testCase.getExtractors());
+
         try {
             // 获取 API 信息
             ApiRequest api = null;
@@ -492,6 +515,8 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
             if (api == null) {
                 result.setStatus("failed");
                 result.setErrorMessage("API定义不存在");
+                result.setEndTime(LocalDateTime.now());
+                saveTestResult(result, context);
                 return result;
             }
 
@@ -514,19 +539,29 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                     body
             );
 
+            log.info("executeTestCase 原始响应: caseId={}, responseStatusCode={}", testCase.getId(), response.getStatusCode());
             result.setDuration((long) response.getResponseTime());
             result.setResponseData(response.getBody());  // 内部使用
 
             // 执行断言
-            if (testCase.getAssertions() != null && !testCase.getAssertions().isEmpty()) {
+            // 注意：空数组 [] 视为无断言，使用 HTTP 状态码判断
+            String assertions = testCase.getAssertions();
+            boolean hasValidAssertions = assertions != null && !assertions.isEmpty() && !"[]".equals(assertions.trim());
+
+            log.info("executeTestCase 断言判断: caseId={}, assertions={}, hasValidAssertions={}, isSuccess={}, statusCode={}",
+                    testCase.getId(), assertions, hasValidAssertions, response.isSuccess(), response.getStatusCode());
+
+            if (hasValidAssertions) {
+                log.info("executeTestCase 存在断言: caseId={}, assertions={}", testCase.getId(), assertions);
                 TestExecutionDomainService.ApiResponse apiResp = new TestExecutionDomainService.ApiResponse();
                 apiResp.setStatusCode(response.getStatusCode());
                 apiResp.setBody(response.getBody());
                 apiResp.setResponseTime(response.getResponseTime());
 
                 TestExecutionDomainService.AssertionResult assertionResult =
-                        executionDomainService.executeAssertions(testCase.getAssertions(), apiResp);
+                        executionDomainService.executeAssertions(assertions, apiResp);
 
+                log.info("executeTestCase 断言结果: caseId={}, isPassed={}, message={}", testCase.getId(), assertionResult.isPassed(), assertionResult.getMessage());
                 result.setStatus(assertionResult.isPassed() ? "passed" : "failed");
                 result.setAssertionResults(JSON.toJSONString(assertionResult.getItems()));  // 内部使用
                 // 存储到stepsJson作为详细结果
@@ -535,8 +570,10 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
                     result.setFailureMessage(assertionResult.getMessage());
                 }
             } else {
-                result.setStatus(response.isSuccess() ? "passed" : "failed");
-                if (!response.isSuccess()) {
+                boolean success = response.isSuccess();
+                log.info("executeTestCase HTTP结果: caseId={}, statusCode={}, isSuccess={}", testCase.getId(), response.getStatusCode(), success);
+                result.setStatus(success ? "passed" : "failed");
+                if (!success) {
                     result.setFailureMessage("HTTP状态码: " + response.getStatusCode());
                 }
             }
@@ -558,8 +595,12 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
 
         result.setEndTime(LocalDateTime.now());
 
+        log.info("executeTestCase 执行完成，准备保存结果: caseId={}, status={}", testCase.getId(), result.getStatus());
+
         // 保存执行结果
         saveTestResult(result, context);
+
+        log.info("executeTestCase 返回结果: caseId={}, status={}", testCase.getId(), result.getStatus());
 
         return result;
     }
@@ -632,9 +673,15 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     }
 
     private void saveTestResult(TestResult result, ExecutionContext context) {
+        log.info("saveTestResult 开始保存: caseId={}, refId={}, taskType={}, status={}, executionRecordId={}, executionIdStr={}",
+                result.getCaseId(), result.getRefId(), result.getTaskType(), result.getStatus(),
+                result.getExecutionRecordId(), result.getExecutionIdStr());
+
         try {
-            // 先通过executionIdStr和caseId查找是否已存在
+            // 先通过executionIdStr查找所有结果
             List<TestResult> existingList = testResultMapper.selectByExecutionId(context.getExecutionId());
+            log.info("saveTestResult 查询结果: executionIdStr={}, 找到 {} 条记录", context.getExecutionId(), existingList.size());
+
             TestResult existing = existingList.stream()
                     .filter(r -> r.getCaseId() != null && r.getCaseId().equals(result.getCaseId()))
                     .findFirst()
@@ -642,37 +689,54 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
 
             if (existing != null) {
                 result.setId(existing.getId());
-                testResultMapper.updateResult(result);
+                log.info("更新已存在的测试结果: resultId={}, caseId={}", existing.getId(), existing.getCaseId());
+                int updateCount = testResultMapper.updateResult(result);
+                log.info("更新结果: updateCount={}", updateCount);
             } else {
-                testResultMapper.insertResult(result);
+                log.info("插入新的测试结果到 testcaseresults 表");
+                log.info("saveTestResult INSERT 参数: caseId={}, refId={}, taskType={}, status={}, executionRecordId={}, executionIdStr={}",
+                        result.getCaseId(), result.getRefId(), result.getTaskType(), result.getStatus(),
+                        result.getExecutionRecordId(), result.getExecutionIdStr());
+                int insertCount = testResultMapper.insertResult(result);
+                log.info("插入结果: insertCount={}, generatedId={}", insertCount, result.getId());
             }
+            log.info("saveTestResult 完成保存");
         } catch (Exception e) {
-            log.error("保存测试结果失败", e);
+            log.error("保存测试结果失败: caseId={}, executionIdStr={}, error={}, stackTrace={}",
+                    result.getCaseId(), context.getExecutionId(), e.getMessage(), e.getStackTrace());
         }
     }
 
     private void updateExecutionStatus(String executionId, String status, String errorMessage) {
         try {
-            TestExecution execution = testExecutionMapper.selectByExecutionId(executionId);
-            if (execution != null) {
-                execution.setStatus(toDbStatus(status));
-                if (errorMessage != null) {
-                    execution.setErrorMessage(errorMessage);
-                }
-                if (ExecutionStatus.COMPLETED.name().equals(status) ||
-                        ExecutionStatus.FAILED.name().equals(status) ||
-                        ExecutionStatus.CANCELLED.name().equals(status) ||
-                        ExecutionStatus.PAUSED.name().equals(status)) {
-                    execution.setEndTime(LocalDateTime.now());
-                    if (execution.getStartTime() != null) {
-                        long seconds = java.time.Duration.between(execution.getStartTime(), execution.getEndTime()).getSeconds();
-                        execution.setDurationSeconds((int) seconds);
-                    }
-                }
-                testExecutionMapper.updateById(execution);
+            String dbStatus = toDbStatus(status);
+            LocalDateTime now = LocalDateTime.now();
+
+            // 使用原生 UPDATE 语句直接更新，不依赖实体状态
+            if (ExecutionStatus.COMPLETED.name().equals(status) ||
+                    ExecutionStatus.FAILED.name().equals(status) ||
+                    ExecutionStatus.CANCELLED.name().equals(status) ||
+                    ExecutionStatus.PAUSED.name().equals(status)) {
+                // 更新状态和结束时间
+                testExecutionMapper.updateStatusByExecutionId(executionId, dbStatus, errorMessage);
+                log.info("updateExecutionStatus 使用原生SQL更新: executionId={}, status={}, errorMessage={}",
+                        executionId, dbStatus, errorMessage);
+            } else {
+                // 只更新状态
+                testExecutionMapper.updateStatusByExecutionId(executionId, dbStatus, errorMessage);
+                log.info("updateExecutionStatus 使用原生SQL更新: executionId={}, status={}",
+                        executionId, dbStatus);
+            }
+
+            // 验证更新是否成功
+            TestExecution verification = testExecutionMapper.selectByExecutionId(executionId);
+            if (verification != null) {
+                log.info("updateExecutionStatus 验证: executionId={}, 数据库中的status={}",
+                        executionId, verification.getStatus());
             }
         } catch (Exception e) {
-            log.error("更新执行状态失败: executionId={}", executionId, e);
+            log.error("updateExecutionStatus 更新失败: executionId={}, status={}, error={}, stackTrace={}",
+                    executionId, status, e.getMessage(), e.getStackTrace());
         }
     }
 

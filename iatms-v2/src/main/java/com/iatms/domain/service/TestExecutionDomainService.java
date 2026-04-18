@@ -103,6 +103,11 @@ public class TestExecutionDomainService {
 
         try {
             List<AssertionRule> rules = JSON.parseArray(assertionRules, AssertionRule.class);
+            // 空数组或null规则视为无断言，使用HTTP状态码判断
+            if (rules == null || rules.isEmpty()) {
+                return AssertionResult.pass();
+            }
+
             List<AssertionResult.Item> results = new java.util.ArrayList<>();
 
             for (AssertionRule rule : rules) {
