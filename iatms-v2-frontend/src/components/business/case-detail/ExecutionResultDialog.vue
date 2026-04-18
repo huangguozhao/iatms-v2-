@@ -35,16 +35,24 @@
         <div class="banner-badge" :class="displayStatus">
           {{ getStatusBadge(displayStatus) }}
         </div>
-        <!-- AI诊断按钮 - 测试失败时显示 -->
+      </div>
+
+      <!-- AI智能诊断入口 - 测试失败时显示 -->
+      <div class="ai-diagnosis-entrance" v-if="displayStatus === 'failed' && !showAIDiagnosis">
+        <div class="ai-entrance-icon">
+          <el-icon :size="32"><MagicStick /></el-icon>
+        </div>
+        <div class="ai-entrance-content">
+          <div class="ai-entrance-title">AI 智能诊断</div>
+          <div class="ai-entrance-desc">基于失败信息智能分析，提供修复建议</div>
+        </div>
         <el-button
-          v-if="displayStatus === 'failed'"
           type="primary"
-          class="ai-diagnosis-btn-top"
+          class="ai-entrance-btn"
           @click="triggerAIDiagnosis"
           :loading="aiDiagnosisLoading"
         >
-          <el-icon><MagicStick /></el-icon>
-          AI诊断
+          开始诊断
         </el-button>
       </div>
 
@@ -154,100 +162,111 @@
             <el-tag type="danger">{{ getFailureTypeText(executionResult.failureType) }}</el-tag>
           </div>
 
-          <!-- AI诊断按钮 -->
-          <div class="ai-diagnosis-btn-wrapper" v-if="!showAIDiagnosis">
-            <el-button
-              type="primary"
-              class="ai-diagnosis-btn"
-              @click="triggerAIDiagnosis"
-              :loading="aiDiagnosisLoading"
-            >
-              <el-icon><MagicStick /></el-icon>
-              AI诊断
-            </el-button>
-          </div>
-
           <!-- AI诊断结果 -->
           <div class="ai-diagnosis-result" v-if="showAIDiagnosis">
             <!-- 加载中 -->
             <div v-if="aiDiagnosisLoading" class="ai-diagnosis-loading">
-              <el-icon class="is-loading"><Loading /></el-icon>
+              <div class="ai-loading-animation">
+                <div class="ai-loading-orb"></div>
+                <div class="ai-loading-orb"></div>
+                <div class="ai-loading-orb"></div>
+              </div>
               <span>AI正在诊断中...</span>
             </div>
 
             <!-- 诊断结果 -->
             <template v-else-if="aiDiagnosisResult">
-              <div class="ai-diagnosis-header">
-                <el-icon><MagicStick /></el-icon>
-                <span>AI诊断结果</span>
+              <div class="ai-result-header">
+                <div class="ai-result-icon">
+                  <el-icon :size="24"><MagicStick /></el-icon>
+                </div>
+                <div class="ai-result-title">AI 诊断结果</div>
               </div>
 
               <!-- 严重程度 -->
               <div class="diagnosis-severity" v-if="aiDiagnosisResult.severity">
                 <el-tag
-                  :type="aiDiagnosisResult.severity === 'high' ? 'danger' : aiDiagnosisResult.severity === 'medium' ? 'warning' : 'info'"
+                  :type="aiDiagnosisResult.severity === 'high' ? 'danger' : aiDiagnosisResult.severity === 'medium' ? 'warning' : 'success'"
                   size="large"
+                  effect="dark"
+                  round
                 >
+                  <el-icon :size="16"><WarningFilled /></el-icon>
                   严重程度: {{ aiDiagnosisResult.severity === 'high' ? '高' : aiDiagnosisResult.severity === 'medium' ? '中' : '低' }}
                 </el-tag>
               </div>
 
               <!-- 分析结果 -->
               <div class="diagnosis-analysis" v-if="aiDiagnosisResult.analysis">
-                <div class="detail-label">
-                  <el-icon><ChatDotRound /></el-icon>
-                  分析结论
+                <div class="diagnosis-card">
+                  <div class="diagnosis-card-header">
+                    <el-icon :size="18"><ChatDotRound /></el-icon>
+                    <span>分析结论</span>
+                  </div>
+                  <div class="diagnosis-card-content">{{ aiDiagnosisResult.analysis }}</div>
                 </div>
-                <div class="analysis-content">{{ aiDiagnosisResult.analysis }}</div>
               </div>
 
               <!-- 根本原因 -->
               <div class="diagnosis-root-cause" v-if="aiDiagnosisResult.rootCause">
-                <div class="detail-label">
-                  <el-icon><Warning /></el-icon>
-                  根本原因
+                <div class="diagnosis-card root-cause-card">
+                  <div class="diagnosis-card-header">
+                    <el-icon :size="18"><Warning /></el-icon>
+                    <span>根本原因</span>
+                  </div>
+                  <div class="diagnosis-card-content">{{ aiDiagnosisResult.rootCause }}</div>
                 </div>
-                <div class="root-cause-content">{{ aiDiagnosisResult.rootCause }}</div>
               </div>
 
               <!-- 发现的问题 -->
               <div class="diagnosis-issues" v-if="aiDiagnosisResult.issues && aiDiagnosisResult.issues.length > 0">
-                <div class="detail-label">
-                  <el-icon><QuestionFilled /></el-icon>
-                  发现问题
-                </div>
-                <div class="issues-list">
-                  <div
-                    class="issue-item"
-                    v-for="(issue, index) in aiDiagnosisResult.issues"
-                    :key="index"
-                    :class="'issue-' + issue.severity"
-                  >
-                    <el-tag :type="issue.severity === 'high' ? 'danger' : 'warning'" size="small">
-                      {{ issue.severity === 'high' ? '高' : '中' }}
-                    </el-tag>
-                    <span class="issue-title">{{ issue.title }}</span>
-                    <span class="issue-desc">{{ issue.description }}</span>
+                <div class="diagnosis-card">
+                  <div class="diagnosis-card-header">
+                    <el-icon :size="18"><QuestionFilled /></el-icon>
+                    <span>发现问题 ({{ aiDiagnosisResult.issues.length }})</span>
+                  </div>
+                  <div class="issues-grid">
+                    <div
+                      class="issue-item"
+                      v-for="(issue, index) in aiDiagnosisResult.issues"
+                      :key="index"
+                      :class="'issue-' + issue.severity"
+                    >
+                      <div class="issue-severity">
+                        <el-tag :type="issue.severity === 'high' ? 'danger' : 'warning'" size="small" effect="plain">
+                          {{ issue.severity === 'high' ? '高' : '中' }}
+                        </el-tag>
+                      </div>
+                      <div class="issue-content">
+                        <div class="issue-title">{{ issue.title }}</div>
+                        <div class="issue-desc">{{ issue.description }}</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <!-- 修复建议 -->
               <div class="diagnosis-suggestions" v-if="aiDiagnosisResult.suggestions && aiDiagnosisResult.suggestions.length > 0">
-                <div class="detail-label">
-                  <el-icon><Operation /></el-icon>
-                  修复建议
-                </div>
-                <div class="suggestions-list">
-                  <div
-                    class="suggestion-item"
-                    v-for="(suggestion, index) in aiDiagnosisResult.suggestions"
-                    :key="index"
-                  >
-                    <div class="suggestion-step">{{ index + 1 }}</div>
-                    <div class="suggestion-content">
-                      <div class="suggestion-title">{{ suggestion.title }}</div>
-                      <div class="suggestion-desc">{{ suggestion.content }}</div>
+                <div class="diagnosis-card">
+                  <div class="diagnosis-card-header">
+                    <el-icon :size="18"><Operation /></el-icon>
+                    <span>修复建议 ({{ aiDiagnosisResult.suggestions.length }})</span>
+                  </div>
+                  <div class="suggestions-timeline">
+                    <div
+                      class="suggestion-item"
+                      v-for="(suggestion, index) in aiDiagnosisResult.suggestions"
+                      :key="index"
+                    >
+                      <div class="suggestion-timeline-marker">
+                        <div class="suggestion-timeline-dot"></div>
+                        <div class="suggestion-timeline-line" v-if="index < aiDiagnosisResult.suggestions.length - 1"></div>
+                      </div>
+                      <div class="suggestion-content">
+                        <div class="suggestion-title">{{ suggestion.title }}</div>
+                        <div class="suggestion-desc">{{ suggestion.content }}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -256,9 +275,9 @@
 
             <!-- 诊断失败 -->
             <div v-else class="ai-diagnosis-error">
-              <el-icon><CircleCloseFilled /></el-icon>
-              <span>AI诊断失败，请稍后重试</span>
-              <el-button size="small" @click="triggerAIDiagnosis">重试</el-button>
+              <el-icon :size="40"><CircleCloseFilled /></el-icon>
+              <div class="ai-error-text">AI诊断失败，请稍后重试</div>
+              <el-button type="primary" plain @click="triggerAIDiagnosis">重新诊断</el-button>
             </div>
           </div>
         </div>
@@ -553,7 +572,7 @@ const triggerAIDiagnosis = async () => {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 24px 100px 24px 24px; // 右边留出位置给AI诊断按钮
+  padding: 24px;
   border-radius: 12px;
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border: 2px solid transparent;
@@ -942,114 +961,214 @@ const triggerAIDiagnosis = async () => {
   }
 }
 
-// AI诊断按钮样式
-.ai-diagnosis-btn-top {
-  position: absolute;
-  right: 24px;
-  top: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  color: white;
-  font-weight: 600;
+// AI诊断入口卡片样式
+.ai-diagnosis-entrance {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+  border: 2px dashed #667eea50;
+  border-radius: 16px;
+  transition: all 0.3s ease;
 
   &:hover {
-    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea30 0%, #764ba230 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
   }
 }
 
-.ai-diagnosis-btn-wrapper {
-  margin-top: 16px;
-  text-align: center;
+.ai-entrance-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.ai-diagnosis-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  color: white;
-  font-weight: 600;
-
-  &:hover {
-    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 24px rgba(102, 126, 234, 0.6);
   }
 }
 
+.ai-entrance-content {
+  flex: 1;
+}
+
+.ai-entrance-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.ai-entrance-desc {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.ai-entrance-btn {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  }
+}
+
+// AI诊断结果区域
 .ai-diagnosis-result {
   margin-top: 16px;
-  padding: 16px;
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-  border: 1px solid #e9d5ff;
-  border-radius: 12px;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .ai-diagnosis-loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 24px;
-  color: #7c3aed;
-  font-size: 16px;
+  gap: 20px;
+  padding: 48px;
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  border-radius: 16px;
+
+  span {
+    font-size: 16px;
+    font-weight: 500;
+    color: #7c3aed;
+  }
 }
 
-.ai-diagnosis-header {
+.ai-loading-animation {
+  display: flex;
+  gap: 8px;
+}
+
+.ai-loading-orb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  animation: bounce 1.4s ease-in-out infinite;
+
+  &:nth-child(1) { animation-delay: 0s; }
+  &:nth-child(2) { animation-delay: 0.2s; }
+  &:nth-child(3) { animation-delay: 0.4s; }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.ai-result-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.ai-result-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-result-title {
   font-size: 18px;
-  font-weight: 600;
-  color: #7c3aed;
-  margin-bottom: 16px;
+  font-weight: 700;
 }
 
 .diagnosis-severity {
-  margin-bottom: 16px;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid #f3e8ff;
 }
 
-.diagnosis-analysis {
-  margin-bottom: 16px;
-
-  .analysis-content {
-    background: white;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 14px;
-    line-height: 1.6;
-    color: #374151;
-  }
+.diagnosis-card {
+  background: white;
+  border-bottom: 1px solid #f3e8ff;
 }
 
-.diagnosis-root-cause {
-  margin-bottom: 16px;
+.diagnosis-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  background: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
+  border-bottom: 1px solid #f3e8ff;
+}
 
-  .root-cause-content {
+.diagnosis-card-content {
+  padding: 16px 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.root-cause-card {
+  .diagnosis-card-content {
     background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 14px;
-    line-height: 1.6;
     color: #991b1b;
+    border-bottom: none;
   }
 }
 
-.diagnosis-issues {
-  margin-bottom: 16px;
-}
-
-.issues-list {
+.issues-grid {
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .issue-item {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: white;
-  border-radius: 8px;
-  font-size: 14px;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #f9fafb;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f3f4f6;
+    transform: translateX(4px);
+  }
 
   &.issue-high {
     border-left: 3px solid #ef4444;
@@ -1059,61 +1178,79 @@ const triggerAIDiagnosis = async () => {
     border-left: 3px solid #f59e0b;
   }
 
+  .issue-severity {
+    flex-shrink: 0;
+  }
+
+  .issue-content {
+    flex: 1;
+  }
+
   .issue-title {
     font-weight: 600;
-    color: #374151;
+    color: #1f2937;
+    margin-bottom: 2px;
   }
 
   .issue-desc {
+    font-size: 13px;
     color: #6b7280;
+    line-height: 1.5;
   }
 }
 
-.diagnosis-suggestions {
-  margin-bottom: 0;
-}
-
-.suggestions-list {
+.suggestions-timeline {
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .suggestion-item {
   display: flex;
-  gap: 12px;
-  padding: 12px 16px;
-  background: white;
-  border-radius: 8px;
+  gap: 16px;
 
-  .suggestion-step {
-    width: 24px;
-    height: 24px;
+  .suggestion-timeline-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .suggestion-timeline-dot {
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    font-size: 12px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+  }
+
+  .suggestion-timeline-line {
+    width: 2px;
+    flex: 1;
+    min-height: 24px;
+    background: linear-gradient(180deg, #667eea50 0%, #764ba250 100%);
+    margin: 4px 0;
   }
 
   .suggestion-content {
     flex: 1;
+    padding-bottom: 20px;
   }
 
   .suggestion-title {
     font-weight: 600;
-    color: #374151;
+    color: #1f2937;
     margin-bottom: 4px;
   }
 
   .suggestion-desc {
     font-size: 13px;
     color: #6b7280;
-    line-height: 1.5;
+    line-height: 1.6;
+  }
+
+  &:last-child .suggestion-content {
+    padding-bottom: 0;
   }
 }
 
@@ -1121,12 +1258,20 @@ const triggerAIDiagnosis = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 24px;
-  color: #ef4444;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
 
   .el-icon {
-    font-size: 32px;
+    font-size: 48px;
+    color: #ef4444;
+  }
+
+  .ai-error-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: #991b1b;
   }
 }
 </style>
