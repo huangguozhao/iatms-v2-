@@ -35,6 +35,17 @@
         <div class="banner-badge" :class="displayStatus">
           {{ getStatusBadge(displayStatus) }}
         </div>
+        <!-- AI诊断按钮 - 测试失败时显示 -->
+        <el-button
+          v-if="displayStatus === 'failed'"
+          type="primary"
+          class="ai-diagnosis-btn-top"
+          @click="triggerAIDiagnosis"
+          :loading="aiDiagnosisLoading"
+        >
+          <el-icon><MagicStick /></el-icon>
+          AI诊断
+        </el-button>
       </div>
 
       <!-- 执行信息卡片 -->
@@ -142,6 +153,114 @@
             </div>
             <el-tag type="danger">{{ getFailureTypeText(executionResult.failureType) }}</el-tag>
           </div>
+
+          <!-- AI诊断按钮 -->
+          <div class="ai-diagnosis-btn-wrapper" v-if="!showAIDiagnosis">
+            <el-button
+              type="primary"
+              class="ai-diagnosis-btn"
+              @click="triggerAIDiagnosis"
+              :loading="aiDiagnosisLoading"
+            >
+              <el-icon><MagicStick /></el-icon>
+              AI诊断
+            </el-button>
+          </div>
+
+          <!-- AI诊断结果 -->
+          <div class="ai-diagnosis-result" v-if="showAIDiagnosis">
+            <!-- 加载中 -->
+            <div v-if="aiDiagnosisLoading" class="ai-diagnosis-loading">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>AI正在诊断中...</span>
+            </div>
+
+            <!-- 诊断结果 -->
+            <template v-else-if="aiDiagnosisResult">
+              <div class="ai-diagnosis-header">
+                <el-icon><MagicStick /></el-icon>
+                <span>AI诊断结果</span>
+              </div>
+
+              <!-- 严重程度 -->
+              <div class="diagnosis-severity" v-if="aiDiagnosisResult.severity">
+                <el-tag
+                  :type="aiDiagnosisResult.severity === 'high' ? 'danger' : aiDiagnosisResult.severity === 'medium' ? 'warning' : 'info'"
+                  size="large"
+                >
+                  严重程度: {{ aiDiagnosisResult.severity === 'high' ? '高' : aiDiagnosisResult.severity === 'medium' ? '中' : '低' }}
+                </el-tag>
+              </div>
+
+              <!-- 分析结果 -->
+              <div class="diagnosis-analysis" v-if="aiDiagnosisResult.analysis">
+                <div class="detail-label">
+                  <el-icon><ChatDotRound /></el-icon>
+                  分析结论
+                </div>
+                <div class="analysis-content">{{ aiDiagnosisResult.analysis }}</div>
+              </div>
+
+              <!-- 根本原因 -->
+              <div class="diagnosis-root-cause" v-if="aiDiagnosisResult.rootCause">
+                <div class="detail-label">
+                  <el-icon><Warning /></el-icon>
+                  根本原因
+                </div>
+                <div class="root-cause-content">{{ aiDiagnosisResult.rootCause }}</div>
+              </div>
+
+              <!-- 发现的问题 -->
+              <div class="diagnosis-issues" v-if="aiDiagnosisResult.issues && aiDiagnosisResult.issues.length > 0">
+                <div class="detail-label">
+                  <el-icon><QuestionFilled /></el-icon>
+                  发现问题
+                </div>
+                <div class="issues-list">
+                  <div
+                    class="issue-item"
+                    v-for="(issue, index) in aiDiagnosisResult.issues"
+                    :key="index"
+                    :class="'issue-' + issue.severity"
+                  >
+                    <el-tag :type="issue.severity === 'high' ? 'danger' : 'warning'" size="small">
+                      {{ issue.severity === 'high' ? '高' : '中' }}
+                    </el-tag>
+                    <span class="issue-title">{{ issue.title }}</span>
+                    <span class="issue-desc">{{ issue.description }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 修复建议 -->
+              <div class="diagnosis-suggestions" v-if="aiDiagnosisResult.suggestions && aiDiagnosisResult.suggestions.length > 0">
+                <div class="detail-label">
+                  <el-icon><Operation /></el-icon>
+                  修复建议
+                </div>
+                <div class="suggestions-list">
+                  <div
+                    class="suggestion-item"
+                    v-for="(suggestion, index) in aiDiagnosisResult.suggestions"
+                    :key="index"
+                  >
+                    <div class="suggestion-step">{{ index + 1 }}</div>
+                    <div class="suggestion-content">
+                      <div class="suggestion-title">{{ suggestion.title }}</div>
+                      <div class="suggestion-desc">{{ suggestion.content }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- 诊断失败 -->
+            <div v-else class="ai-diagnosis-error">
+              <el-icon><CircleCloseFilled /></el-icon>
+              <span>AI诊断失败，请稍后重试</span>
+              <el-button size="small" @click="triggerAIDiagnosis">重试</el-button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -192,6 +311,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
   CircleCheckFilled,
   CircleCloseFilled,
@@ -209,9 +329,15 @@ import {
   RefreshRight,
   VideoPlay,
   VideoPause,
-  Loading
+  Loading,
+  MagicStick,
+  ChatDotRound,
+  QuestionFilled,
+  Operation,
+  CircleClose
 } from '@element-plus/icons-vue'
 import type { ExecutionResult } from '@/types/components'
+import { aiApi, type DiagnosisResult } from '@/api/modules/ai/ai'
 
 interface Props {
   visible: boolean
@@ -367,6 +493,54 @@ function formatResponseHeaders(): string {
 
   return String(headers)
 }
+
+// ==================== AI 诊断相关 ====================
+const showAIDiagnosis = ref(false)
+const aiDiagnosisLoading = ref(false)
+const aiDiagnosisResult = ref<DiagnosisResult | null>(null)
+
+// 触发 AI 诊断
+const triggerAIDiagnosis = async () => {
+  if (!props.executionResult) return
+
+  showAIDiagnosis.value = true
+  aiDiagnosisLoading.value = true
+  aiDiagnosisResult.value = null
+
+  try {
+    const result = props.executionResult
+
+    // 构建诊断参数
+    const params = {
+      caseName: result.caseName || result.scopeName || '',
+      expected: result.expectedResponse || result.expected || '',
+      actual: result.responseBody || result.actual || '',
+      errorMessage: result.errorMessage || result.failureMessage || '',
+      httpStatus: result.statusCode || result.httpStatus || undefined,
+      responseBody: result.responseBody || '',
+      apiPath: result.apiPath || '',
+      method: result.method || result.apiMethod || ''
+    }
+
+    console.log('AI诊断参数:', params)
+
+    const response = await aiApi.diagnoseFailure(params)
+
+    if (response) {
+      aiDiagnosisResult.value = response
+      ElMessage.success('AI诊断完成')
+    } else {
+      ElMessage.error('AI诊断失败')
+      aiDiagnosisResult.value = null
+    }
+  } catch (error: any) {
+    console.error('AI诊断失败:', error)
+    ElMessage.error(error?.message || 'AI诊断失败，请稍后重试')
+    aiDiagnosisResult.value = null
+  } finally {
+    aiDiagnosisLoading.value = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -380,7 +554,7 @@ function formatResponseHeaders(): string {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 24px;
+  padding: 24px 100px 24px 24px; // 右边留出位置给AI诊断按钮
   border-radius: 12px;
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border: 2px solid transparent;
@@ -766,6 +940,194 @@ function formatResponseHeaders(): string {
   .result-time-section {
     flex-direction: column;
     gap: 16px;
+  }
+}
+
+// AI诊断按钮样式
+.ai-diagnosis-btn-top {
+  position: absolute;
+  right: 24px;
+  top: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  font-weight: 600;
+
+  &:hover {
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+  }
+}
+
+.ai-diagnosis-btn-wrapper {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.ai-diagnosis-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  font-weight: 600;
+
+  &:hover {
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+  }
+}
+
+.ai-diagnosis-result {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  border: 1px solid #e9d5ff;
+  border-radius: 12px;
+}
+
+.ai-diagnosis-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: #7c3aed;
+  font-size: 16px;
+}
+
+.ai-diagnosis-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #7c3aed;
+  margin-bottom: 16px;
+}
+
+.diagnosis-severity {
+  margin-bottom: 16px;
+}
+
+.diagnosis-analysis {
+  margin-bottom: 16px;
+
+  .analysis-content {
+    background: white;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #374151;
+  }
+}
+
+.diagnosis-root-cause {
+  margin-bottom: 16px;
+
+  .root-cause-content {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #991b1b;
+  }
+}
+
+.diagnosis-issues {
+  margin-bottom: 16px;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.issue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: white;
+  border-radius: 8px;
+  font-size: 14px;
+
+  &.issue-high {
+    border-left: 3px solid #ef4444;
+  }
+
+  &.issue-medium {
+    border-left: 3px solid #f59e0b;
+  }
+
+  .issue-title {
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .issue-desc {
+    color: #6b7280;
+  }
+}
+
+.diagnosis-suggestions {
+  margin-bottom: 0;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.suggestion-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+
+  .suggestion-step {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .suggestion-content {
+    flex: 1;
+  }
+
+  .suggestion-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+  }
+
+  .suggestion-desc {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+}
+
+.ai-diagnosis-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: #ef4444;
+
+  .el-icon {
+    font-size: 32px;
   }
 }
 </style>

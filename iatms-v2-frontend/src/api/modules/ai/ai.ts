@@ -1,5 +1,4 @@
-import request from '@/api/client'
-import type { ApiResponse } from '@/types/api'
+import { client } from '@/api/client'
 
 export interface DiagnosisResult {
   severity: 'high' | 'medium' | 'low'
@@ -18,34 +17,22 @@ export interface DiagnosisResult {
 }
 
 export const aiApi = {
-  /**
-   * 生成测试用例
-   */
-  generateTestCases(apiDescription: string, testType: string = 'FUNCTIONAL'): Promise<ApiResponse<string>> {
-    return request.post('/v1/ai/generate-test-cases', null, {
+  generateTestCases(apiDescription: string, testType: string = 'FUNCTIONAL'): Promise<string> {
+    return client.post('/v1/ai/generate-test-cases', null, {
       params: { apiDescription, testType }
     })
   },
 
-  /**
-   * 补全参数描述
-   */
-  completeDescriptions(parameters: Record<string, string>): Promise<ApiResponse<Record<string, string>>> {
-    return request.post('/v1/ai/complete-descriptions', parameters)
+  completeDescriptions(parameters: Record<string, string>): Promise<Record<string, string>> {
+    return client.post('/v1/ai/complete-descriptions', parameters)
   },
 
-  /**
-   * 生成模拟数据
-   */
-  generateMockData(fieldType: string, constraints?: string): Promise<ApiResponse<string>> {
-    return request.post('/v1/ai/generate-mock-data', null, {
+  generateMockData(fieldType: string, constraints?: string): Promise<string> {
+    return client.post('/v1/ai/generate-mock-data', null, {
       params: { fieldType, constraints }
     })
   },
 
-  /**
-   * 诊断测试失败原因
-   */
   diagnoseFailure(params: {
     caseName: string
     expected: string
@@ -55,7 +42,7 @@ export const aiApi = {
     responseBody?: string
     apiPath?: string
     method?: string
-  }): Promise<ApiResponse<DiagnosisResult>> {
-    return request.post('/v1/ai/diagnose-failure', params)
+  }): Promise<DiagnosisResult> {
+    return client.post('/v1/ai/diagnose-failure', params)
   }
 }
