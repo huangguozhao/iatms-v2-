@@ -357,24 +357,59 @@ public class AIController {
 
         String[] lines = diagnosis.split("\n");
         for (String line : lines) {
-            if ((line.contains("问题") || line.contains("issue") || line.contains("issue")) && line.length() < 300) {
+            String trimmed = line.trim();
+
+            // 跳过空行
+            if (trimmed.isEmpty()) continue;
+            // 跳过表格行
+            if (trimmed.startsWith("|")) continue;
+            // 跳过Markdown标题行
+            if (trimmed.startsWith("#")) continue;
+            // 跳过分隔线
+            if (trimmed.matches("[-*_]{3,}")) continue;
+            // 跳过纯列表标记行（如 "- " 或 "* " 开头）
+            if (trimmed.matches("^[-*]\\s+$") || trimmed.matches("^\\d+\\.\\s*$")) continue;
+
+            // 提取包含问题描述的内容
+            String cleaned = trimmed.replaceAll("^[*\\-\\d.\\s]+", "").replaceAll("\\*\\*", "").trim();
+
+            // 只保留有意义的内容（长度大于10且小于200）
+            if (cleaned.length() > 10 && cleaned.length() < 300 &&
+                (cleaned.contains("问题") || cleaned.contains("错误") || cleaned.contains("原因") ||
+                 cleaned.contains("失败") || cleaned.contains("缺陷") || cleaned.contains("风险"))) {
+
+                String severity = "medium";
+                if (cleaned.contains("高") || cleaned.contains("严重") || cleaned.contains("关键") ||
+                    cleaned.contains("阻塞") || cleaned.contains("致命")) {
+                    severity = "high";
+                }
+
+                // 截断过长内容
+                String displayText = cleaned.length() > 150 ? cleaned.substring(0, 150) + "..." : cleaned;
+
                 issues.add(java.util.Map.of(
-                        "title", "发现的问题",
-                        "severity", "medium",
-                        "description", line.replaceAll("^[#*\\s]+", "").trim()
+                        "title", displayText,
+                        "severity", severity
                 ));
             }
         }
 
-        if (issues.isEmpty()) {
-            issues.add(java.util.Map.of(
-                    "title", "需要关注",
-                    "severity", "low",
-                    "description", diagnosis.length() > 300 ? diagnosis.substring(0, 300) : diagnosis
-            ));
+        // 去重：基于title去重
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+        java.util.List<Map<String, String>> uniqueIssues = new java.util.ArrayList<>();
+        for (Map<String, String> issue : issues) {
+            String title = issue.get("title");
+            if (seen.add(title)) {
+                uniqueIssues.add(issue);
+            }
         }
 
-        return issues;
+        // 限制最多返回5条
+        if (uniqueIssues.size() > 5) {
+            return uniqueIssues.subList(0, 5);
+        }
+
+        return uniqueIssues;
     }
 
     private java.util.List<Map<String, String>> extractSuggestions(String diagnosis) {

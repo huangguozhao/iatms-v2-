@@ -220,13 +220,13 @@
                       class="issue-item"
                       v-for="(issue, index) in aiDiagnosisResult.issues"
                       :key="index"
+                      :class="'issue-' + issue.severity"
                     >
                       <el-tag :type="issue.severity === 'high' ? 'danger' : 'warning'" size="small" effect="plain">
                         {{ issue.severity === 'high' ? '高' : '中' }}
                       </el-tag>
                       <div class="issue-content">
                         <div class="issue-title">{{ issue.title }}</div>
-                        <div class="issue-desc">{{ issue.description }}</div>
                       </div>
                     </div>
                   </div>
