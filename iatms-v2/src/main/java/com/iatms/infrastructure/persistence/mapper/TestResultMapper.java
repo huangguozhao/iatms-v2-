@@ -35,13 +35,13 @@ public interface TestResultMapper extends BaseMapper<TestResult> {
      * 插入测试结果
      */
     @Insert("INSERT INTO testcaseresults (" +
-            "execution_record_id, execution_id_str, case_id, status, duration, start_time, end_time, " +
+            "execution_record_id, execution_id_str, case_id, ref_id, task_type, status, duration, start_time, end_time, " +
             "failure_message, failure_trace, failure_type, error_code, " +
             "steps_json, parameters_json, attachments_json, " +
             "environment, severity, priority, retry_count, flaky, " +
             "created_at, is_deleted" +
             ") VALUES (" +
-            "#{executionRecordId}, #{executionIdStr}, #{caseId}, #{status}, #{duration}, #{startTime}, #{endTime}, " +
+            "#{executionRecordId}, #{executionIdStr}, #{caseId}, #{refId}, #{taskType}, #{status}, #{duration}, #{startTime}, #{endTime}, " +
             "#{failureMessage}, #{failureTrace}, #{failureType}, #{errorCode}, " +
             "#{stepsJson}, #{parametersJson}, #{attachmentsJson}, " +
             "#{environment}, #{severity}, #{priority}, #{retryCount}, #{flaky}, " +

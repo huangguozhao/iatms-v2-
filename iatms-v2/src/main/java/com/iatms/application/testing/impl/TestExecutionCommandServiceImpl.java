@@ -42,6 +42,7 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     private final TestResultMapper testResultMapper;
     private final ProjectMapper projectMapper;
     private final ModuleMapper moduleMapper;
+    private final EnvironmentConfigMapper environmentConfigMapper;
     private final TestExecutionDomainService executionDomainService;
     private final ApiClient apiClient;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -474,7 +475,10 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
         long startTimeMs = System.currentTimeMillis();
         TestResult result = new TestResult();
         result.setCaseId(testCase.getId().intValue());
+        result.setRefId(testCase.getId().intValue());  // 关联ID
         result.setCaseName(testCase.getName());  // 内部使用
+        result.setTaskType("test_case");  // 任务类型
+        result.setExecutionRecordId(context.getDbRecordId());  // 关联执行记录ID
         result.setExecutionIdStr(context.getExecutionId());  // 存储字符串执行ID
         result.setStartTime(LocalDateTime.now());
 
@@ -583,11 +587,36 @@ public class TestExecutionCommandServiceImpl implements TestExecutionCommandServ
     }
 
     private String buildUrl(ApiRequest api, ExecutionContext context) {
-        String url = api.getUrl();
-        if (url == null || url.isEmpty()) {
-            url = "http://localhost:8080";
+        // 优先使用环境配置的 base_url，否则使用接口的 base_url
+        String baseUrl = null;
+        if (context.getCmd().getEnvironmentId() != null) {
+            EnvironmentConfig env = environmentConfigMapper.selectById(context.getCmd().getEnvironmentId());
+            if (env != null && env.getBaseUrl() != null && !env.getBaseUrl().isEmpty()) {
+                baseUrl = env.getBaseUrl();
+            }
         }
-        return url;
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            baseUrl = api.getBaseUrl();
+        }
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            baseUrl = "http://localhost:8080";
+        }
+
+        // 拼接接口路径
+        String path = api.getPath();
+        if (path == null) {
+            path = "";
+        }
+
+        // 确保 baseUrl 结尾和 path 开头没有多余的斜杠
+        while (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        while (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+
+        return baseUrl + "/" + path;
     }
 
     private Map<String, String> parseJson(String json) {
