@@ -89,29 +89,39 @@ public class AIController {
     public SseEmitter diagnoseFailureSse(@RequestParam String executionId) {
         log.info("AI诊断测试失败 (SSE): executionId={}", executionId);
 
-        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
-
-        // 用于存储订阅对象，以便在完成/超时/错误时取消
+        final SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         final reactor.core.Disposable[] subscriptionHolder = new reactor.core.Disposable[1];
+        final boolean[] emitterCompleted = {false};  // 标记emitter是否已完成
 
-        // 设置超时回调 - 取消订阅
+        // 设置超时回调
         emitter.onTimeout(() -> {
-            log.warn("AI诊断SSE超时: executionId={}", executionId);
+            log.warn("emitter.onTimeout: executionId={}", executionId);
+            subscriptionHolder[0].dispose();
+            SecurityContextHolder.clearContext();
+        });
+
+        // 设置完成回调
+        emitter.onCompletion(() -> {
+            log.info("emitter.onCompletion: executionId={}, emitterCompleted={}", executionId, emitterCompleted[0]);
+            emitterCompleted[0] = true;
             if (subscriptionHolder[0] != null && !subscriptionHolder[0].isDisposed()) {
                 subscriptionHolder[0].dispose();
-                log.info("超时后订阅已取消");
+                log.info("订阅已取消");
             }
             SecurityContextHolder.clearContext();
         });
 
-        // 设置完成回调 - 取消订阅
-        emitter.onCompletion(() -> {
-            log.info("AI诊断SSE完成: executionId={}", executionId);
+        // 设置错误回调
+        emitter.onError((Throwable t) -> {
+            log.error("emitter.onError: executionId={}, error={}", executionId, t.getMessage());
+            if (emitterCompleted[0]) {
+                log.info("emitter已完成，忽略onError");
+                return;
+            }
+            emitterCompleted[0] = true;
             if (subscriptionHolder[0] != null && !subscriptionHolder[0].isDisposed()) {
                 subscriptionHolder[0].dispose();
-                log.info("完成后订阅已取消");
             }
-            SecurityContextHolder.clearContext();
         });
 
         // 捕获当前安全上下文
@@ -159,34 +169,59 @@ public class AIController {
                         .subscribe(new Consumer<String>() {
                             @Override
                             public void accept(String chunk) {
+                                if (emitterCompleted[0]) {
+                                    log.info("emitter已完成，忽略chunk");
+                                    return;
+                                }
                                 try {
                                     fullResponse.append(chunk);
                                     log.info("SSE发送chunk给前端: length={}, content={}", chunk.length(), chunk);
                                     emitter.send(SseEmitter.event().name("chunk").data(chunk));
                                 } catch (Exception e) {
-                                    log.warn("SSE发送失败: {}", e.getMessage());
+                                    log.warn("SSE发送chunk失败: {}", e.getMessage());
                                 }
                             }
                         }, (Consumer<Throwable>) error -> {
-                            log.error("AI流式调用错误: {}", error.getMessage(), error);
+                            log.error("Flux onError: {}", error.getMessage());
+                            if (emitterCompleted[0]) {
+                                log.info("emitter已关闭，忽略onError");
+                                return;
+                            }
                             try {
+                                log.info("发送error事件: AI调用失败");
                                 emitter.send(SseEmitter.event().name("error").data("AI调用失败: " + error.getMessage()));
                                 emitter.complete();
                             } catch (Exception e) {
-                                log.warn("SSE完成失败: {}", e.getMessage());
+                                log.warn("SSE error发送失败: {}", e.getMessage());
                             }
                         }, () -> {
-                            log.info("AI流式调用完成，完整响应长度: {}", fullResponse.length());
-                            // 完成时发送完整结果
+                            log.info("Flux onComplete: 完整响应长度={}", fullResponse.length());
+                            if (emitterCompleted[0]) {
+                                log.info("emitter已完成，忽略done发送");
+                                return;
+                            }
                             try {
-                                // 解析结构化结果
-                                Map<String, Object> result = parseDiagnosisResult(fullResponse.toString(), buildParamsFromContext(context));
-                                log.info("解析诊断结果: severity={}, rootCause={}", result.get("severity"), result.get("rootCause"));
+                                String responseStr = fullResponse.toString();
+                                log.info("开始解析诊断结果，响应内容长度={}, 内容前100字符: {}",
+                                    responseStr.length(),
+                                    responseStr.substring(0, Math.min(100, responseStr.length())));
+                                Map<String, Object> result = parseDiagnosisResult(responseStr, buildParamsFromContext(context));
+                                log.info("解析诊断结果成功: severity={}, rootCause={}", result.get("severity"), result.get("rootCause"));
+                                log.info("准备发送done事件");
                                 emitter.send(SseEmitter.event().name("done").data(JSON.toJSONString(result)));
+                                log.info("done事件发送成功，准备调用emitter.complete()");
                                 emitter.complete();
+                                log.info("emitter.complete()调用完成");
                             } catch (Exception e) {
-                                log.error("发送诊断结果失败: {}", e.getMessage(), e);
-                                emitter.completeWithError(e);
+                                log.error("发送诊断结果失败: {}, stack={}", e.getMessage(), e.getStackTrace());
+                                try {
+                                    log.info("准备发送error事件");
+                                    emitter.send(SseEmitter.event().name("error").data("诊断结果解析失败: " + e.getMessage()));
+                                    log.info("error事件发送成功");
+                                    emitter.completeWithError(e);
+                                } catch (Exception ex) {
+                                    log.warn("发送error事件并complete失败: {}", ex.getMessage());
+                                }
                             }
                         });
 

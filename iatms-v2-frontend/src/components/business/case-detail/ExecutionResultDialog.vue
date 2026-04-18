@@ -51,6 +51,7 @@
           class="ai-entrance-btn"
           @click="triggerAIDiagnosis"
           :loading="aiDiagnosisLoading"
+          :disabled="isDiagnosing"
         >
           开始诊断
         </el-button>
@@ -277,7 +278,7 @@
             <div v-else class="ai-diagnosis-error">
               <el-icon :size="40"><CircleCloseFilled /></el-icon>
               <div class="ai-error-text">AI诊断失败，请稍后重试</div>
-              <el-button type="primary" plain @click="triggerAIDiagnosis">重新诊断</el-button>
+              <el-button type="primary" plain @click="triggerAIDiagnosis" :disabled="isDiagnosing">重新诊断</el-button>
             </div>
           </div>
         </div>
@@ -518,15 +519,16 @@ const aiDiagnosisLoading = ref(false)
 const aiDiagnosisResult = ref<DiagnosisResult | null>(null)
 const aiDiagnosisStreamContent = ref('')  // 流式内容
 let eventSource: EventSource | null = null
-let isDiagnosing = false  // 防止重复请求
+const isDiagnosing = ref(false)  // 防止重复请求
+let currentDiagnosisId: string | null = null  // 当前诊断ID，用于防止处理过期响应
 
 // 触发 AI 诊断 (使用 SSE)
 const triggerAIDiagnosis = () => {
   if (!props.executionResult) return
 
   // 防止重复请求
-  if (isDiagnosing) {
-    console.log('AI诊断正在进行中，忽略重复请求')
+  if (isDiagnosing.value) {
+    console.log('AI诊断正在进行中，忽略重复请求, isDiagnosing=', isDiagnosing.value)
     return
   }
 
@@ -536,13 +538,17 @@ const triggerAIDiagnosis = () => {
     return
   }
 
+  // 生成唯一诊断ID，用于追踪
+  const diagnosisId = `diag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  currentDiagnosisId = diagnosisId
+
   showAIDiagnosis.value = true
   aiDiagnosisLoading.value = true
   aiDiagnosisResult.value = null
   aiDiagnosisStreamContent.value = ''
-  isDiagnosing = true
+  isDiagnosing.value = true
 
-  console.log('AI诊断开始: executionId=', executionId)
+  console.log('AI诊断开始: executionId=', executionId, ', diagnosisId=', diagnosisId)
 
   // 清理之前的连接
   if (eventSource) {
@@ -570,23 +576,65 @@ const triggerAIDiagnosis = () => {
 
   // 接收流式内容
   eventSource.addEventListener('chunk', (event) => {
-    console.log('收到chunk:', event.data)
+    // 检查是否是最新的诊断请求
+    if (currentDiagnosisId !== diagnosisId) {
+      console.log('收到旧请求的chunk，忽略: current=', currentDiagnosisId, ', this=', diagnosisId)
+      return
+    }
+    console.log('收到chunk:', event.data, ', diagnosisId=', diagnosisId)
     aiDiagnosisStreamContent.value += event.data
   })
 
-  // 接收错误
+  // 接收错误 - 区分后端错误和连接断开
   eventSource.addEventListener('error', (event) => {
-    console.error('SSE错误:', event)
+    console.log('SSE error事件, readyState=', eventSource.readyState, ', diagnosisId=', diagnosisId, ', currentDiagnosisId=', currentDiagnosisId)
+
+    // 如果currentDiagnosisId已被清除，说明诊断已完成，忽略所有错误
+    if (currentDiagnosisId === null) {
+      console.log('currentDiagnosisId为null，忽略错误')
+      return
+    }
+
+    // 检查是否是最新的诊断请求
+    if (currentDiagnosisId !== diagnosisId) {
+      console.log('收到旧请求的错误响应，忽略: current=', currentDiagnosisId, ', this=', diagnosisId)
+      return
+    }
+
+    // EventSource 连接断开时会触发 error 事件
+    // readyState: 0=CONNECTING, 1=OPEN, 2=CLOSED
+    if (eventSource.readyState === EventSource.CLOSED) {
+      // 连接正常关闭，不需要显示错误
+      console.log('SSE连接已正常关闭, diagnosisId=', diagnosisId)
+      return
+    }
+
+    console.error('SSE错误:', event, ', diagnosisId=', diagnosisId)
     aiDiagnosisLoading.value = false
-    isDiagnosing = false
+    isDiagnosing.value = false
     ElMessage.error('AI诊断失败，请稍后重试')
   })
 
   // 接收完成
   eventSource.addEventListener('done', (event) => {
-    console.log('AI诊断完成:', event.data)
+    // 检查是否是最新的诊断请求
+    if (currentDiagnosisId !== diagnosisId) {
+      console.log('收到旧请求的完成响应，忽略: current=', currentDiagnosisId, ', this=', diagnosisId)
+      return
+    }
+
+    console.log('AI诊断完成:', event.data, ', diagnosisId=', diagnosisId)
     aiDiagnosisLoading.value = false
-    isDiagnosing = false
+    isDiagnosing.value = false
+    currentDiagnosisId = null  // 清除诊断ID
+
+    // 立即关闭EventSource防止重连
+    if (eventSource) {
+      console.log('done事件后立即关闭EventSource')
+      eventSource.close()
+      eventSource = null
+    }
+
     try {
       const result = JSON.parse(event.data)
       aiDiagnosisResult.value = result
@@ -601,14 +649,19 @@ const triggerAIDiagnosis = () => {
 
   // 超时处理
   setTimeout(() => {
+    // 检查是否是最新的诊断请求
+    if (currentDiagnosisId !== diagnosisId) {
+      console.log('超时回调，但是已经是旧请求: current=', currentDiagnosisId, ', this=', diagnosisId)
+      return
+    }
     if (aiDiagnosisLoading.value) {
-      console.warn('AI诊断超时')
+      console.warn('AI诊断超时, diagnosisId=', diagnosisId)
       if (eventSource) {
         eventSource.close()
         eventSource = null
       }
       aiDiagnosisLoading.value = false
-      isDiagnosing = false
+      isDiagnosing.value = false
       ElMessage.warning('AI诊断超时')
     }
   }, 5 * 60 * 1000) // 5分钟超时
