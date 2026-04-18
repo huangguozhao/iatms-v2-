@@ -965,41 +965,30 @@ const triggerAIDiagnosis = async () => {
 .ai-diagnosis-entrance {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
-  border: 2px dashed #667eea50;
-  border-radius: 16px;
-  transition: all 0.3s ease;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #93c5fd;
+  border-radius: 12px;
+  transition: all 0.2s ease;
 
   &:hover {
-    border-color: #667eea;
-    background: linear-gradient(135deg, #667eea30 0%, #764ba230 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
   }
 }
 
 .ai-entrance-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
-  50% {
-    box-shadow: 0 4px 24px rgba(102, 126, 234, 0.6);
-  }
+  flex-shrink: 0;
 }
 
 .ai-entrance-content {
@@ -1007,40 +996,38 @@ const triggerAIDiagnosis = async () => {
 }
 
 .ai-entrance-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 2px;
 }
 
 .ai-entrance-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
 }
 
 .ai-entrance-btn {
-  padding: 12px 28px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 8px 20px;
+  background: #3b82f6;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   color: white;
-  font-weight: 600;
-  font-size: 15px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  transition: all 0.3s ease;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    background: #2563eb;
   }
 }
 
 // AI诊断结果区域
 .ai-diagnosis-result {
   margin-top: 16px;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
+  border: 1px solid #e5e7eb;
 }
 
 .ai-diagnosis-loading {
@@ -1048,28 +1035,27 @@ const triggerAIDiagnosis = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  padding: 48px;
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-  border-radius: 16px;
+  gap: 16px;
+  padding: 40px;
+  background: #f8fafc;
 
   span {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
-    color: #7c3aed;
+    color: #374151;
   }
 }
 
 .ai-loading-animation {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .ai-loading-orb {
-  width: 16px;
-  height: 16px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3b82f6;
   animation: bounce 1.4s ease-in-out infinite;
 
   &:nth-child(1) { animation-delay: 0s; }
@@ -1079,7 +1065,7 @@ const triggerAIDiagnosis = async () => {
 
 @keyframes bounce {
   0%, 80%, 100% {
-    transform: scale(0.6);
+    transform: scale(0.7);
     opacity: 0.5;
   }
   40% {
@@ -1091,16 +1077,16 @@ const triggerAIDiagnosis = async () => {
 .ai-result-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  gap: 10px;
+  padding: 12px 16px;
+  background: #3b82f6;
   color: white;
 }
 
 .ai-result-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
@@ -1108,67 +1094,70 @@ const triggerAIDiagnosis = async () => {
 }
 
 .ai-result-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .diagnosis-severity {
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: white;
-  border-bottom: 1px solid #f3e8ff;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .diagnosis-card {
   background: white;
-  border-bottom: 1px solid #f3e8ff;
+  border-bottom: 1px solid #f3f4f6;
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .diagnosis-card-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 20px;
-  font-size: 14px;
+  padding: 10px 16px;
+  font-size: 13px;
   font-weight: 600;
-  color: #667eea;
-  background: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
-  border-bottom: 1px solid #f3e8ff;
+  color: #374151;
+  background: #f9fafb;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .diagnosis-card-content {
-  padding: 16px 20px;
-  font-size: 14px;
-  line-height: 1.7;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.6;
   color: #374151;
 }
 
 .root-cause-card {
+  .diagnosis-card-header {
+    color: #dc2626;
+    background: #fef2f2;
+    border-bottom-color: #fecaca;
+  }
+
   .diagnosis-card-content {
     background: #fef2f2;
     color: #991b1b;
-    border-bottom: none;
   }
 }
 
 .issues-grid {
-  padding: 12px 16px;
+  padding: 10px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .issue-item {
   display: flex;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 10px;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
   background: #f9fafb;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f3f4f6;
-    transform: translateX(4px);
-  }
 
   &.issue-high {
     border-left: 3px solid #ef4444;
@@ -1189,25 +1178,26 @@ const triggerAIDiagnosis = async () => {
   .issue-title {
     font-weight: 600;
     color: #1f2937;
+    font-size: 13px;
     margin-bottom: 2px;
   }
 
   .issue-desc {
-    font-size: 13px;
+    font-size: 12px;
     color: #6b7280;
-    line-height: 1.5;
+    line-height: 1.4;
   }
 }
 
 .suggestions-timeline {
-  padding: 16px 20px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
 }
 
 .suggestion-item {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 
   .suggestion-timeline-marker {
     display: flex;
@@ -1217,36 +1207,36 @@ const triggerAIDiagnosis = async () => {
   }
 
   .suggestion-timeline-dot {
-    width: 12px;
-    height: 12px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    background: #3b82f6;
   }
 
   .suggestion-timeline-line {
     width: 2px;
     flex: 1;
-    min-height: 24px;
-    background: linear-gradient(180deg, #667eea50 0%, #764ba250 100%);
-    margin: 4px 0;
+    min-height: 16px;
+    background: #e5e7eb;
+    margin: 3px 0;
   }
 
   .suggestion-content {
     flex: 1;
-    padding-bottom: 20px;
+    padding-bottom: 16px;
   }
 
   .suggestion-title {
     font-weight: 600;
     color: #1f2937;
-    margin-bottom: 4px;
+    font-size: 13px;
+    margin-bottom: 2px;
   }
 
   .suggestion-desc {
-    font-size: 13px;
+    font-size: 12px;
     color: #6b7280;
-    line-height: 1.6;
+    line-height: 1.5;
   }
 
   &:last-child .suggestion-content {
@@ -1259,17 +1249,17 @@ const triggerAIDiagnosis = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 48px;
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  gap: 12px;
+  padding: 32px;
+  background: #fef2f2;
 
   .el-icon {
-    font-size: 48px;
+    font-size: 36px;
     color: #ef4444;
   }
 
   .ai-error-text {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     color: #991b1b;
   }
