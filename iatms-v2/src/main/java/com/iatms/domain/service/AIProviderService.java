@@ -1,8 +1,10 @@
 package com.iatms.domain.service;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.iatms.domain.model.entity.AIServiceConfig;
+import com.iatms.infrastructure.config.DeepSeekConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +25,7 @@ import java.util.*;
 public class AIProviderService {
 
     private final WebClient.Builder webClientBuilder;
+    private final DeepSeekConfig deepSeekConfig;
 
     private static final int DEFAULT_TIMEOUT = 60;
     private static final int DEFAULT_MAX_TOKENS = 2000;
@@ -85,6 +88,97 @@ public class AIProviderService {
     }
 
     /**
+     * 流式调用 AI 服务 (SSE)
+     * @return Flux<String> 每个元素是一个 content chunk
+     */
+    public reactor.core.publisher.Flux<String> callAIStream(AIServiceConfig config, String prompt) {
+        log.info("流式调用AI服务: serviceType={}, model={}", config.getServiceType(), config.getModelName());
+
+        try {
+            // 构建请求 - 启用流式输出
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", config.getModelName() != null ? config.getModelName() : "deepseek-chat");
+
+            List<Map<String, String>> messages = new ArrayList<>();
+            messages.add(Map.of("role", "user", "content", prompt));
+            requestBody.put("messages", messages);
+
+            // 设置参数
+            if (config.getMaxTokens() != null) {
+                requestBody.put("max_tokens", config.getMaxTokens());
+            } else {
+                requestBody.put("max_tokens", DEFAULT_MAX_TOKENS);
+            }
+
+            if (config.getTemperature() != null) {
+                requestBody.put("temperature", config.getTemperature());
+            } else {
+                requestBody.put("temperature", DEFAULT_TEMPERATURE);
+            }
+
+            requestBody.put("stream", true);
+
+            // 调用 API
+            String baseUrl = config.getBaseUrl() != null ? config.getBaseUrl() : "https://api.deepseek.com";
+            String apiKey = config.getApiKey();
+
+            log.info("DeepSeek API 请求 - baseUrl: {}, model: {}, prompt长度: {}, apiKey长度: {}",
+                    baseUrl, config.getModelName(), prompt.length(),
+                    apiKey != null ? apiKey.length() : 0);
+
+            return webClientBuilder.build()
+                    .post()
+                    .uri(baseUrl + "/v1/chat/completions")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.ACCEPT, "text/event-stream")
+                    .bodyValue(JSON.toJSONString(requestBody))
+                    .retrieve()
+                    .bodyToFlux(String.class)
+                    .timeout(Duration.ofSeconds(120))
+                    .doOnNext(line -> log.info("收到原始响应行: [{}]", line))
+                    .flatMap(line -> {
+                        try {
+                            if (line == null || line.isEmpty()) {
+                                return reactor.core.publisher.Flux.empty();
+                            }
+
+                            String trimmedLine = line.trim();
+
+                            // 跳过 SSE 的 "data: " 前缀
+                            if (trimmedLine.startsWith("data:")) {
+                                trimmedLine = trimmedLine.substring(5).trim();
+                            }
+
+                            // 检查是否是 [DONE] 或 [[DONE]]
+                            if (trimmedLine.contains("[DONE]")) {
+                                log.info("收到 [DONE]，流式结束");
+                                return reactor.core.publisher.Flux.empty();
+                            }
+
+                            // 解析 JSON 可能是数组格式或单个对象
+                            String content = extractContentFromJson(trimmedLine);
+                            if (content != null && !content.isEmpty()) {
+                                log.info("提取到AI内容: {}", content);
+                                return reactor.core.publisher.Flux.just(content);
+                            }
+                        } catch (Exception e) {
+                            log.warn("解析响应行失败: {}, error: {}", line, e.getMessage());
+                        }
+                        return reactor.core.publisher.Flux.empty();
+                    })
+                    .onErrorResume(e -> {
+                        log.error("流式AI服务调用失败: {}", e.getMessage(), e);
+                        return reactor.core.publisher.Flux.just("【错误】AI服务调用失败: " + e.getMessage());
+                    });
+
+        } catch (Exception e) {
+            log.error("流式AI服务调用异常: serviceType={}, error={}", config.getServiceType(), e.getMessage());
+            return reactor.core.publisher.Flux.just("【错误】AI服务调用失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 生成测试用例
      */
     public String generateTestCases(String apiDescription, String testType) {
@@ -109,9 +203,10 @@ public class AIProviderService {
         // 使用默认配置调用
         AIServiceConfig config = new AIServiceConfig();
         config.setServiceType("deepseek");
-        config.setModelName("deepseek-chat");
-        config.setBaseUrl("https://api.deepseek.com");
-        // 注意：实际使用时应该从数据库获取配置
+        config.setModelName(deepSeekConfig.getModel());
+        config.setBaseUrl(deepSeekConfig.getBaseUrl());
+        config.setApiKey(deepSeekConfig.getKey());
+        config.setMaxTokens(deepSeekConfig.getMaxTokens());
 
         String response = callAI(config, prompt);
 
@@ -172,7 +267,9 @@ public class AIProviderService {
 
         AIServiceConfig config = new AIServiceConfig();
         config.setServiceType("deepseek");
-        config.setModelName("deepseek-chat");
+        config.setModelName(deepSeekConfig.getModel());
+        config.setApiKey(deepSeekConfig.getKey());
+        config.setBaseUrl(deepSeekConfig.getBaseUrl());
 
         String response = callAI(config, promptBuilder.toString());
 
@@ -214,7 +311,9 @@ public class AIProviderService {
 
         AIServiceConfig config = new AIServiceConfig();
         config.setServiceType("deepseek");
-        config.setModelName("deepseek-chat");
+        config.setModelName(deepSeekConfig.getModel());
+        config.setApiKey(deepSeekConfig.getKey());
+        config.setBaseUrl(deepSeekConfig.getBaseUrl());
 
         String response = callAI(config, prompt);
 
@@ -256,7 +355,10 @@ public class AIProviderService {
 
         AIServiceConfig config = new AIServiceConfig();
         config.setServiceType("deepseek");
-        config.setModelName("deepseek-chat");
+        config.setModelName(deepSeekConfig.getModel());
+        config.setApiKey(deepSeekConfig.getKey());
+        config.setBaseUrl(deepSeekConfig.getBaseUrl());
+        config.setMaxTokens(deepSeekConfig.getMaxTokens());
 
         return callAI(config, prompt);
     }
@@ -306,5 +408,92 @@ public class AIProviderService {
             case "uuid" -> "\"" + UUID.randomUUID().toString() + "\"";
             default -> "\"" + fieldType + "_mock_value\"";
         };
+    }
+
+    /**
+     * 从 JSON 字符串提取 AI 内容
+     * 支持多种格式：
+     * 1. JSON数组格式: [{"id":"...","choices":[{"delta":{"content":"xxx"}}]}]
+     * 2. JSON对象格式: {"id":"...","choices":[{"delta":{"content":"xxx"}}]}
+     */
+    private String extractContentFromJson(String jsonStr) {
+        if (jsonStr == null || jsonStr.isEmpty()) {
+            log.info("extractContentFromJson: 输入为空");
+            return null;
+        }
+
+        log.info("extractContentFromJson 开始解析: {}", jsonStr.substring(0, Math.min(200, jsonStr.length())));
+
+        try {
+            // 尝试解析为 JSON 数组
+            if (jsonStr.startsWith("[")) {
+                JSONArray jsonArray = JSON.parseArray(jsonStr);
+                log.info("解析为JSON数组, 大小: {}", jsonArray != null ? jsonArray.size() : 0);
+                if (jsonArray != null && !jsonArray.isEmpty()) {
+                    for (int i = 0; i < jsonArray.size(); i++) {
+                        JSONObject obj = jsonArray.getJSONObject(i);
+                        log.info("数组元素[{}] keys: {}", i, obj.keySet());
+                        String content = extractFromJsonObject(obj);
+                        if (content != null) {
+                            log.info("从数组元素[{}]提取到内容: {}", i, content);
+                            return content;
+                        }
+                    }
+                }
+            } else {
+                // 尝试解析为单个 JSON 对象
+                JSONObject json = JSON.parseObject(jsonStr);
+                log.info("解析为JSON对象, keys: {}", json.keySet());
+                return extractFromJsonObject(json);
+            }
+        } catch (Exception e) {
+            log.warn("提取AI内容失败: {}, error: {}", jsonStr, e.getMessage());
+        }
+        log.info("extractContentFromJson 未提取到内容");
+        return null;
+    }
+
+    /**
+     * 从 JSON 对象中提取 content
+     */
+    private String extractFromJsonObject(JSONObject json) {
+        if (json == null) return null;
+
+        try {
+            // 通用格式: choices[0].delta.content
+            if (json.containsKey("choices")) {
+                JSONArray choices = json.getJSONArray("choices");
+                if (choices != null && !choices.isEmpty()) {
+                    JSONObject choice = choices.getJSONObject(0);
+                    if (choice != null) {
+                        log.info("choice keys: {}", choice.keySet());
+                        // delta 格式 (流式)
+                        if (choice.containsKey("delta")) {
+                            JSONObject delta = choice.getJSONObject("delta");
+                            log.info("delta keys: {}", delta != null ? delta.keySet() : "null");
+                            if (delta != null && delta.containsKey("content")) {
+                                String content = delta.getString("content");
+                                log.info("从delta.content提取到: {}", content);
+                                return content;
+                            }
+                        }
+                        // message 格式 (非流式)
+                        if (choice.containsKey("message")) {
+                            JSONObject message = choice.getJSONObject("message");
+                            if (message != null && message.containsKey("content")) {
+                                return message.getString("content");
+                            }
+                        }
+                    }
+                } else {
+                    log.info("choices数组为空");
+                }
+            } else {
+                log.info("json不包含choices键, keys: {}", json.keySet());
+            }
+        } catch (Exception e) {
+            log.warn("从JSON对象提取内容失败: {}, error: {}", json.toJSONString(), e.getMessage());
+        }
+        return null;
     }
 }

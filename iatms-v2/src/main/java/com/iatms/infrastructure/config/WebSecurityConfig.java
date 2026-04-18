@@ -41,6 +41,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v1/auth/**", "/api/auth/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/v1/ai/diagnose-failure/sse").permitAll()  // SSE端点通过query参数认证
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

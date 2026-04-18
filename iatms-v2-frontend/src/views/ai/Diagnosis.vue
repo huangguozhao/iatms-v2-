@@ -233,8 +233,8 @@ async function handleDiagnose() {
       responseBody: form.responseBody
     })
 
-    if (res.data) {
-      result.value = res.data
+    if (res) {
+      result.value = res
       ElMessage.success('诊断完成')
       loadHistory()
     }

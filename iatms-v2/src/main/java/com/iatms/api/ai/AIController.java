@@ -1,14 +1,30 @@
 package com.iatms.api.ai;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.iatms.api.common.ApiResponse;
 import com.iatms.common.annotation.RequirePermission;
+import com.iatms.domain.model.entity.AIServiceConfig;
 import com.iatms.domain.model.enums.ProjectPermission;
 import com.iatms.domain.service.AIProviderService;
+import com.iatms.domain.service.TestDiagnosisService;
+import com.iatms.infrastructure.config.DeepSeekConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.MediaType;
+import org.springframework.security.concurrent.DelegatingSecurityContextRunnable;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * AI 辅助控制器
@@ -20,6 +36,11 @@ import java.util.Map;
 public class AIController {
 
     private final AIProviderService aiProviderService;
+    private final TestDiagnosisService testDiagnosisService;
+    private final DeepSeekConfig deepSeekConfig;
+
+    // SSE超时时间：10分钟
+    private static final long SSE_TIMEOUT = TimeUnit.MINUTES.toMillis(10);
 
     /**
      * 生成测试用例
@@ -60,28 +81,185 @@ public class AIController {
     }
 
     /**
-     * 诊断测试失败原因
+     * 诊断测试失败原因 - 异步SSE版本（推荐）
+     * 前端可以通过SSE实时接收AI诊断结果，避免超时
+     * 注意：此端点通过query参数传递token进行简单认证
+     */
+    @GetMapping(value = "/diagnose-failure/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter diagnoseFailureSse(@RequestParam String executionId) {
+        log.info("AI诊断测试失败 (SSE): executionId={}", executionId);
+
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
+
+        // 捕获当前安全上下文
+        final SecurityContext securityContext = SecurityContextHolder.getContext();
+
+        // 创建异步任务
+        Runnable task = () -> {
+            // 将安全上下文设置到当前线程
+            SecurityContextHolder.setContext(securityContext);
+
+            try {
+                // 1. 构建诊断上下文
+                TestDiagnosisService.DiagnosisContext context = testDiagnosisService.buildDiagnosisContext(executionId);
+
+                if (context.totalResults == 0) {
+                    emitter.send(SseEmitter.event().name("error").data("未找到测试结果数据"));
+                    emitter.complete();
+                    return;
+                }
+
+                // 2. 发送初始上下文信息
+                emitter.send(SseEmitter.event().name("context").data(JSON.toJSONString(context)));
+
+                // 3. 构建prompt
+                String prompt = testDiagnosisService.buildDiagnosisPrompt(context);
+                log.info("AI诊断prompt长度: {}", prompt.length());
+                log.info("DeepSeek配置 - baseUrl: {}, model: {}, key长度: {}",
+                        deepSeekConfig.getBaseUrl(), deepSeekConfig.getModel(),
+                        deepSeekConfig.getKey() != null ? deepSeekConfig.getKey().length() : 0);
+
+                // 4. 构建AI配置
+                AIServiceConfig config = new AIServiceConfig();
+                config.setServiceType("deepseek");
+                config.setModelName(deepSeekConfig.getModel());
+                config.setApiKey(deepSeekConfig.getKey());
+                config.setBaseUrl(deepSeekConfig.getBaseUrl());
+                config.setMaxTokens(deepSeekConfig.getMaxTokens());
+
+                // 5. 流式调用AI
+                StringBuilder fullResponse = new StringBuilder();
+                log.info("开始调用AI流式接口...");
+                aiProviderService.callAIStream(config, prompt)
+                        .subscribe(new Consumer<String>() {
+                            @Override
+                            public void accept(String chunk) {
+                                try {
+                                    fullResponse.append(chunk);
+                                    log.info("SSE发送chunk给前端: length={}, content={}", chunk.length(), chunk);
+                                    emitter.send(SseEmitter.event().name("chunk").data(chunk));
+                                } catch (Exception e) {
+                                    log.warn("SSE发送失败: {}", e.getMessage());
+                                }
+                            }
+                        }, (Consumer<Throwable>) error -> {
+                            log.error("AI流式调用错误: {}", error.getMessage(), error);
+                            try {
+                                emitter.send(SseEmitter.event().name("error").data("AI调用失败: " + error.getMessage()));
+                                emitter.complete();
+                            } catch (Exception e) {
+                                log.warn("SSE完成失败: {}", e.getMessage());
+                            }
+                        }, () -> {
+                            log.info("AI流式调用完成，完整响应长度: {}", fullResponse.length());
+                            // 完成时发送完整结果
+                            try {
+                                // 解析结构化结果
+                                Map<String, Object> result = parseDiagnosisResult(fullResponse.toString(), buildParamsFromContext(context));
+                                log.info("解析诊断结果: severity={}, rootCause={}", result.get("severity"), result.get("rootCause"));
+                                emitter.send(SseEmitter.event().name("done").data(JSON.toJSONString(result)));
+                                emitter.complete();
+                            } catch (Exception e) {
+                                log.error("发送诊断结果失败: {}", e.getMessage(), e);
+                                emitter.completeWithError(e);
+                            }
+                        });
+
+            } catch (Exception e) {
+                log.error("AI诊断SSE异常: {}", e.getMessage(), e);
+                try {
+                    emitter.send(SseEmitter.event().name("error").data("诊断失败: " + e.getMessage()));
+                    emitter.completeWithError(e);
+                } catch (Exception ex) {
+                    log.warn("SSE异常完成失败: {}", ex.getMessage());
+                }
+            } finally {
+                // 清理安全上下文
+                SecurityContextHolder.clearContext();
+            }
+        };
+
+        // 使用 DelegatingSecurityContextRunnable 包装任务，自动传播 SecurityContext
+        DelegatingSecurityContextRunnable wrappedTask = new DelegatingSecurityContextRunnable(task);
+
+        // 使用单线程池执行
+        Executor executor = Executors.newSingleThreadExecutor();
+        executor.execute(wrappedTask);
+
+        // 设置超时回调
+        emitter.onTimeout(() -> {
+            log.warn("AI诊断SSE超时: executionId={}", executionId);
+            SecurityContextHolder.clearContext();
+        });
+        emitter.onCompletion(() -> {
+            log.info("AI诊断SSE完成: executionId={}", executionId);
+            SecurityContextHolder.clearContext();
+        });
+
+        return emitter;
+    }
+
+    /**
+     * 诊断测试失败原因 - 同步版本（简单场景，单个结果）
      */
     @PostMapping("/diagnose-failure")
     @RequirePermission(value = ProjectPermission.AI_DIAGNOSE, requireProjectId = false)
     public ApiResponse<Map<String, Object>> diagnoseFailure(@RequestBody Map<String, Object> params) {
         log.info("AI诊断测试失败: params={}", params);
 
-        String caseName = (String) params.get("caseName");
-        String expected = (String) params.get("expected");
-        String actual = (String) params.get("actual");
-        String errorMessage = (String) params.get("errorMessage");
+        String executionId = (String) params.get("executionId");
 
-        String diagnosis = aiProviderService.diagnoseFailure(caseName, expected, actual, errorMessage);
+        if (executionId == null || executionId.isEmpty()) {
+            return ApiResponse.error(400, "executionId不能为空");
+        }
 
-        // 解析诊断结果为结构化数据
-        Map<String, Object> result = parseDiagnosisResult(diagnosis, params);
+        // 构建诊断上下文
+        TestDiagnosisService.DiagnosisContext context = testDiagnosisService.buildDiagnosisContext(executionId);
+
+        if (context.totalResults == 0) {
+            return ApiResponse.error(404, "未找到测试结果数据");
+        }
+
+        // 构建prompt
+        String prompt = testDiagnosisService.buildDiagnosisPrompt(context);
+        log.info("AI诊断prompt长度: {}", prompt.length());
+
+        // 调用AI - 使用完整prompt
+        AIServiceConfig config = new AIServiceConfig();
+        config.setServiceType("deepseek");
+        config.setModelName(deepSeekConfig.getModel());
+        config.setApiKey(deepSeekConfig.getKey());
+        config.setBaseUrl(deepSeekConfig.getBaseUrl());
+        config.setMaxTokens(deepSeekConfig.getMaxTokens());
+
+        // 直接调用callAI，使用构建好的完整prompt
+        String diagnosis = aiProviderService.callAI(config, prompt);
+        log.info("AI诊断响应长度: {}, 响应内容: {}", diagnosis.length(), diagnosis.substring(0, Math.min(200, diagnosis.length())));
+
+        // 解析诊断结果
+        Map<String, Object> result = parseDiagnosisResult(diagnosis, buildParamsFromContext(context));
+        result.put("executionId", executionId);
+        result.put("context", context);
 
         return ApiResponse.success(result);
     }
 
     /**
-     * 解析诊断结果
+     * 从诊断上下文构建参数Map
+     */
+    private Map<String, Object> buildParamsFromContext(TestDiagnosisService.DiagnosisContext context) {
+        Map<String, Object> params = new java.util.HashMap<>();
+        params.put("caseName", context.scopeName);
+        params.put("totalCases", context.totalResults);
+        params.put("passedCases", context.passedCount);
+        params.put("failedCases", context.failedCount);
+        params.put("environment", context.environment);
+        params.put("errorMessage", context.errorMessage);
+        return params;
+    }
+
+    /**
+     * 解析诊断结果为结构化数据
      */
     private Map<String, Object> parseDiagnosisResult(String diagnosis, Map<String, Object> originalParams) {
         Map<String, Object> result = new java.util.HashMap<>();
@@ -103,9 +281,9 @@ public class AIController {
     private String analyzeSeverity(String diagnosis) {
         if (diagnosis == null) return "low";
         String lower = diagnosis.toLowerCase();
-        if (lower.contains("严重") || lower.contains("高风险") || lower.contains("关键")) {
+        if (lower.contains("严重") || lower.contains("高风险") || lower.contains("关键") || lower.contains("blocking")) {
             return "high";
-        } else if (lower.contains("中等") || lower.contains("警告")) {
+        } else if (lower.contains("中等") || lower.contains("警告") || lower.contains("warning")) {
             return "medium";
         }
         return "low";
@@ -116,7 +294,7 @@ public class AIController {
         // 简单提取第一个明确的原因描述
         String[] lines = diagnosis.split("\n");
         for (String line : lines) {
-            if (line.contains("原因") || line.contains("可能原因") || line.contains("根本原因")) {
+            if (line.contains("原因") || line.contains("可能原因") || line.contains("根本原因") || line.contains("root cause")) {
                 return line.replaceAll("^[#*\\s]+", "").trim();
             }
         }
@@ -129,7 +307,7 @@ public class AIController {
 
         String[] lines = diagnosis.split("\n");
         for (String line : lines) {
-            if (line.contains("问题") && line.length() < 200) {
+            if ((line.contains("问题") || line.contains("issue") || line.contains("issue")) && line.length() < 300) {
                 issues.add(java.util.Map.of(
                         "title", "发现的问题",
                         "severity", "medium",
@@ -155,7 +333,8 @@ public class AIController {
 
         String[] lines = diagnosis.split("\n");
         for (String line : lines) {
-            if (line.contains("建议") || line.contains("修复") || line.contains("解决方案")) {
+            if (line.contains("建议") || line.contains("修复") || line.contains("解决方案") ||
+                    line.contains("suggestion") || line.contains("fix") || line.contains("solution")) {
                 suggestions.add(java.util.Map.of(
                         "title", "修复建议",
                         "content", line.replaceAll("^[#*\\s]+", "").trim(),

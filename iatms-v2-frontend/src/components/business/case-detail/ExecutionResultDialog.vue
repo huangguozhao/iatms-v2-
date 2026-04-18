@@ -329,7 +329,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   CircleCheckFilled,
@@ -516,49 +516,116 @@ function formatResponseHeaders(): string {
 const showAIDiagnosis = ref(false)
 const aiDiagnosisLoading = ref(false)
 const aiDiagnosisResult = ref<DiagnosisResult | null>(null)
+const aiDiagnosisStreamContent = ref('')  // 流式内容
+let eventSource: EventSource | null = null
+let isDiagnosing = false  // 防止重复请求
 
-// 触发 AI 诊断
-const triggerAIDiagnosis = async () => {
+// 触发 AI 诊断 (使用 SSE)
+const triggerAIDiagnosis = () => {
   if (!props.executionResult) return
+
+  // 防止重复请求
+  if (isDiagnosing) {
+    console.log('AI诊断正在进行中，忽略重复请求')
+    return
+  }
+
+  const executionId = props.executionResult.executionId || props.executionResult.recordId
+  if (!executionId) {
+    ElMessage.error('无法获取执行ID')
+    return
+  }
 
   showAIDiagnosis.value = true
   aiDiagnosisLoading.value = true
   aiDiagnosisResult.value = null
+  aiDiagnosisStreamContent.value = ''
+  isDiagnosing = true
 
-  try {
-    const result = props.executionResult
+  console.log('AI诊断开始: executionId=', executionId)
 
-    // 构建诊断参数
-    const params = {
-      caseName: result.caseName || result.scopeName || '',
-      expected: result.expectedResponse || result.expected || '',
-      actual: result.responseBody || result.actual || '',
-      errorMessage: result.errorMessage || result.failureMessage || '',
-      httpStatus: result.statusCode || result.httpStatus || undefined,
-      responseBody: result.responseBody || '',
-      apiPath: result.apiPath || '',
-      method: result.method || result.apiMethod || ''
+  // 清理之前的连接
+  if (eventSource) {
+    eventSource.close()
+    eventSource = null
+  }
+
+  // 创建 SSE 连接
+  eventSource = aiApi.diagnoseFailureSSE(executionId)
+
+  eventSource.onopen = () => {
+    console.log('SSE连接已打开')
+  }
+
+  // 接收上下文信息
+  eventSource.addEventListener('context', (event) => {
+    console.log('收到上下文:', event.data)
+    try {
+      const context = JSON.parse(event.data)
+      // 可以用context更新UI
+    } catch (e) {
+      console.error('解析上下文失败:', e)
     }
+  })
 
-    console.log('AI诊断参数:', params)
+  // 接收流式内容
+  eventSource.addEventListener('chunk', (event) => {
+    console.log('收到chunk:', event.data)
+    aiDiagnosisStreamContent.value += event.data
+  })
 
-    const response = await aiApi.diagnoseFailure(params)
-
-    if (response) {
-      aiDiagnosisResult.value = response
-      ElMessage.success('AI诊断完成')
-    } else {
-      ElMessage.error('AI诊断失败')
-      aiDiagnosisResult.value = null
-    }
-  } catch (error: any) {
-    console.error('AI诊断失败:', error)
-    ElMessage.error(error?.message || 'AI诊断失败，请稍后重试')
-    aiDiagnosisResult.value = null
-  } finally {
+  // 接收错误
+  eventSource.addEventListener('error', (event) => {
+    console.error('SSE错误:', event)
     aiDiagnosisLoading.value = false
+    isDiagnosing = false
+    ElMessage.error('AI诊断失败，请稍后重试')
+  })
+
+  // 接收完成
+  eventSource.addEventListener('done', (event) => {
+    console.log('AI诊断完成:', event.data)
+    aiDiagnosisLoading.value = false
+    isDiagnosing = false
+    try {
+      const result = JSON.parse(event.data)
+      aiDiagnosisResult.value = result
+      if (result && result.analysis) {
+        ElMessage.success('AI诊断完成')
+      }
+    } catch (e) {
+      console.error('解析诊断结果失败:', e)
+      ElMessage.error('解析诊断结果失败')
+    }
+  })
+
+  // 超时处理
+  setTimeout(() => {
+    if (aiDiagnosisLoading.value) {
+      console.warn('AI诊断超时')
+      if (eventSource) {
+        eventSource.close()
+        eventSource = null
+      }
+      aiDiagnosisLoading.value = false
+      isDiagnosing = false
+      ElMessage.warning('AI诊断超时')
+    }
+  }, 5 * 60 * 1000) // 5分钟超时
+}
+
+// 清理 SSE 连接
+const cleanupSSE = () => {
+  if (eventSource) {
+    eventSource.close()
+    eventSource = null
   }
 }
+
+// 组件卸载时清理
+onUnmounted(() => {
+  cleanupSSE()
+})
 </script>
 
 <style scoped lang="scss">
